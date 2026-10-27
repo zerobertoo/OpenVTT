@@ -23,6 +23,7 @@ Explorations that led here live in `docs/design-explorations/` (static prototype
 - Light and dark follow the browser (`prefers-color-scheme`). Tailwind's `dark:` variant uses the same media query.
 - Cascade layers: element defaults in `base`, named components (`.drawer`, `.msg`, `.dock`) in `components`. Utilities written in markup always win over both.
 - Rule of thumb: write utilities in markup; add a named class only when the same set repeats three times or the markup is generated (sheet fields).
+- Accessible widgets come from **Radix UI** primitives (`radix-ui`), wrapped in `src/components/ui/` and styled with our tokens: today Tabs (the drawer) and Tooltip. Reach for Radix Dialog, Popover, DropdownMenu or Toast when those are needed instead of hand-rolling them. Native `select`, `input` and `checkbox` stay native.
 - Motion uses the `motion` library (drawer, tab panels, chat messages, dice) and `canvas-confetti` (natural 20, loaded on demand). Everything respects `prefers-reduced-motion`.
 
 ## Palette

@@ -30,6 +30,15 @@ Open questions:
 - Maximum file size, since Universal VTT files embed the image as base64.
 - Which Dungeon Alchemist export options to document for users.
 
+## Client architecture
+
+Decided direction, to be done after the visual redesign settles (separate commits):
+
+- **TanStack Router** in place of the hand-written `usePath`: typed route params, and lazy-loaded routes so the table (PixiJS, `motion`) is not part of the login bundle.
+- **TanStack Query** for REST data (worlds, systems, a world's system info) in place of ad-hoc `useEffect` fetches. The live table state keeps coming from the WebSocket hook, not from Query.
+- Not planned: TanStack Start (the app is a self-hosted SPA served by the Fastify server), TanStack Form (forms are small and uncontrolled) and TanStack Table.
+- Revisit TanStack Virtual if chat history gets long enough to need windowing.
+
 ## Interface
 
 - 3D dice with physics for chat rolls (the current redesign ships animated dice without physics).
