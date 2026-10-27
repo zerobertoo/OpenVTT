@@ -1,0 +1,163 @@
+{
+  "sections": [
+    {
+      "id": "abilities",
+      "label": "abilities",
+      "fields": [
+        {
+          "id": "str",
+          "type": "number",
+          "label": "str",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "str_mod",
+          "type": "computed",
+          "label": "str_mod",
+          "formula": "floor((@str - 10) / 2)"
+        },
+        {
+          "id": "dex",
+          "type": "number",
+          "label": "dex",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "dex_mod",
+          "type": "computed",
+          "label": "dex_mod",
+          "formula": "floor((@dex - 10) / 2)"
+        },
+        {
+          "id": "con",
+          "type": "number",
+          "label": "con",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "con_mod",
+          "type": "computed",
+          "label": "con_mod",
+          "formula": "floor((@con - 10) / 2)"
+        },
+        {
+          "id": "int",
+          "type": "number",
+          "label": "int",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "int_mod",
+          "type": "computed",
+          "label": "int_mod",
+          "formula": "floor((@int - 10) / 2)"
+        },
+        {
+          "id": "wis",
+          "type": "number",
+          "label": "wis",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "wis_mod",
+          "type": "computed",
+          "label": "wis_mod",
+          "formula": "floor((@wis - 10) / 2)"
+        },
+        {
+          "id": "cha",
+          "type": "number",
+          "label": "cha",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "cha_mod",
+          "type": "computed",
+          "label": "cha_mod",
+          "formula": "floor((@cha - 10) / 2)"
+        }
+      ]
+    },
+    {
+      "id": "combat",
+      "label": "combat",
+      "fields": [
+        {
+          "id": "challenge",
+          "type": "text",
+          "label": "challenge"
+        },
+        {
+          "id": "ac",
+          "type": "number",
+          "label": "ac",
+          "default": 10
+        },
+        {
+          "id": "speed",
+          "type": "number",
+          "label": "speed",
+          "default": 30
+        },
+        {
+          "id": "hp",
+          "type": "number",
+          "label": "hp",
+          "default": 10
+        },
+        {
+          "id": "hp_max",
+          "type": "number",
+          "label": "hp_max",
+          "default": 10
+        },
+        {
+          "id": "initiative",
+          "type": "computed",
+          "label": "initiative",
+          "formula": "@dex_mod"
+        },
+        {
+          "id": "attacks",
+          "type": "list",
+          "label": "attacks",
+          "itemFields": [
+            {
+              "id": "attack_name",
+              "type": "text",
+              "label": "attack_name"
+            },
+            {
+              "id": "attack_bonus",
+              "type": "number",
+              "label": "attack_bonus"
+            },
+            {
+              "id": "attack_damage",
+              "type": "text",
+              "label": "attack_damage"
+            }
+          ]
+        },
+        {
+          "id": "notes",
+          "type": "text",
+          "label": "notes",
+          "multiline": true
+        }
+      ]
+    }
+  ]
+}

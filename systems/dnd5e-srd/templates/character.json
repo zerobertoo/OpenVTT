@@ -1,0 +1,505 @@
+{
+  "sections": [
+    {
+      "id": "basics",
+      "label": "basics",
+      "fields": [
+        {
+          "id": "class",
+          "type": "text",
+          "label": "class"
+        },
+        {
+          "id": "race",
+          "type": "text",
+          "label": "race"
+        },
+        {
+          "id": "background",
+          "type": "text",
+          "label": "background"
+        },
+        {
+          "id": "level",
+          "type": "number",
+          "label": "level",
+          "default": 1,
+          "min": 1,
+          "max": 20
+        },
+        {
+          "id": "proficiency",
+          "type": "computed",
+          "label": "proficiency",
+          "formula": "floor((@level - 1) / 4) + 2"
+        }
+      ]
+    },
+    {
+      "id": "abilities",
+      "label": "abilities",
+      "fields": [
+        {
+          "id": "str",
+          "type": "number",
+          "label": "str",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "str_mod",
+          "type": "computed",
+          "label": "str_mod",
+          "formula": "floor((@str - 10) / 2)"
+        },
+        {
+          "id": "dex",
+          "type": "number",
+          "label": "dex",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "dex_mod",
+          "type": "computed",
+          "label": "dex_mod",
+          "formula": "floor((@dex - 10) / 2)"
+        },
+        {
+          "id": "con",
+          "type": "number",
+          "label": "con",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "con_mod",
+          "type": "computed",
+          "label": "con_mod",
+          "formula": "floor((@con - 10) / 2)"
+        },
+        {
+          "id": "int",
+          "type": "number",
+          "label": "int",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "int_mod",
+          "type": "computed",
+          "label": "int_mod",
+          "formula": "floor((@int - 10) / 2)"
+        },
+        {
+          "id": "wis",
+          "type": "number",
+          "label": "wis",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "wis_mod",
+          "type": "computed",
+          "label": "wis_mod",
+          "formula": "floor((@wis - 10) / 2)"
+        },
+        {
+          "id": "cha",
+          "type": "number",
+          "label": "cha",
+          "default": 10,
+          "min": 1,
+          "max": 30
+        },
+        {
+          "id": "cha_mod",
+          "type": "computed",
+          "label": "cha_mod",
+          "formula": "floor((@cha - 10) / 2)"
+        }
+      ]
+    },
+    {
+      "id": "saves",
+      "label": "saves",
+      "fields": [
+        {
+          "id": "save_str_prof",
+          "type": "checkbox",
+          "label": "save_str_prof"
+        },
+        {
+          "id": "save_str",
+          "type": "computed",
+          "label": "save_str",
+          "formula": "@str_mod + @save_str_prof * @proficiency"
+        },
+        {
+          "id": "save_dex_prof",
+          "type": "checkbox",
+          "label": "save_dex_prof"
+        },
+        {
+          "id": "save_dex",
+          "type": "computed",
+          "label": "save_dex",
+          "formula": "@dex_mod + @save_dex_prof * @proficiency"
+        },
+        {
+          "id": "save_con_prof",
+          "type": "checkbox",
+          "label": "save_con_prof"
+        },
+        {
+          "id": "save_con",
+          "type": "computed",
+          "label": "save_con",
+          "formula": "@con_mod + @save_con_prof * @proficiency"
+        },
+        {
+          "id": "save_int_prof",
+          "type": "checkbox",
+          "label": "save_int_prof"
+        },
+        {
+          "id": "save_int",
+          "type": "computed",
+          "label": "save_int",
+          "formula": "@int_mod + @save_int_prof * @proficiency"
+        },
+        {
+          "id": "save_wis_prof",
+          "type": "checkbox",
+          "label": "save_wis_prof"
+        },
+        {
+          "id": "save_wis",
+          "type": "computed",
+          "label": "save_wis",
+          "formula": "@wis_mod + @save_wis_prof * @proficiency"
+        },
+        {
+          "id": "save_cha_prof",
+          "type": "checkbox",
+          "label": "save_cha_prof"
+        },
+        {
+          "id": "save_cha",
+          "type": "computed",
+          "label": "save_cha",
+          "formula": "@cha_mod + @save_cha_prof * @proficiency"
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "label": "skills",
+      "fields": [
+        {
+          "id": "skill_acrobatics_prof",
+          "type": "checkbox",
+          "label": "skill_acrobatics_prof"
+        },
+        {
+          "id": "skill_acrobatics",
+          "type": "computed",
+          "label": "skill_acrobatics",
+          "formula": "@dex_mod + @skill_acrobatics_prof * @proficiency"
+        },
+        {
+          "id": "skill_animal_handling_prof",
+          "type": "checkbox",
+          "label": "skill_animal_handling_prof"
+        },
+        {
+          "id": "skill_animal_handling",
+          "type": "computed",
+          "label": "skill_animal_handling",
+          "formula": "@wis_mod + @skill_animal_handling_prof * @proficiency"
+        },
+        {
+          "id": "skill_arcana_prof",
+          "type": "checkbox",
+          "label": "skill_arcana_prof"
+        },
+        {
+          "id": "skill_arcana",
+          "type": "computed",
+          "label": "skill_arcana",
+          "formula": "@int_mod + @skill_arcana_prof * @proficiency"
+        },
+        {
+          "id": "skill_athletics_prof",
+          "type": "checkbox",
+          "label": "skill_athletics_prof"
+        },
+        {
+          "id": "skill_athletics",
+          "type": "computed",
+          "label": "skill_athletics",
+          "formula": "@str_mod + @skill_athletics_prof * @proficiency"
+        },
+        {
+          "id": "skill_deception_prof",
+          "type": "checkbox",
+          "label": "skill_deception_prof"
+        },
+        {
+          "id": "skill_deception",
+          "type": "computed",
+          "label": "skill_deception",
+          "formula": "@cha_mod + @skill_deception_prof * @proficiency"
+        },
+        {
+          "id": "skill_history_prof",
+          "type": "checkbox",
+          "label": "skill_history_prof"
+        },
+        {
+          "id": "skill_history",
+          "type": "computed",
+          "label": "skill_history",
+          "formula": "@int_mod + @skill_history_prof * @proficiency"
+        },
+        {
+          "id": "skill_insight_prof",
+          "type": "checkbox",
+          "label": "skill_insight_prof"
+        },
+        {
+          "id": "skill_insight",
+          "type": "computed",
+          "label": "skill_insight",
+          "formula": "@wis_mod + @skill_insight_prof * @proficiency"
+        },
+        {
+          "id": "skill_intimidation_prof",
+          "type": "checkbox",
+          "label": "skill_intimidation_prof"
+        },
+        {
+          "id": "skill_intimidation",
+          "type": "computed",
+          "label": "skill_intimidation",
+          "formula": "@cha_mod + @skill_intimidation_prof * @proficiency"
+        },
+        {
+          "id": "skill_investigation_prof",
+          "type": "checkbox",
+          "label": "skill_investigation_prof"
+        },
+        {
+          "id": "skill_investigation",
+          "type": "computed",
+          "label": "skill_investigation",
+          "formula": "@int_mod + @skill_investigation_prof * @proficiency"
+        },
+        {
+          "id": "skill_medicine_prof",
+          "type": "checkbox",
+          "label": "skill_medicine_prof"
+        },
+        {
+          "id": "skill_medicine",
+          "type": "computed",
+          "label": "skill_medicine",
+          "formula": "@wis_mod + @skill_medicine_prof * @proficiency"
+        },
+        {
+          "id": "skill_nature_prof",
+          "type": "checkbox",
+          "label": "skill_nature_prof"
+        },
+        {
+          "id": "skill_nature",
+          "type": "computed",
+          "label": "skill_nature",
+          "formula": "@int_mod + @skill_nature_prof * @proficiency"
+        },
+        {
+          "id": "skill_perception_prof",
+          "type": "checkbox",
+          "label": "skill_perception_prof"
+        },
+        {
+          "id": "skill_perception",
+          "type": "computed",
+          "label": "skill_perception",
+          "formula": "@wis_mod + @skill_perception_prof * @proficiency"
+        },
+        {
+          "id": "skill_performance_prof",
+          "type": "checkbox",
+          "label": "skill_performance_prof"
+        },
+        {
+          "id": "skill_performance",
+          "type": "computed",
+          "label": "skill_performance",
+          "formula": "@cha_mod + @skill_performance_prof * @proficiency"
+        },
+        {
+          "id": "skill_persuasion_prof",
+          "type": "checkbox",
+          "label": "skill_persuasion_prof"
+        },
+        {
+          "id": "skill_persuasion",
+          "type": "computed",
+          "label": "skill_persuasion",
+          "formula": "@cha_mod + @skill_persuasion_prof * @proficiency"
+        },
+        {
+          "id": "skill_religion_prof",
+          "type": "checkbox",
+          "label": "skill_religion_prof"
+        },
+        {
+          "id": "skill_religion",
+          "type": "computed",
+          "label": "skill_religion",
+          "formula": "@int_mod + @skill_religion_prof * @proficiency"
+        },
+        {
+          "id": "skill_sleight_of_hand_prof",
+          "type": "checkbox",
+          "label": "skill_sleight_of_hand_prof"
+        },
+        {
+          "id": "skill_sleight_of_hand",
+          "type": "computed",
+          "label": "skill_sleight_of_hand",
+          "formula": "@dex_mod + @skill_sleight_of_hand_prof * @proficiency"
+        },
+        {
+          "id": "skill_stealth_prof",
+          "type": "checkbox",
+          "label": "skill_stealth_prof"
+        },
+        {
+          "id": "skill_stealth",
+          "type": "computed",
+          "label": "skill_stealth",
+          "formula": "@dex_mod + @skill_stealth_prof * @proficiency"
+        },
+        {
+          "id": "skill_survival_prof",
+          "type": "checkbox",
+          "label": "skill_survival_prof"
+        },
+        {
+          "id": "skill_survival",
+          "type": "computed",
+          "label": "skill_survival",
+          "formula": "@wis_mod + @skill_survival_prof * @proficiency"
+        },
+        {
+          "id": "passive_perception",
+          "type": "computed",
+          "label": "passive_perception",
+          "formula": "10 + @skill_perception"
+        }
+      ]
+    },
+    {
+      "id": "combat",
+      "label": "combat",
+      "fields": [
+        {
+          "id": "ac",
+          "type": "number",
+          "label": "ac",
+          "default": 10
+        },
+        {
+          "id": "initiative",
+          "type": "computed",
+          "label": "initiative",
+          "formula": "@dex_mod"
+        },
+        {
+          "id": "speed",
+          "type": "number",
+          "label": "speed",
+          "default": 30
+        },
+        {
+          "id": "hp",
+          "type": "number",
+          "label": "hp",
+          "default": 10
+        },
+        {
+          "id": "hp_max",
+          "type": "number",
+          "label": "hp_max",
+          "default": 10
+        },
+        {
+          "id": "hp_temp",
+          "type": "number",
+          "label": "hp_temp",
+          "default": 0
+        },
+        {
+          "id": "attacks",
+          "type": "list",
+          "label": "attacks",
+          "itemFields": [
+            {
+              "id": "attack_name",
+              "type": "text",
+              "label": "attack_name"
+            },
+            {
+              "id": "attack_bonus",
+              "type": "number",
+              "label": "attack_bonus"
+            },
+            {
+              "id": "attack_damage",
+              "type": "text",
+              "label": "attack_damage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "equipment",
+      "label": "equipment",
+      "fields": [
+        {
+          "id": "inventory",
+          "type": "list",
+          "label": "inventory",
+          "itemFields": [
+            {
+              "id": "item",
+              "type": "text",
+              "label": "item"
+            },
+            {
+              "id": "quantity",
+              "type": "number",
+              "label": "quantity",
+              "default": 1
+            }
+          ]
+        },
+        {
+          "id": "notes",
+          "type": "text",
+          "label": "notes",
+          "multiline": true
+        }
+      ]
+    }
+  ]
+}

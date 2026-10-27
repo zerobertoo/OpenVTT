@@ -1,0 +1,21 @@
+{
+  "id": "dnd5e-srd",
+  "name": "D&D 5e (SRD 5.1)",
+  "version": "0.1.0",
+  "author": "OpenVTT contributors",
+  "license": "CC-BY-4.0",
+  "attribution": "This work includes material taken from the System Reference Document 5.1 (SRD 5.1) by Wizards of the Coast LLC, available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "minOpenVTT": "0.1.0",
+  "actorTypes": {
+    "character": {
+      "template": "templates/character.json"
+    },
+    "npc": {
+      "template": "templates/npc.json"
+    }
+  },
+  "locales": [
+    "en",
+    "pt-br"
+  ]
+}
