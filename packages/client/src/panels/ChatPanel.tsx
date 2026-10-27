@@ -47,10 +47,7 @@ function Die({ sides, value, kept, index, animate }: { sides: number; value: num
         {sides === 6 ? (
           <rect x="4" y="4" width="24" height="24" rx="5" fill="none" stroke="currentColor" strokeWidth="2" />
         ) : (
-          <>
-            <path d="M16 2l12 7v14l-12 7L4 23V9z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            {sides === 20 && <path d="M16 8.5l6.5 11.5h-13z" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" opacity="0.6" />}
-          </>
+          <path d="M16 2l12 7v14l-12 7L4 23V9z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
         )}
       </svg>
       <span>{shown}</span>
