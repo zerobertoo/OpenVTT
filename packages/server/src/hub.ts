@@ -1,14 +1,7 @@
 import type { IncomingMessage, Server } from "node:http";
-import { WebSocketServer, type WebSocket } from "ws";
+import { type MessageDto, type ServerMessage, type TokenDto, type WorldRole, type WorldStateDto, WS_PATH } from "@openvtt/shared";
+import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
-import {
-  WS_PATH,
-  type MessageDto,
-  type ServerMessage,
-  type TokenDto,
-  type WorldRole,
-  type WorldStateDto,
-} from "@openvtt/shared";
 import { canReadMessage } from "./chat.ts";
 import { AppError } from "./errors.ts";
 import type { Services } from "./services.ts";
@@ -163,8 +156,7 @@ export class Hub {
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
       if (this.s.tokens.canSee(after, c.viewer, activeSceneId)) this.send(c, { type: "token.upsert", token: after });
-      else if (before && this.s.tokens.canSee(before, c.viewer, activeSceneId))
-        this.send(c, { type: "token.remove", tokenId: after.id });
+      else if (before && this.s.tokens.canSee(before, c.viewer, activeSceneId)) this.send(c, { type: "token.remove", tokenId: after.id });
     }
   }
 

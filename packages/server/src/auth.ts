@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { hash, verify } from "@node-rs/argon2";
 import type { Locale, UserDto } from "@openvtt/shared";
-import { transaction, type Db } from "./db.ts";
+import { type Db, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -107,9 +107,7 @@ export class AuthService {
   /** Admin-only password reset (no email server required). */
   async resetPassword(actor: UserDto, targetUsername: string, newPassword: string): Promise<void> {
     if (actor.role !== "admin") throw new AppError("forbidden");
-    const target = this.db.prepare("SELECT id FROM users WHERE username = ?").get(targetUsername) as
-      | { id: string }
-      | undefined;
+    const target = this.db.prepare("SELECT id FROM users WHERE username = ?").get(targetUsername) as { id: string } | undefined;
     if (!target) throw new AppError("not_found");
     this.db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(await hash(newPassword), target.id);
     this.db.prepare("DELETE FROM sessions WHERE user_id = ?").run(target.id);

@@ -1,6 +1,6 @@
+import { type Locale, SUPPORTED_LOCALES } from "@openvtt/shared";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { SUPPORTED_LOCALES, type Locale } from "@openvtt/shared";
 import en from "./en.json";
 import ptBr from "./pt-br.json";
 

@@ -1,31 +1,31 @@
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
-import { z, ZodError } from "zod";
 import {
   ALLOWED_IMAGE_TYPES,
-  MAX_UPLOAD_BYTES,
-  PLAYER_EDITABLE_TOKEN_FIELDS,
   createActorSchema,
   createSceneSchema,
   createTokenSchema,
   createWorldSchema,
   credentialsSchema,
+  type ErrorCode,
   joinWorldSchema,
+  MAX_UPLOAD_BYTES,
+  PLAYER_EDITABLE_TOKEN_FIELDS,
   passwordSchema,
   sendMessageSchema,
+  type UserDto,
   updateActorSchema,
   updateProfileSchema,
   updateSceneSchema,
   updateTokenSchema,
   updateWorldSchema,
   usernameSchema,
-  type ErrorCode,
-  type UserDto,
 } from "@openvtt/shared";
+import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
+import { ZodError, z } from "zod";
 import { SESSION_TTL_MS } from "./auth.ts";
 import { openDatabase } from "./db.ts";
 import { AppError } from "./errors.ts";
@@ -62,10 +62,8 @@ export function buildApp(options: AppOptions) {
     db.close();
   });
 
-  app.addContentTypeParser(
-    [...ALLOWED_IMAGE_TYPES],
-    { parseAs: "buffer", bodyLimit: MAX_UPLOAD_BYTES },
-    (_req, body, done) => done(null, body),
+  app.addContentTypeParser([...ALLOWED_IMAGE_TYPES], { parseAs: "buffer", bodyLimit: MAX_UPLOAD_BYTES }, (_req, body, done) =>
+    done(null, body),
   );
 
   app.setErrorHandler((error, _req, reply) => {

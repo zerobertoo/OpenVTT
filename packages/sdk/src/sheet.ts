@@ -1,11 +1,14 @@
 import { z } from "zod";
-import { evaluateFormula, formulaReferences, parseFormula, FormulaError } from "./formula.ts";
+import { evaluateFormula, FormulaError, formulaReferences, parseFormula } from "./formula.ts";
 
 /** A label is either a translation key of the system's locale files or inline per-locale text. */
 export const labelSchema = z.union([z.string().max(200), z.record(z.string().max(200))]);
 export type Label = z.infer<typeof labelSchema>;
 
-const fieldId = z.string().regex(/^[a-z][a-z0-9_]*$/).max(40);
+const fieldId = z
+  .string()
+  .regex(/^[a-z][a-z0-9_]*$/)
+  .max(40);
 const base = { id: fieldId, label: labelSchema.optional() };
 
 const scalarFieldSchema = z.discriminatedUnion("type", [
@@ -15,7 +18,10 @@ const scalarFieldSchema = z.discriminatedUnion("type", [
   z.object({
     ...base,
     type: z.literal("select"),
-    options: z.array(z.object({ value: z.string().max(60), label: labelSchema.optional() })).min(1).max(100),
+    options: z
+      .array(z.object({ value: z.string().max(60), label: labelSchema.optional() }))
+      .min(1)
+      .max(100),
     default: z.string().optional(),
   }),
   z.object({ ...base, type: z.literal("computed"), formula: z.string().max(500) }),
@@ -24,7 +30,10 @@ const scalarFieldSchema = z.discriminatedUnion("type", [
 const listFieldSchema = z.object({
   ...base,
   type: z.literal("list"),
-  itemFields: z.array(scalarFieldSchema.refine((f) => f.type !== "computed", "computed fields are not allowed in lists")).min(1).max(20),
+  itemFields: z
+    .array(scalarFieldSchema.refine((f) => f.type !== "computed", "computed fields are not allowed in lists"))
+    .min(1)
+    .max(20),
 });
 
 export const fieldSchema = z.union([scalarFieldSchema, listFieldSchema]);
@@ -32,9 +41,7 @@ export type SheetField = z.infer<typeof fieldSchema>;
 
 export const sheetTemplateSchema = z
   .object({
-    sections: z
-      .array(z.object({ id: fieldId, label: labelSchema.optional(), fields: z.array(fieldSchema).max(200) }))
-      .max(30),
+    sections: z.array(z.object({ id: fieldId, label: labelSchema.optional(), fields: z.array(fieldSchema).max(200) })).max(30),
   })
   .superRefine((template, ctx) => {
     const fields = template.sections.flatMap((s) => s.fields);
@@ -174,7 +181,10 @@ export const actorTypeSchema = z.enum(["character", "npc"]);
 export type ActorType = z.infer<typeof actorTypeSchema>;
 
 export const systemManifestSchema = z.object({
-  id: z.string().regex(/^[a-z][a-z0-9-]*$/).max(40),
+  id: z
+    .string()
+    .regex(/^[a-z][a-z0-9-]*$/)
+    .max(40),
   name: z.string().min(1).max(80),
   version: z.string().max(20),
   author: z.string().max(120),

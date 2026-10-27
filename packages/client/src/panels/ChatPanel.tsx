@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
-import { motion, useReducedMotion } from "motion/react";
 import type { RollPart, RollResult } from "@openvtt/sdk";
 import type { MessageDto, WorldStateDto } from "@openvtt/shared";
+import { motion, useReducedMotion } from "motion/react";
+import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { Icon } from "../icons";
 import { ErrorMessage, useAction } from "../ui";
@@ -35,7 +35,13 @@ function useTumble(target: number, sides: number, animate: boolean) {
 function Die({ sides, value, kept, index, animate }: { sides: number; value: number; kept: boolean; index: number; animate: boolean }) {
   const shown = useTumble(value, sides, animate);
   const settled = shown === value;
-  const state = !kept ? "dropped" : sides === 20 && settled && value === 20 ? "crit" : sides === 20 && settled && value === 1 ? "fumble" : "";
+  const state = !kept
+    ? "dropped"
+    : sides === 20 && settled && value === 20
+      ? "crit"
+      : sides === 20 && settled && value === 1
+        ? "fumble"
+        : "";
   return (
     <motion.span
       className={`die ${state}`}
@@ -67,7 +73,11 @@ function RollDice({ roll, animate }: { roll: RollResult; animate: boolean }) {
           ))}
         </span>
       ))}
-      {roll.modifier !== 0 && <span className="roll-op">{roll.modifier > 0 ? "+" : "−"} {Math.abs(roll.modifier)}</span>}
+      {roll.modifier !== 0 && (
+        <span className="roll-op">
+          {roll.modifier > 0 ? "+" : "−"} {Math.abs(roll.modifier)}
+        </span>
+      )}
       <span className="roll-op">=</span>
       <motion.b
         className="roll-total"
@@ -100,7 +110,13 @@ function Message({ message, locale, color, isNew }: { message: MessageDto; local
 
   useEffect(() => {
     if (!animateDice || natural !== "twenty") return;
-    const timer = setTimeout(() => void import("canvas-confetti").then((m) => m.default({ particleCount: 90, spread: 70, origin: { x: 0.8, y: 0.6 }, disableForReducedMotion: true })), TUMBLE_MS + 250);
+    const timer = setTimeout(
+      () =>
+        void import("canvas-confetti").then((m) =>
+          m.default({ particleCount: 90, spread: 70, origin: { x: 0.8, y: 0.6 }, disableForReducedMotion: true }),
+        ),
+      TUMBLE_MS + 250,
+    );
     return () => clearTimeout(timer);
   }, [animateDice, natural]);
 
@@ -113,7 +129,9 @@ function Message({ message, locale, color, isNew }: { message: MessageDto; local
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 380, damping: 30 }}
     >
-      <span className="avatar" style={{ "--who": color ?? "var(--accent)" } as CSSProperties} aria-hidden="true">{Array.from(message.senderName)[0]?.toUpperCase()}</span>
+      <span className="avatar" style={{ "--who": color ?? "var(--accent)" } as CSSProperties} aria-hidden="true">
+        {Array.from(message.senderName)[0]?.toUpperCase()}
+      </span>
       <motion.div
         className="msg-body"
         animate={animateDice && natural === "one" ? { x: [0, -7, 7, -5, 5, 0] } : undefined}
@@ -123,7 +141,11 @@ function Message({ message, locale, color, isNew }: { message: MessageDto; local
           <strong>{message.senderName}</strong>
           <time>{time}</time>
           {tags.length > 0 && <span className="msg-tag">{tags.join(", ")}</span>}
-          {natural && <span className="msg-tag" style={{ color: natural === "twenty" ? "var(--crit)" : "var(--fumble)" }}>{t(natural === "twenty" ? "chat.naturalTwenty" : "chat.naturalOne")}</span>}
+          {natural && (
+            <span className="msg-tag" style={{ color: natural === "twenty" ? "var(--crit)" : "var(--fumble)" }}>
+              {t(natural === "twenty" ? "chat.naturalTwenty" : "chat.naturalOne")}
+            </span>
+          )}
         </div>
         {roll ? (
           <>
@@ -173,18 +195,32 @@ export function ChatPanel({ state, userId, locale }: { state: WorldStateDto; use
       </ul>
       <form className="chat-form" onSubmit={submit}>
         <div className="chat-input-row">
-          <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t("chat.placeholder")} aria-label={t("chat.placeholder")} maxLength={2000} />
-          <button type="submit" aria-label={t("chat.send")} title={t("chat.send")}><Icon name="send" /></button>
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={t("chat.placeholder")}
+            aria-label={t("chat.placeholder")}
+            maxLength={2000}
+          />
+          <button type="submit" aria-label={t("chat.send")} title={t("chat.send")}>
+            <Icon name="send" />
+          </button>
         </div>
         <div className="chat-options">
           <label>
             <span className="text-ink-2">{t("chat.to")}</span>
             <select value={recipient} onChange={(e) => setRecipient(e.target.value)}>
               <option value="">{t("chat.everyone")}</option>
-              {recipients.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
+              {recipients.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.displayName}
+                </option>
+              ))}
             </select>
           </label>
-          <label className="inline"><input type="checkbox" checked={gmOnly} onChange={(e) => setGmOnly(e.target.checked)} /> {t("chat.gmOnly")}</label>
+          <label className="inline">
+            <input type="checkbox" checked={gmOnly} onChange={(e) => setGmOnly(e.target.checked)} /> {t("chat.gmOnly")}
+          </label>
         </div>
         <ErrorMessage error={error} />
       </form>

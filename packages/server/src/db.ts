@@ -1,11 +1,12 @@
-import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 export type Db = DatabaseSync;
 
 /** Ordered migrations; the index + 1 is stored in `PRAGMA user_version`. Never edit a released entry. */
-const MIGRATIONS: string[] = [`
+const MIGRATIONS: string[] = [
+  `
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -37,7 +38,8 @@ CREATE TABLE IF NOT EXISTS invites (
   world_id TEXT NOT NULL REFERENCES worlds(id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL
 );
-`, `
+`,
+  `
 ALTER TABLE worlds ADD COLUMN system_id TEXT NOT NULL DEFAULT 'generic';
 ALTER TABLE worlds ADD COLUMN active_scene_id TEXT;
 ALTER TABLE worlds ADD COLUMN template_overrides TEXT NOT NULL DEFAULT '{}';
@@ -102,7 +104,8 @@ CREATE TABLE messages (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX messages_world ON messages (world_id, created_at);
-`];
+`,
+];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */
 export function openDatabase(path: string): Db {

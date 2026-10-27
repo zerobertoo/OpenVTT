@@ -1,7 +1,7 @@
+import type { SceneDto, TokenDto } from "@openvtt/shared";
+import { Application, Container, type FederatedPointerEvent, Graphics, Sprite, Text, Texture, type Ticker } from "pixi.js";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Application, Container, Graphics, Sprite, Text, Texture, type FederatedPointerEvent, type Ticker } from "pixi.js";
-import type { SceneDto, TokenDto } from "@openvtt/shared";
 import { assetUrl } from "./api";
 
 export type MapTool = "select" | "ruler";
@@ -127,7 +127,11 @@ export function MapView(props: Props) {
         } else if (rulerStart) {
           const end = toWorld(e);
           const scene = props_().scene;
-          ruler.clear().moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke({ width: 3 / world.scale.x, color: 0xffc914 });
+          ruler
+            .clear()
+            .moveTo(rulerStart.x, rulerStart.y)
+            .lineTo(end.x, end.y)
+            .stroke({ width: 3 / world.scale.x, color: 0xffc914 });
           const cells = scene ? Math.hypot(end.x - rulerStart.x, end.y - rulerStart.y) / scene.gridSize : 0;
           label.text = props_().formatDistance(cells);
           label.scale.set(1 / world.scale.x);
@@ -295,7 +299,10 @@ export function MapView(props: Props) {
           view.addChild(mask, sprite);
         });
       } else {
-        const initial = new Text({ text: token.name.slice(0, 2).toUpperCase(), style: { fill: 0xffffff, fontSize: Math.max(10, px / 3), fontWeight: "700", stroke: { color: 0x000000, width: 3 } } });
+        const initial = new Text({
+          text: token.name.slice(0, 2).toUpperCase(),
+          style: { fill: 0xffffff, fontSize: Math.max(10, px / 3), fontWeight: "700", stroke: { color: 0x000000, width: 3 } },
+        });
         initial.anchor.set(0.5);
         view.addChild(initial);
       }

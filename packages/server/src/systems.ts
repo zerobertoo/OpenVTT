@@ -1,14 +1,14 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, posix } from "node:path";
-import { unzipSync } from "fflate";
 import {
-  actorTypeSchema,
-  sheetTemplateSchema,
-  systemManifestSchema,
   type ActorType,
+  actorTypeSchema,
   type SheetTemplate,
   type SystemManifest,
+  sheetTemplateSchema,
+  systemManifestSchema,
 } from "@openvtt/sdk";
+import { unzipSync } from "fflate";
 import { AppError } from "./errors.ts";
 
 export const OPENVTT_VERSION = "0.1.0";

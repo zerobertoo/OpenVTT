@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import type { ActorType } from "@openvtt/sdk";
 import type { SystemInfoDto, WorldStateDto } from "@openvtt/shared";
-import { api, ApiError } from "../api";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ApiError, api } from "../api";
 import { ErrorMessage, useAction } from "../ui";
 
 function TemplateEditor({ worldId }: { worldId: string }) {
@@ -46,15 +46,34 @@ function TemplateEditor({ worldId }: { worldId: string }) {
       <label>
         {t("sheet.type")}
         <select value={type} onChange={(e) => setType(e.target.value as ActorType)}>
-          {(Object.keys(system.manifest.actorTypes) as ActorType[]).map((k) => <option key={k} value={k}>{t(k === "npc" ? "sheet.npc" : "sheet.character")}</option>)}
+          {(Object.keys(system.manifest.actorTypes) as ActorType[]).map((k) => (
+            <option key={k} value={k}>
+              {t(k === "npc" ? "sheet.npc" : "sheet.character")}
+            </option>
+          ))}
         </select>
       </label>
-      <textarea className="code" rows={14} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} aria-label={t("settings.template")} />
-      {jsonError && <p role="alert" className="error">{t("settings.invalidJson")}</p>}
+      <textarea
+        className="code"
+        rows={14}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        spellCheck={false}
+        aria-label={t("settings.template")}
+      />
+      {jsonError && (
+        <p role="alert" className="error">
+          {t("settings.invalidJson")}
+        </p>
+      )}
       <ErrorMessage error={error instanceof ApiError ? error : error} />
       <div className="row">
         <button onClick={save}>{t("common.save")}</button>
-        {system.overridden.includes(type) && <button className="secondary" onClick={reset}>{t("settings.resetTemplate")}</button>}
+        {system.overridden.includes(type) && (
+          <button className="secondary" onClick={reset}>
+            {t("settings.resetTemplate")}
+          </button>
+        )}
       </div>
     </section>
   );
@@ -79,21 +98,38 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
           <li key={m.userId}>
             <span className="dot" style={{ background: m.color }} />
             {m.displayName}
-            <span className="muted">{t(m.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")} · {t(m.online ? "table.online" : "table.offline")}</span>
+            <span className="muted">
+              {t(m.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")} · {t(m.online ? "table.online" : "table.offline")}
+            </span>
           </li>
         ))}
       </ul>
       {system && (
         <p className="muted">
           {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
-          {system.manifest.attribution && <><br />{system.manifest.attribution}</>}
+          {system.manifest.attribution && (
+            <>
+              <br />
+              {system.manifest.attribution}
+            </>
+          )}
         </p>
       )}
       {isGm && (
         <>
-          <button onClick={() => run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id)).code}`))}>{t("invite.create")}</button>
-          {inviteLink && <p>{t("invite.linkLabel")}: <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} size={40} /></p>}
-          <p><a href={api.exportUrl(state.id)} download>{t("settings.export")}</a></p>
+          <button onClick={() => run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id)).code}`))}>
+            {t("invite.create")}
+          </button>
+          {inviteLink && (
+            <p>
+              {t("invite.linkLabel")}: <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} size={40} />
+            </p>
+          )}
+          <p>
+            <a href={api.exportUrl(state.id)} download>
+              {t("settings.export")}
+            </a>
+          </p>
           <ErrorMessage error={error} />
           <TemplateEditor worldId={state.id} />
         </>

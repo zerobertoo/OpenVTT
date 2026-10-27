@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
+import type { SystemManifest } from "@openvtt/sdk";
 import { SUPPORTED_LOCALES, type UserDto, type WorldSummaryDto } from "@openvtt/shared";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "./api";
-import { Logo } from "./icons";
 import { normalizeLocale, setLocale } from "./i18n";
+import { Logo } from "./icons";
 import { Table } from "./Table";
 import { ErrorMessage, useAction } from "./ui";
-import type { SystemManifest } from "@openvtt/sdk";
 
 function usePath() {
   const [path, setPath] = useState(location.pathname);
@@ -36,7 +36,9 @@ export function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
         }}
       >
         {SUPPORTED_LOCALES.map((l) => (
-          <option key={l} value={l}>{t(`language.${l}`)}</option>
+          <option key={l} value={l}>
+            {t(`language.${l}`)}
+          </option>
         ))}
       </select>
     </label>
@@ -48,7 +50,11 @@ function AccountControls({ user, onLogout }: { user: UserDto | null; onLogout: (
   return (
     <div className="account">
       <LanguageSwitcher signedIn={!!user} />
-      {user && <button className="link" onClick={onLogout}>{t("auth.logout")} ({user.username})</button>}
+      {user && (
+        <button className="link" onClick={onLogout}>
+          {t("auth.logout")} ({user.username})
+        </button>
+      )}
     </div>
   );
 }
@@ -75,10 +81,19 @@ function AuthForm({ onAuthenticated }: { onAuthenticated: (user: UserDto) => voi
       <h1>{t("auth.welcomeTitle")}</h1>
       <p className="muted">{t("auth.welcomeText")}</p>
       <form className="card" onSubmit={submit}>
-        <label>{t("auth.username")}<input name="username" autoComplete="username" required /></label>
+        <label>
+          {t("auth.username")}
+          <input name="username" autoComplete="username" required />
+        </label>
         <label>
           {t("auth.password")}
-          <input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={8} />
+          <input
+            name="password"
+            type="password"
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            required
+            minLength={8}
+          />
         </label>
         <ErrorMessage error={error} />
         <button type="submit">{t(mode === "login" ? "auth.login" : "auth.register")}</button>
@@ -125,7 +140,11 @@ function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) =
   };
 
   const installSystem = (file: File | undefined) => {
-    if (file) void run(async () => { await api.installSystem(file); await loadSystems(); });
+    if (file)
+      void run(async () => {
+        await api.installSystem(file);
+        await loadSystems();
+      });
   };
 
   return (
@@ -136,7 +155,9 @@ function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) =
         <ul className="world-list">
           {worlds.map((w) => (
             <li key={w.id} className="world-item">
-              <span className="world-badge" aria-hidden="true">{Array.from(w.name)[0]?.toUpperCase()}</span>
+              <span className="world-badge" aria-hidden="true">
+                {Array.from(w.name)[0]?.toUpperCase()}
+              </span>
               <span className="info">
                 <strong>{w.name}</strong>
                 <span className="muted">{t(w.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")}</span>
@@ -148,19 +169,32 @@ function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) =
       </div>
       <form className="card" onSubmit={create}>
         <h2>{t("worlds.newTitle")}</h2>
-        <label>{t("worlds.newName")}<input name="name" required maxLength={80} /></label>
+        <label>
+          {t("worlds.newName")}
+          <input name="name" required maxLength={80} />
+        </label>
         <label>
           {t("worlds.system")}
           <select name="systemId" defaultValue="generic">
-            {systems.map((s) => <option key={s.id} value={s.id}>{s.name} {s.version}</option>)}
+            {systems.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} {s.version}
+              </option>
+            ))}
           </select>
         </label>
         <button type="submit">{t("worlds.create")}</button>
       </form>
       <div className="card worlds-actions">
-        <label>{t("worlds.import")}<input type="file" accept=".zip,application/zip" onChange={(e) => importWorld(e.target.files?.[0])} /></label>
+        <label>
+          {t("worlds.import")}
+          <input type="file" accept=".zip,application/zip" onChange={(e) => importWorld(e.target.files?.[0])} />
+        </label>
         {user.role === "admin" && (
-          <label>{t("worlds.installSystem")}<input type="file" accept=".zip,application/zip" onChange={(e) => installSystem(e.target.files?.[0])} /></label>
+          <label>
+            {t("worlds.installSystem")}
+            <input type="file" accept=".zip,application/zip" onChange={(e) => installSystem(e.target.files?.[0])} />
+          </label>
         )}
       </div>
       <ErrorMessage error={error} />
@@ -186,8 +220,14 @@ function JoinInvite({ code, user, navigate }: { code: string; user: UserDto; nav
   return (
     <form className="card" onSubmit={submit}>
       <h1 className="page-title">{t("invite.title")}</h1>
-      <label>{t("invite.displayName")}<input name="displayName" defaultValue={user.username} required maxLength={40} /></label>
-      <label>{t("invite.color")}<input name="color" type="color" defaultValue="#3d6fd8" /></label>
+      <label>
+        {t("invite.displayName")}
+        <input name="displayName" defaultValue={user.username} required maxLength={40} />
+      </label>
+      <label>
+        {t("invite.color")}
+        <input name="color" type="color" defaultValue="#3d6fd8" />
+      </label>
       <ErrorMessage error={error} />
       <button type="submit">{t("invite.join")}</button>
     </form>
@@ -237,7 +277,10 @@ export function App() {
   return (
     <main className="app-main">
       <header className="app-header">
-        <span className="brand"><Logo />{t("app.title")}</span>
+        <span className="brand">
+          <Logo />
+          {t("app.title")}
+        </span>
         {account}
       </header>
       {body}

@@ -1,11 +1,11 @@
-import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
+import type { TokenDto, UserDto } from "@openvtt/shared";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Tabs } from "radix-ui";
-import type { TokenDto, UserDto } from "@openvtt/shared";
+import { type CSSProperties, type ReactNode, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Tip, TipProvider } from "./components/ui/tooltip";
-import { Icon, Logo, type IconName } from "./icons";
-import { MapView, type MapTool } from "./MapView";
+import { Icon, type IconName, Logo } from "./icons";
+import { type MapTool, MapView } from "./MapView";
 import { ChatPanel } from "./panels/ChatPanel";
 import { ScenePanel } from "./panels/ScenePanel";
 import { SettingsPanel } from "./panels/SettingsPanel";
@@ -40,11 +40,20 @@ export function Table({ worldId, user, navigate, account }: Props) {
   );
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
 
-  if (!state) return <main className="app-main"><p>{t(connected ? "app.loading" : "table.connecting")}</p></main>;
+  if (!state)
+    return (
+      <main className="app-main">
+        <p>{t(connected ? "app.loading" : "table.connecting")}</p>
+      </main>
+    );
 
   const isGm = state.yourRole === "gm";
   // Players always follow the active scene; the GM can look at any scene.
-  const viewSceneId = isGm ? (gmViewSceneId && state.scenes.some((s) => s.id === gmViewSceneId) ? gmViewSceneId : state.activeSceneId) : state.activeSceneId;
+  const viewSceneId = isGm
+    ? gmViewSceneId && state.scenes.some((s) => s.id === gmViewSceneId)
+      ? gmViewSceneId
+      : state.activeSceneId
+    : state.activeSceneId;
   const scene = state.scenes.find((s) => s.id === viewSceneId) ?? null;
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
   const onlineMembers = state.members.filter((m) => m.online);
@@ -66,7 +75,9 @@ export function Table({ worldId, user, navigate, account }: Props) {
               canControl={canControl}
               onSelect={setSelectedTokenId}
               onMove={move}
-              formatDistance={(cells) => `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(cells * scene.gridDistance)} ${scene.distanceUnit}`}
+              formatDistance={(cells) =>
+                `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(cells * scene.gridDistance)} ${scene.distanceUnit}`
+              }
             />
           ) : (
             <p className="empty-map">{t(isGm ? "map.emptyGm" : "map.emptyPlayer")}</p>
@@ -74,11 +85,17 @@ export function Table({ worldId, user, navigate, account }: Props) {
 
           <header className="chrome title-chip">
             <Tip label={t("table.back")}>
-              <button className="back-button" aria-label={t("table.back")} onClick={() => navigate("/")}><Icon name="back" /></button>
+              <button className="back-button" aria-label={t("table.back")} onClick={() => navigate("/")}>
+                <Icon name="back" />
+              </button>
             </Tip>
             <Logo />
             <strong>{state.name}</strong>
-            {!connected && <span className="status" role="status">{t("table.disconnected")}</span>}
+            {!connected && (
+              <span className="status" role="status">
+                {t("table.disconnected")}
+              </span>
+            )}
           </header>
 
           <div className="chrome dock" role="group" aria-label={t("map.tools")}>
@@ -94,7 +111,9 @@ export function Table({ worldId, user, navigate, account }: Props) {
           <div className="chrome online-chip">
             <span className="avatar-stack" aria-hidden="true">
               {onlineMembers.slice(0, 5).map((m) => (
-                <span key={m.userId} className="avatar" style={{ "--who": m.color } as CSSProperties}>{Array.from(m.displayName)[0]?.toUpperCase()}</span>
+                <span key={m.userId} className="avatar" style={{ "--who": m.color } as CSSProperties}>
+                  {Array.from(m.displayName)[0]?.toUpperCase()}
+                </span>
               ))}
             </span>
             {onlineMembers.length} {t("table.online")}

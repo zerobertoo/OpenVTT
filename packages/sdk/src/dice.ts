@@ -63,7 +63,7 @@ export function rollDice(input: string, rng: Rng): RollResult {
     let kept = results.map((_, i) => i);
     if (useAdvantage) {
       const pickHigher = advantage === "adv";
-      const winner = (results[0]! >= results[1]!) === pickHigher ? 0 : 1;
+      const winner = results[0]! >= results[1]! === pickHigher ? 0 : 1;
       kept = [winner];
     }
     parts.push({ sign, count, sides, results, kept });
@@ -71,7 +71,6 @@ export function rollDice(input: string, rng: Rng): RollResult {
   if (consumed !== body.length) throw new DiceError("invalid notation");
   if (advantage && !advantageUsed) throw new DiceError("adv/dis needs a single d20");
 
-  const total =
-    modifier + parts.reduce((sum, p) => sum + p.sign * p.kept.reduce((s, i) => s + p.results[i]!, 0), 0);
+  const total = modifier + parts.reduce((sum, p) => sum + p.sign * p.kept.reduce((s, i) => s + p.results[i]!, 0), 0);
   return { notation: input.trim(), parts, modifier, advantage, total };
 }

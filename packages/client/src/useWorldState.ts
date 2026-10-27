@@ -1,5 +1,5 @@
+import { type ClientMessage, type ServerMessage, type WorldStateDto, WS_PATH } from "@openvtt/shared";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { WS_PATH, type ClientMessage, type ServerMessage, type WorldStateDto } from "@openvtt/shared";
 
 const RECONNECT_DELAY_MS = 1500;
 const MAX_CLIENT_MESSAGES = 300;

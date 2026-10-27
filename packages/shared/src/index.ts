@@ -1,12 +1,5 @@
+import { type ActorType, actorTypeSchema, type RollResult, type SheetData, type SheetTemplate, type SystemManifest } from "@openvtt/sdk";
 import { z } from "zod";
-import {
-  actorTypeSchema,
-  type ActorType,
-  type RollResult,
-  type SheetData,
-  type SheetTemplate,
-  type SystemManifest,
-} from "@openvtt/sdk";
 
 /** Supported UI locales; the first one is the fallback. */
 export const SUPPORTED_LOCALES = ["en", "pt-br"] as const;
@@ -156,9 +149,7 @@ export type ServerMessage =
   | { type: "error"; code: ErrorCode };
 
 /** Client → server messages. */
-export type ClientMessage =
-  | { type: "world.resync" }
-  | { type: "token.move"; tokenId: string; x: number; y: number };
+export type ClientMessage = { type: "world.resync" } | { type: "token.move"; tokenId: string; x: number; y: number };
 
 export const WS_PATH = "/ws";
 

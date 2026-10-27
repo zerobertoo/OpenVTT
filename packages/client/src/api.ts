@@ -1,14 +1,5 @@
-import type {
-  ActorDto,
-  ErrorCode,
-  MessageDto,
-  SceneDto,
-  SystemInfoDto,
-  TokenDto,
-  UserDto,
-  WorldSummaryDto,
-} from "@openvtt/shared";
 import type { SystemManifest } from "@openvtt/sdk";
+import type { ActorDto, ErrorCode, MessageDto, SceneDto, SystemInfoDto, TokenDto, UserDto, WorldSummaryDto } from "@openvtt/shared";
 
 /** Error carrying a server error code (or "network") that maps to `errors.<code>` in translations. */
 export class ApiError extends Error {
@@ -64,13 +55,11 @@ export const api = {
   updateWorld: (worldId: string, body: object) => patch(`/api/worlds/${worldId}`, body),
   worldSystem: (worldId: string) => get<SystemInfoDto>(`/api/worlds/${worldId}/system`),
   createInvite: (worldId: string) => post<{ code: string }>(`/api/worlds/${worldId}/invites`),
-  join: (code: string, displayName: string, color: string) =>
-    post<WorldSummaryDto>(`/api/invites/${code}/join`, { displayName, color }),
+  join: (code: string, displayName: string, color: string) => post<WorldSummaryDto>(`/api/invites/${code}/join`, { displayName, color }),
   exportUrl: (worldId: string) => `/api/worlds/${worldId}/export`,
   importWorld: (zip: Blob) => request<WorldSummaryDto>("POST", "/api/worlds/import", zip, "application/zip"),
 
-  uploadAsset: (worldId: string, file: Blob) =>
-    request<{ id: string }>("POST", `/api/worlds/${worldId}/assets`, file),
+  uploadAsset: (worldId: string, file: Blob) => request<{ id: string }>("POST", `/api/worlds/${worldId}/assets`, file),
   createScene: (worldId: string, body: object) => post<SceneDto>(`/api/worlds/${worldId}/scenes`, body),
   updateScene: (sceneId: string, body: object) => patch<SceneDto>(`/api/scenes/${sceneId}`, body),
   deleteScene: (sceneId: string) => del(`/api/scenes/${sceneId}`),

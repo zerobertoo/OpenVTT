@@ -6,7 +6,11 @@ export function ErrorMessage({ error }: { error: unknown }) {
   const { t } = useTranslation();
   if (!error) return null;
   const code = error instanceof ApiError ? error.code : "internal_error";
-  return <p role="alert" className="error">{t(`errors.${code}`)}</p>;
+  return (
+    <p role="alert" className="error">
+      {t(`errors.${code}`)}
+    </p>
+  );
 }
 
 /** Runs an async action, exposing its pending state and last error for display. */

@@ -1,5 +1,5 @@
-import { WebSocket } from "ws";
 import type { ServerMessage } from "@openvtt/shared";
+import { WebSocket } from "ws";
 import { buildApp, SESSION_COOKIE } from "./app.ts";
 
 export type App = ReturnType<typeof buildApp>;

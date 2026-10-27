@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
 import { computeSheet, resolveLabel, type SheetField, type SheetTemplate, type SheetValue } from "@openvtt/sdk";
 import type { ActorDto, SystemInfoDto, WorldStateDto } from "@openvtt/shared";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { ErrorMessage, useAction } from "../ui";
 
@@ -20,21 +20,67 @@ function FieldInput({ field, value, label, labelFor, onCommit, readOnly }: Field
   const { t } = useTranslation();
   switch (field.type) {
     case "computed":
-      return <label>{label}<output>{value === null ? "—" : String(value)}</output></label>;
+      return (
+        <label>
+          {label}
+          <output>{value === null ? "—" : String(value)}</output>
+        </label>
+      );
     case "number":
-      return <label>{label}<input type="number" defaultValue={value as number} min={field.min} max={field.max} step="any" disabled={readOnly} onBlur={(e) => e.target.value !== "" && Number(e.target.value) !== value && onCommit(Number(e.target.value))} /></label>;
+      return (
+        <label>
+          {label}
+          <input
+            type="number"
+            defaultValue={value as number}
+            min={field.min}
+            max={field.max}
+            step="any"
+            disabled={readOnly}
+            onBlur={(e) => e.target.value !== "" && Number(e.target.value) !== value && onCommit(Number(e.target.value))}
+          />
+        </label>
+      );
     case "text":
-      return field.multiline
-        ? <label>{label}<textarea defaultValue={value as string} rows={4} maxLength={5000} disabled={readOnly} onBlur={(e) => e.target.value !== value && onCommit(e.target.value)} /></label>
-        : <label>{label}<input defaultValue={value as string} maxLength={5000} disabled={readOnly} onBlur={(e) => e.target.value !== value && onCommit(e.target.value)} /></label>;
+      return field.multiline ? (
+        <label>
+          {label}
+          <textarea
+            defaultValue={value as string}
+            rows={4}
+            maxLength={5000}
+            disabled={readOnly}
+            onBlur={(e) => e.target.value !== value && onCommit(e.target.value)}
+          />
+        </label>
+      ) : (
+        <label>
+          {label}
+          <input
+            defaultValue={value as string}
+            maxLength={5000}
+            disabled={readOnly}
+            onBlur={(e) => e.target.value !== value && onCommit(e.target.value)}
+          />
+        </label>
+      );
     case "checkbox":
-      return <label className="inline"><input type="checkbox" defaultChecked={value as boolean} disabled={readOnly} onChange={(e) => onCommit(e.target.checked)} /> {label}</label>;
+      return (
+        <label className="inline">
+          <input type="checkbox" defaultChecked={value as boolean} disabled={readOnly} onChange={(e) => onCommit(e.target.checked)} />{" "}
+          {label}
+        </label>
+      );
     case "select":
       return (
         <label>
           {label}
           <select defaultValue={value as string} disabled={readOnly} onChange={(e) => onCommit(e.target.value)}>
-            {field.options.map((o) => <option key={o.value} value={o.value}>{labelFor({ id: o.value, label: o.label })}</option>)}
+            {field.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {labelFor({ id: o.value, label: o.label })}
+              </option>
+            ))}
           </select>
         </label>
       );
@@ -57,17 +103,35 @@ function FieldInput({ field, value, label, labelFor, onCommit, readOnly }: Field
                   onCommit={(v) => update(rows.map((r, j) => (j === i ? { ...r, [item.id]: v as string | number | boolean } : r)))}
                 />
               ))}
-              {!readOnly && <button type="button" className="link danger" onClick={() => update(rows.filter((_, j) => j !== i))}>{t("common.delete")}</button>}
+              {!readOnly && (
+                <button type="button" className="link danger" onClick={() => update(rows.filter((_, j) => j !== i))}>
+                  {t("common.delete")}
+                </button>
+              )}
             </div>
           ))}
-          {!readOnly && <button type="button" className="secondary" onClick={() => update([...rows, {}])}>{t("sheet.addRow")}</button>}
+          {!readOnly && (
+            <button type="button" className="secondary" onClick={() => update([...rows, {}])}>
+              {t("sheet.addRow")}
+            </button>
+          )}
         </fieldset>
       );
     }
   }
 }
 
-function SheetForm({ actor, template, system, locale }: { actor: ActorDto; template: SheetTemplate; system: SystemInfoDto; locale: string }) {
+function SheetForm({
+  actor,
+  template,
+  system,
+  locale,
+}: {
+  actor: ActorDto;
+  template: SheetTemplate;
+  system: SystemInfoDto;
+  locale: string;
+}) {
   const { run, error } = useAction();
   const values = useMemo(() => computeSheet(template, actor.data), [template, actor.data]);
   const labelFor = (item: { id: string; label?: SheetField["label"] }) => resolveLabel(item.label, locale, system.strings, item.id);
@@ -128,7 +192,13 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
       <ul className="plain">
         {state.actors.map((a) => (
           <li key={a.id}>
-            <button className={a.id === selected?.id ? "" : "secondary"} aria-pressed={a.id === selected?.id} onClick={() => setSelectedId(a.id)}>{a.name}</button>
+            <button
+              className={a.id === selected?.id ? "" : "secondary"}
+              aria-pressed={a.id === selected?.id}
+              onClick={() => setSelectedId(a.id)}
+            >
+              {a.name}
+            </button>
             <span className="muted">{t(a.type === "npc" ? "sheet.npc" : "sheet.character")}</span>
           </li>
         ))}
@@ -147,12 +217,23 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
         <div className="row">
           <label>
             {t("sheet.owner")}
-            <select value={selected.ownerId ?? ""} onChange={(e) => run(() => api.updateActor(selected.id, { ownerId: e.target.value || null }))}>
+            <select
+              value={selected.ownerId ?? ""}
+              onChange={(e) => run(() => api.updateActor(selected.id, { ownerId: e.target.value || null }))}
+            >
               <option value="">{t("sheet.noOwner")}</option>
-              {state.members.filter((m) => m.role === "player").map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
+              {state.members
+                .filter((m) => m.role === "player")
+                .map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.displayName}
+                  </option>
+                ))}
             </select>
           </label>
-          <button className="danger" onClick={() => run(() => api.deleteActor(selected.id))}>{t("common.delete")}</button>
+          <button className="danger" onClick={() => run(() => api.deleteActor(selected.id))}>
+            {t("common.delete")}
+          </button>
         </div>
       )}
       {selected && template && system && <SheetForm actor={selected} template={template} system={system} locale={locale} />}

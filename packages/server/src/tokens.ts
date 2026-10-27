@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { z } from "zod";
 import type { createTokenSchema, TokenDto, updateTokenSchema, WorldRole } from "@openvtt/shared";
+import type { z } from "zod";
 import type { AssetService } from "./assets.ts";
-import { transaction, type Db } from "./db.ts";
+import { type Db, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 
 export interface Viewer {
@@ -54,9 +54,9 @@ export class TokenService {
 
   /** Token plus the world it belongs to, or null. */
   find(tokenId: string): { token: TokenDto; worldId: string } | null {
-    const row = this.db
-      .prepare("SELECT t.*, s.world_id FROM tokens t JOIN scenes s ON s.id = t.scene_id WHERE t.id = ?")
-      .get(tokenId) as (TokenRow & { world_id: string }) | undefined;
+    const row = this.db.prepare("SELECT t.*, s.world_id FROM tokens t JOIN scenes s ON s.id = t.scene_id WHERE t.id = ?").get(tokenId) as
+      | (TokenRow & { world_id: string })
+      | undefined;
     return row ? { token: this.toDto(row), worldId: row.world_id } : null;
   }
 
@@ -78,9 +78,7 @@ export class TokenService {
   }
 
   create(worldId: string, input: z.infer<typeof createTokenSchema>): TokenDto {
-    const sceneWorld = this.db.prepare("SELECT world_id FROM scenes WHERE id = ?").get(input.sceneId) as
-      | { world_id: string }
-      | undefined;
+    const sceneWorld = this.db.prepare("SELECT world_id FROM scenes WHERE id = ?").get(input.sceneId) as { world_id: string } | undefined;
     if (sceneWorld?.world_id !== worldId) throw new AppError("not_found");
     this.assertReferences(worldId, input.assetId, input.actorId, input.controllerIds);
     const id = randomUUID();
@@ -127,9 +125,7 @@ export class TokenService {
   private assertReferences(worldId: string, assetId: string | null, actorId: string | null, controllerIds: string[]) {
     if (!this.assets.belongsToWorld(assetId, worldId)) throw new AppError("asset_invalid");
     if (actorId) {
-      const actor = this.db.prepare("SELECT world_id FROM actors WHERE id = ?").get(actorId) as
-        | { world_id: string }
-        | undefined;
+      const actor = this.db.prepare("SELECT world_id FROM actors WHERE id = ?").get(actorId) as { world_id: string } | undefined;
       if (actor?.world_id !== worldId) throw new AppError("not_found");
     }
     const isMember = this.db.prepare("SELECT 1 FROM members WHERE world_id = ? AND user_id = ?");

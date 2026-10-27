@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { DiceError, rollDice, type RollResult } from "@openvtt/sdk";
+import { DiceError, type RollResult, rollDice } from "@openvtt/sdk";
 import type { MessageDto, MessageKind } from "@openvtt/shared";
 import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";
@@ -49,9 +49,9 @@ export class ChatService {
     input: { content: string; toUserId: string | null; gmOnly: boolean },
   ): MessageDto {
     if (input.toUserId !== null) {
-      const recipient = this.db
-        .prepare("SELECT role FROM members WHERE world_id = ? AND user_id = ?")
-        .get(worldId, input.toUserId) as { role: Viewer["role"] } | undefined;
+      const recipient = this.db.prepare("SELECT role FROM members WHERE world_id = ? AND user_id = ?").get(worldId, input.toUserId) as
+        | { role: Viewer["role"] }
+        | undefined;
       if (!recipient) throw new AppError("not_found");
       // Whispers are GM ↔ player only (PRD 6.4).
       if (sender.role !== "gm" && recipient.role !== "gm") throw new AppError("forbidden");
@@ -87,8 +87,16 @@ export class ChatService {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
-        message.id, worldId, message.userId, message.senderName, kind, message.toUserId,
-        message.gmOnly ? 1 : 0, message.content, roll ? JSON.stringify(roll) : null, message.createdAt,
+        message.id,
+        worldId,
+        message.userId,
+        message.senderName,
+        kind,
+        message.toUserId,
+        message.gmOnly ? 1 : 0,
+        message.content,
+        roll ? JSON.stringify(roll) : null,
+        message.createdAt,
       );
     return message;
   }

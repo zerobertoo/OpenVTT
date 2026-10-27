@@ -65,12 +65,25 @@ describe("sheets", () => {
   it("rejects templates with unknown references, cycles-free duplicates and bad formulas", () => {
     const bad = (fields: object[]) => sheetTemplateSchema.safeParse({ sections: [{ id: "s", fields }] }).success;
     expect(bad([{ id: "a", type: "computed", formula: "@missing" }])).toBe(false);
-    expect(bad([{ id: "a", type: "number" }, { id: "a", type: "number" }])).toBe(false);
+    expect(
+      bad([
+        { id: "a", type: "number" },
+        { id: "a", type: "number" },
+      ]),
+    ).toBe(false);
     expect(bad([{ id: "a", type: "computed", formula: "1 +" }])).toBe(false);
   });
   it("yields null for circular formulas instead of hanging", () => {
     const circular = sheetTemplateSchema.parse({
-      sections: [{ id: "s", fields: [{ id: "a", type: "computed", formula: "@b" }, { id: "b", type: "computed", formula: "@a" }] }],
+      sections: [
+        {
+          id: "s",
+          fields: [
+            { id: "a", type: "computed", formula: "@b" },
+            { id: "b", type: "computed", formula: "@a" },
+          ],
+        },
+      ],
     });
     expect(computeSheet(circular, {})).toEqual({ a: null, b: null });
   });

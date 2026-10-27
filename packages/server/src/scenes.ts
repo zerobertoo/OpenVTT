@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { z } from "zod";
 import type { createSceneSchema, SceneDto, updateSceneSchema } from "@openvtt/shared";
+import type { z } from "zod";
 import type { AssetService } from "./assets.ts";
-import { transaction, type Db } from "./db.ts";
+import { type Db, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 
 interface SceneRow {
@@ -42,9 +42,7 @@ export class SceneService {
   }
 
   worldIdOf(sceneId: string): string | null {
-    const row = this.db.prepare("SELECT world_id FROM scenes WHERE id = ?").get(sceneId) as
-      | { world_id: string }
-      | undefined;
+    const row = this.db.prepare("SELECT world_id FROM scenes WHERE id = ?").get(sceneId) as { world_id: string } | undefined;
     return row?.world_id ?? null;
   }
 
@@ -62,8 +60,17 @@ export class SceneService {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
-        id, worldId, input.name, input.assetId, input.width, input.height,
-        input.gridType, input.gridSize, input.gridDistance, input.distanceUnit, Date.now(),
+        id,
+        worldId,
+        input.name,
+        input.assetId,
+        input.width,
+        input.height,
+        input.gridType,
+        input.gridSize,
+        input.gridDistance,
+        input.distanceUnit,
+        Date.now(),
       );
     // The first scene of a world becomes active so players have something to see.
     this.db.prepare("UPDATE worlds SET active_scene_id = ? WHERE id = ? AND active_scene_id IS NULL").run(id, worldId);

@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { unzipSync, zipSync } from "fflate";
-import type { FastifyInstance, FastifyRequest } from "fastify";
-import { z } from "zod";
-import { actorTypeSchema, sheetTemplateSchema, validateSheetData, type SheetData } from "@openvtt/sdk";
+import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData } from "@openvtt/sdk";
 import { MAX_UPLOAD_BYTES, type UserDto } from "@openvtt/shared";
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import { unzipSync, zipSync } from "fflate";
+import { z } from "zod";
 import { transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 import type { Services } from "./services.ts";
@@ -39,9 +39,7 @@ const worldFileSchema = z.object({
       }),
     )
     .max(500),
-  actors: z
-    .array(z.object({ id, type: actorTypeSchema, name: z.string().max(80), data: z.record(z.unknown()) }))
-    .max(5000),
+  actors: z.array(z.object({ id, type: actorTypeSchema, name: z.string().max(80), data: z.record(z.unknown()) })).max(5000),
   tokens: z
     .array(
       z.object({
@@ -114,7 +112,13 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     const messages = s.chat
       .historyFor(worldId, gmView)
       .filter((m) => (m.kind === "chat" || m.kind === "roll") && m.toUserId === null && !m.gmOnly)
-      .map((m) => ({ senderName: m.senderName, kind: m.kind as "chat" | "roll", content: m.content, roll: m.roll, createdAt: m.createdAt }));
+      .map((m) => ({
+        senderName: m.senderName,
+        kind: m.kind as "chat" | "roll",
+        content: m.content,
+        roll: m.roll,
+        createdAt: m.createdAt,
+      }));
 
     const worldFile = {
       format: FORMAT,
@@ -132,7 +136,11 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       messages,
     };
     files["world.json"] = encode(worldFile);
-    const slug = world.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "world";
+    const slug =
+      world.name
+        .replace(/[^A-Za-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .toLowerCase() || "world";
     return reply
       .header("content-type", "application/zip")
       .header("content-disposition", `attachment; filename="${slug}.openvtt.zip"`)
@@ -170,9 +178,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       file.scenes.every((sc) => sc.assetId === null || assetIds.has(sc.assetId)) &&
       file.tokens.every(
         (t) =>
-          sceneIds.has(t.sceneId) &&
-          (t.assetId === null || assetIds.has(t.assetId)) &&
-          (t.actorId === null || actorIds.has(t.actorId)),
+          sceneIds.has(t.sceneId) && (t.assetId === null || assetIds.has(t.assetId)) && (t.actorId === null || actorIds.has(t.actorId)),
       ) &&
       file.assets.every((a) => entries[a.file] !== undefined);
     if (!refsOk) throw new AppError("import_invalid");
@@ -202,17 +208,28 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
             actorId: t.actorId ? idMap.get(t.actorId)! : null,
             controllerIds: [],
           });
-        s.db.prepare("UPDATE worlds SET template_overrides = ?, active_scene_id = ? WHERE id = ?").run(
-          JSON.stringify(file.world.templateOverrides),
-          file.world.activeSceneId ? (idMap.get(file.world.activeSceneId) ?? null) : null,
-          worldId,
-        );
+        s.db
+          .prepare("UPDATE worlds SET template_overrides = ?, active_scene_id = ? WHERE id = ?")
+          .run(
+            JSON.stringify(file.world.templateOverrides),
+            file.world.activeSceneId ? (idMap.get(file.world.activeSceneId) ?? null) : null,
+            worldId,
+          );
         const insertMessage = s.db.prepare(
           `INSERT INTO messages (id, world_id, user_id, sender_name, kind, to_user_id, gm_only, content, roll, created_at)
            VALUES (?, ?, ?, ?, ?, NULL, 0, ?, ?, ?)`,
         );
         for (const m of file.messages)
-          insertMessage.run(randomUUID(), worldId, user.id, m.senderName, m.kind, m.content, m.roll ? JSON.stringify(m.roll) : null, m.createdAt);
+          insertMessage.run(
+            randomUUID(),
+            worldId,
+            user.id,
+            m.senderName,
+            m.kind,
+            m.content,
+            m.roll ? JSON.stringify(m.roll) : null,
+            m.createdAt,
+          );
       });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError("import_invalid");
@@ -221,7 +238,5 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     return { id: worldId, name: file.world.name, role: "gm" };
   });
 
-  app.addContentTypeParser("application/zip", { parseAs: "buffer", bodyLimit: MAX_IMPORT_BYTES }, (_req, body, done) =>
-    done(null, body),
-  );
+  app.addContentTypeParser("application/zip", { parseAs: "buffer", bodyLimit: MAX_IMPORT_BYTES }, (_req, body, done) => done(null, body));
 }

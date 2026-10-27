@@ -1,5 +1,5 @@
-import type { ReactElement } from "react";
 import { Tooltip } from "radix-ui";
+import type { ReactElement } from "react";
 
 /** Wraps the app (or a screen) once so every `Tip` shares the same open delay. */
 export function TipProvider({ children }: { children: React.ReactNode }) {

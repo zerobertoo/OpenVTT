@@ -56,8 +56,7 @@ export function parseFormula(source: string): FormulaNode {
       left = { kind: "bin", op, left, right: parseUnary() };
     }
   };
-  const parseUnary = (): FormulaNode =>
-    takeOp("-") ? { kind: "neg", operand: parseUnary() } : parsePrimary();
+  const parseUnary = (): FormulaNode => (takeOp("-") ? { kind: "neg", operand: parseUnary() } : parsePrimary());
   const parsePrimary = (): FormulaNode => {
     const token = tokens[pos++];
     if (!token) throw new FormulaError("unexpected end");

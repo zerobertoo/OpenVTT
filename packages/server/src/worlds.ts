@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { MemberDto, UserDto, WorldRole, WorldSummaryDto } from "@openvtt/shared";
-import { transaction, type Db } from "./db.ts";
+import { type Db, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 
 const DEFAULT_COLORS = ["#e4572e", "#17bebb", "#ffc914", "#76b041", "#7768ae", "#f18f01"];
@@ -12,9 +12,7 @@ export class WorldService {
   create(user: UserDto, name: string, systemId = "generic"): WorldSummaryDto {
     const id = randomUUID();
     transaction(this.db, () => {
-      this.db
-        .prepare("INSERT INTO worlds (id, name, system_id, created_at) VALUES (?, ?, ?, ?)")
-        .run(id, name, systemId, Date.now());
+      this.db.prepare("INSERT INTO worlds (id, name, system_id, created_at) VALUES (?, ?, ?, ?)").run(id, name, systemId, Date.now());
       this.db
         .prepare("INSERT INTO members (world_id, user_id, display_name, color, role) VALUES (?, ?, ?, ?, 'gm')")
         .run(id, user.id, user.username, DEFAULT_COLORS[0]!);
@@ -32,9 +30,9 @@ export class WorldService {
   }
 
   roleOf(worldId: string, userId: string): WorldRole | null {
-    const row = this.db
-      .prepare("SELECT role FROM members WHERE world_id = ? AND user_id = ?")
-      .get(worldId, userId) as { role: WorldRole } | undefined;
+    const row = this.db.prepare("SELECT role FROM members WHERE world_id = ? AND user_id = ?").get(worldId, userId) as
+      | { role: WorldRole }
+      | undefined;
     return row?.role ?? null;
   }
 
@@ -72,9 +70,9 @@ export class WorldService {
   }
 
   member(worldId: string, userId: string): { displayName: string; role: WorldRole } | null {
-    const row = this.db
-      .prepare("SELECT display_name, role FROM members WHERE world_id = ? AND user_id = ?")
-      .get(worldId, userId) as { display_name: string; role: WorldRole } | undefined;
+    const row = this.db.prepare("SELECT display_name, role FROM members WHERE world_id = ? AND user_id = ?").get(worldId, userId) as
+      | { display_name: string; role: WorldRole }
+      | undefined;
     return row ? { displayName: row.display_name, role: row.role } : null;
   }
 
@@ -92,8 +90,6 @@ export class WorldService {
   }
 
   memberUserIds(worldId: string): string[] {
-    return (this.db.prepare("SELECT user_id FROM members WHERE world_id = ?").all(worldId) as { user_id: string }[]).map(
-      (r) => r.user_id,
-    );
+    return (this.db.prepare("SELECT user_id FROM members WHERE world_id = ?").all(worldId) as { user_id: string }[]).map((r) => r.user_id);
   }
 }

@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
 import { MAX_MAP_DIMENSION, type SceneDto, type WorldStateDto } from "@openvtt/shared";
+import { type FormEvent, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, readImageSize } from "../api";
 import { ErrorMessage, useAction } from "../ui";
 
@@ -31,7 +31,10 @@ function SceneSettings({ scene }: { scene: SceneDto }) {
   return (
     // The key makes the uncontrolled inputs reset when another scene (or a server update) is shown.
     <form onSubmit={submit} key={JSON.stringify(scene)} className="compact">
-      <label>{t("scene.name")}<input name="name" defaultValue={scene.name} required maxLength={80} /></label>
+      <label>
+        {t("scene.name")}
+        <input name="name" defaultValue={scene.name} required maxLength={80} />
+      </label>
       <label>
         {t("scene.grid")}
         <select name="gridType" defaultValue={scene.gridType}>
@@ -39,9 +42,18 @@ function SceneSettings({ scene }: { scene: SceneDto }) {
           <option value="none">{t("scene.gridNone")}</option>
         </select>
       </label>
-      <label>{t("scene.gridSize")}<input name="gridSize" type="number" min={10} max={500} defaultValue={scene.gridSize} /></label>
-      <label>{t("scene.gridDistance")}<input name="gridDistance" type="number" min={0.1} step="any" defaultValue={scene.gridDistance} /></label>
-      <label>{t("scene.distanceUnit")}<input name="distanceUnit" defaultValue={scene.distanceUnit} maxLength={10} /></label>
+      <label>
+        {t("scene.gridSize")}
+        <input name="gridSize" type="number" min={10} max={500} defaultValue={scene.gridSize} />
+      </label>
+      <label>
+        {t("scene.gridDistance")}
+        <input name="gridDistance" type="number" min={0.1} step="any" defaultValue={scene.gridDistance} />
+      </label>
+      <label>
+        {t("scene.distanceUnit")}
+        <input name="distanceUnit" defaultValue={scene.distanceUnit} maxLength={10} />
+      </label>
       <button type="submit">{t("common.save")}</button>
       <ErrorMessage error={error} />
     </form>
@@ -82,11 +94,19 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
       <ul className="plain">
         {state.scenes.map((s) => (
           <li key={s.id}>
-            <button className={s.id === viewSceneId ? "" : "secondary"} aria-pressed={s.id === viewSceneId} onClick={() => onView(s.id)}>{s.name}</button>
-            {s.id === state.activeSceneId
-              ? <span className="muted">{t("scene.active")}</span>
-              : <button className="link" onClick={() => run(() => api.updateWorld(state.id, { activeSceneId: s.id }))}>{t("scene.activate")}</button>}
-            <button className="link danger" onClick={() => run(() => api.deleteScene(s.id))}>{t("common.delete")}</button>
+            <button className={s.id === viewSceneId ? "" : "secondary"} aria-pressed={s.id === viewSceneId} onClick={() => onView(s.id)}>
+              {s.name}
+            </button>
+            {s.id === state.activeSceneId ? (
+              <span className="muted">{t("scene.active")}</span>
+            ) : (
+              <button className="link" onClick={() => run(() => api.updateWorld(state.id, { activeSceneId: s.id }))}>
+                {t("scene.activate")}
+              </button>
+            )}
+            <button className="link danger" onClick={() => run(() => api.deleteScene(s.id))}>
+              {t("common.delete")}
+            </button>
           </li>
         ))}
       </ul>
@@ -94,10 +114,22 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
 
       <h3>{t("scene.new")}</h3>
       <form onSubmit={create} className="compact">
-        <label>{t("scene.name")}<input name="name" required maxLength={80} /></label>
-        <label>{t("scene.image")}<input name="image" type="file" accept="image/png,image/jpeg,image/webp" /></label>
-        <label>{t("scene.width")}<input name="width" type="number" min={1} max={MAX_MAP_DIMENSION} defaultValue={2000} /></label>
-        <label>{t("scene.height")}<input name="height" type="number" min={1} max={MAX_MAP_DIMENSION} defaultValue={1500} /></label>
+        <label>
+          {t("scene.name")}
+          <input name="name" required maxLength={80} />
+        </label>
+        <label>
+          {t("scene.image")}
+          <input name="image" type="file" accept="image/png,image/jpeg,image/webp" />
+        </label>
+        <label>
+          {t("scene.width")}
+          <input name="width" type="number" min={1} max={MAX_MAP_DIMENSION} defaultValue={2000} />
+        </label>
+        <label>
+          {t("scene.height")}
+          <input name="height" type="number" min={1} max={MAX_MAP_DIMENSION} defaultValue={1500} />
+        </label>
         <label>
           {t("scene.grid")}
           <select name="gridType" defaultValue="square">
@@ -105,7 +137,9 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
             <option value="none">{t("scene.gridNone")}</option>
           </select>
         </label>
-        <button type="submit" disabled={pending}>{t("scene.create")}</button>
+        <button type="submit" disabled={pending}>
+          {t("scene.create")}
+        </button>
       </form>
       <ErrorMessage error={error} />
     </section>

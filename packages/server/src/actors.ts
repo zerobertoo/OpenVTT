@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { z } from "zod";
-import { actorTypeSchema, sheetTemplateSchema, validateSheetData, type ActorType, type SheetTemplate } from "@openvtt/sdk";
+import { type ActorType, actorTypeSchema, type SheetTemplate, sheetTemplateSchema, validateSheetData } from "@openvtt/sdk";
 import type { ActorDto, createActorSchema, SystemInfoDto, updateActorSchema } from "@openvtt/shared";
+import type { z } from "zod";
 import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";
 import type { SystemRegistry } from "./systems.ts";
@@ -57,9 +57,7 @@ export class ActorService {
 
   /** The GM sees all actors; players only the ones they own, so NPC sheets never leak. */
   visibleTo(worldId: string, viewer: Viewer): ActorDto[] {
-    const rows = this.db
-      .prepare("SELECT * FROM actors WHERE world_id = ? ORDER BY created_at, id")
-      .all(worldId) as unknown as ActorRow[];
+    const rows = this.db.prepare("SELECT * FROM actors WHERE world_id = ? ORDER BY created_at, id").all(worldId) as unknown as ActorRow[];
     return rows.filter((r) => viewer.role === "gm" || r.owner_id === viewer.userId).map(toDto);
   }
 

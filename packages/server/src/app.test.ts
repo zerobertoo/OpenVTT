@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { WebSocket } from "ws";
 import type { ServerMessage, WorldStateDto } from "@openvtt/shared";
+import { afterEach, describe, expect, it } from "vitest";
+import { WebSocket } from "ws";
 import { buildApp, SESSION_COOKIE } from "./app.ts";
 
 const apps: ReturnType<typeof buildApp>[] = [];
@@ -82,8 +82,7 @@ describe("auth", () => {
   it("locks the account after repeated failures", async () => {
     const app = newApp();
     await signUp(app, "alice", "correct horse");
-    const attempt = (password: string) =>
-      app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "alice", password } });
+    const attempt = (password: string) => app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "alice", password } });
     for (let i = 0; i < 5; i++) expect((await attempt("wrong password")).json().error).toBe("invalid_credentials");
     expect((await attempt("correct horse")).json().error).toBe("too_many_attempts");
   });

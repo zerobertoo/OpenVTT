@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { zipSync } from "fflate";
 import type { MessageDto, ServerMessage, TokenDto } from "@openvtt/shared";
-import { call, closeApps, connect, listen, newApp, PNG, signUp, upload, type App } from "./test-utils.ts";
+import { zipSync } from "fflate";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { type App, call, closeApps, connect, listen, newApp, PNG, signUp, upload } from "./test-utils.ts";
 
 afterEach(closeApps);
 
@@ -13,7 +13,10 @@ async function setup() {
   const carol = await signUp(app, "carol");
   const world = (await call(app, gm.cookie, "POST", "/api/worlds", { name: "Table" })).json();
   const { code } = (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/invites`)).json();
-  for (const [p, name] of [[bob, "Bob"], [carol, "Carol"]] as const)
+  for (const [p, name] of [
+    [bob, "Bob"],
+    [carol, "Carol"],
+  ] as const)
     await call(app, p.cookie, "POST", `/api/invites/${code}/join`, { displayName: name, color: "#112233" });
 
   const asset = (await upload(app, gm.cookie, world.id, PNG)).json();
@@ -21,7 +24,9 @@ async function setup() {
     await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Cave", assetId: asset.id, width: 1000, height: 800 })
   ).json();
   const makeToken = async (name: string, extra: object = {}) =>
-    (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: scene.id, name, x: 70, y: 70, ...extra })).json() as TokenDto;
+    (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: scene.id, name, x: 70, y: 70, ...extra })
+    ).json() as TokenDto;
   const bobToken = await makeToken("Hero", { controllerIds: [bob.user.id] });
   const hiddenToken = await makeToken("Ambusher", { hidden: true });
   return { app, gm, bob, carol, world, scene, asset, bobToken, hiddenToken, makeToken };
@@ -42,7 +47,12 @@ describe("assets", () => {
   it("rejects scenes and tokens that reference assets from another world", async () => {
     const { app, gm, asset } = await setup();
     const other = (await call(app, gm.cookie, "POST", "/api/worlds", { name: "Other" })).json();
-    const res = await call(app, gm.cookie, "POST", `/api/worlds/${other.id}/scenes`, { name: "x", assetId: asset.id, width: 10, height: 10 });
+    const res = await call(app, gm.cookie, "POST", `/api/worlds/${other.id}/scenes`, {
+      name: "x",
+      assetId: asset.id,
+      width: 10,
+      height: 10,
+    });
     expect(res.json()).toEqual({ error: "asset_invalid" });
   });
 });
@@ -50,10 +60,14 @@ describe("assets", () => {
 describe("scenes", () => {
   it("only the GM manages scenes; players only receive the active one", async () => {
     const { app, gm, bob, world, scene } = await setup();
-    expect((await call(app, bob.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "x", width: 10, height: 10 })).statusCode).toBe(403);
+    expect((await call(app, bob.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "x", width: 10, height: 10 })).statusCode).toBe(
+      403,
+    );
     expect((await call(app, bob.cookie, "PATCH", `/api/scenes/${scene.id}`, { name: "x" })).statusCode).toBe(403);
 
-    const second = (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Dungeon", width: 500, height: 500 })).json();
+    const second = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Dungeon", width: 500, height: 500 })
+    ).json();
     const port = await listen(app);
     const player = connect(port, world.id, bob.cookie);
     const initial = await player.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
@@ -140,7 +154,11 @@ describe("tokens", () => {
     const { app, gm, world, scene } = await setup();
     const eve = await signUp(app, "eve");
     const res = await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
-      sceneId: scene.id, name: "x", x: 0, y: 0, controllerIds: [eve.user.id],
+      sceneId: scene.id,
+      name: "x",
+      x: 0,
+      y: 0,
+      controllerIds: [eve.user.id],
     });
     expect(res.statusCode).toBe(404);
   });
@@ -170,8 +188,7 @@ describe("chat and dice", () => {
     await send(app, carol.cookie, world.id, { content: "hello all" });
 
     await carolConn!.waitFor((m) => m.type === "chat.message" && m.message.content === "hello all");
-    const contents = (conn: typeof gmConn) =>
-      conn!.seen.flatMap((m) => (m.type === "chat.message" ? [m.message.content] : []));
+    const contents = (conn: typeof gmConn) => conn!.seen.flatMap((m) => (m.type === "chat.message" ? [m.message.content] : []));
     expect(contents(gmConn)).toEqual(["secret for bob", "/r 1d20", "hello all"].filter(Boolean));
     expect(contents(bobConn)).toContain("secret for bob");
     expect(contents(bobConn)).toContain("/r 1d20");
@@ -223,10 +240,22 @@ describe("sheets", () => {
 
   it("lets the GM replace a template with validated JSON and revert it", async () => {
     const { app, gm, bob, world } = await setup();
-    const custom = { sections: [{ id: "main", fields: [{ id: "luck", type: "number" }, { id: "luck_x2", type: "computed", formula: "@luck * 2" }] }] };
+    const custom = {
+      sections: [
+        {
+          id: "main",
+          fields: [
+            { id: "luck", type: "number" },
+            { id: "luck_x2", type: "computed", formula: "@luck * 2" },
+          ],
+        },
+      ],
+    };
     const set = (cookie: string, templateOverrides: object) => call(app, cookie, "PATCH", `/api/worlds/${world.id}`, { templateOverrides });
     expect((await set(bob.cookie, { character: custom })).statusCode).toBe(403);
-    expect((await set(gm.cookie, { character: { sections: [{ id: "s", fields: [{ id: "a", type: "computed", formula: "@nope" }] }] } })).json()).toEqual({ error: "template_invalid" });
+    expect(
+      (await set(gm.cookie, { character: { sections: [{ id: "s", fields: [{ id: "a", type: "computed", formula: "@nope" }] }] } })).json(),
+    ).toEqual({ error: "template_invalid" });
     expect((await set(gm.cookie, { character: custom })).statusCode).toBe(200);
 
     const info = (await call(app, bob.cookie, "GET", `/api/worlds/${world.id}/system`)).json();
@@ -240,13 +269,21 @@ describe("sheets", () => {
 describe("system packages", () => {
   const goodPackage = () => ({
     "system.json": JSON.stringify({
-      id: "mini", name: "Mini", version: "1.0.0", author: "t", license: "CC-BY-4.0", attribution: "Credit",
-      minOpenVTT: "0.1.0", actorTypes: { character: { template: "templates/character.json" } }, locales: ["en"],
+      id: "mini",
+      name: "Mini",
+      version: "1.0.0",
+      author: "t",
+      license: "CC-BY-4.0",
+      attribution: "Credit",
+      minOpenVTT: "0.1.0",
+      actorTypes: { character: { template: "templates/character.json" } },
+      locales: ["en"],
     }),
     "templates/character.json": JSON.stringify({ sections: [{ id: "s", fields: [{ id: "level", type: "number" }] }] }),
     "locales/en.json": "{}",
   });
-  const zip = (files: Record<string, string>) => Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, new TextEncoder().encode(v)]))));
+  const zip = (files: Record<string, string>) =>
+    Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, new TextEncoder().encode(v)]))));
   const install = (app: App, cookie: string, body: Buffer) =>
     app.inject({ method: "POST", url: "/api/admin/systems", payload: body, headers: { cookie, "content-type": "application/zip" } });
 
@@ -254,7 +291,9 @@ describe("system packages", () => {
     const { app, gm, bob } = await setup();
     expect((await install(app, bob.cookie, zip(goodPackage()))).statusCode).toBe(403);
     expect((await install(app, gm.cookie, zip(goodPackage()))).json()).toMatchObject({ id: "mini" });
-    expect((await call(app, gm.cookie, "GET", "/api/systems")).json().map((s: { id: string }) => s.id)).toEqual(expect.arrayContaining(["generic", "mini"]));
+    expect((await call(app, gm.cookie, "GET", "/api/systems")).json().map((s: { id: string }) => s.id)).toEqual(
+      expect.arrayContaining(["generic", "mini"]),
+    );
     expect((await call(app, bob.cookie, "POST", "/api/worlds", { name: "W", systemId: "mini" })).json().id).toBeTruthy();
     expect((await call(app, bob.cookie, "POST", "/api/worlds", { name: "W", systemId: "nope" })).statusCode).toBe(404);
   });
@@ -262,7 +301,18 @@ describe("system packages", () => {
   it("rejects malformed packages, unsafe paths and duplicates", async () => {
     const { app, gm } = await setup();
     expect((await install(app, gm.cookie, zip({ ...goodPackage(), "../evil.json": "{}" }))).json()).toEqual({ error: "import_invalid" });
-    expect((await install(app, gm.cookie, zip({ ...goodPackage(), "templates/character.json": "{\"sections\":[{\"id\":\"s\",\"fields\":[{\"id\":\"a\",\"type\":\"computed\",\"formula\":\"@x\"}]}]}" }))).statusCode).toBe(400);
+    expect(
+      (
+        await install(
+          app,
+          gm.cookie,
+          zip({
+            ...goodPackage(),
+            "templates/character.json": '{"sections":[{"id":"s","fields":[{"id":"a","type":"computed","formula":"@x"}]}]}',
+          }),
+        )
+      ).statusCode,
+    ).toBe(400);
     expect((await install(app, gm.cookie, Buffer.from("junk"))).statusCode).toBe(400);
     expect((await install(app, gm.cookie, zip(goodPackage()))).statusCode).toBe(200);
     expect((await install(app, gm.cookie, zip(goodPackage()))).statusCode).toBe(400);
@@ -284,7 +334,9 @@ describe("export and import", () => {
 
     const importer = await signUp(app, "dave");
     const imported = await app.inject({
-      method: "POST", url: "/api/worlds/import", payload: exported.rawPayload,
+      method: "POST",
+      url: "/api/worlds/import",
+      payload: exported.rawPayload,
       headers: { cookie: importer.cookie, "content-type": "application/zip" },
     });
     expect(imported.statusCode).toBe(200);
@@ -312,15 +364,38 @@ describe("export and import", () => {
     const { app } = await setup();
     const user = await signUp(app, "dave");
     const post = (body: Buffer) =>
-      app.inject({ method: "POST", url: "/api/worlds/import", payload: body, headers: { cookie: user.cookie, "content-type": "application/zip" } });
+      app.inject({
+        method: "POST",
+        url: "/api/worlds/import",
+        payload: body,
+        headers: { cookie: user.cookie, "content-type": "application/zip" },
+      });
     const file = (worldJson: object, extra: Record<string, Uint8Array> = {}) =>
       Buffer.from(zipSync({ "world.json": new TextEncoder().encode(JSON.stringify(worldJson)), ...extra }));
-    const base = { format: "openvtt-world", version: 1, world: { name: "W", systemId: "generic", templateOverrides: {}, activeSceneId: null }, assets: [], scenes: [], actors: [], tokens: [], messages: [] };
+    const base = {
+      format: "openvtt-world",
+      version: 1,
+      world: { name: "W", systemId: "generic", templateOverrides: {}, activeSceneId: null },
+      assets: [],
+      scenes: [],
+      actors: [],
+      tokens: [],
+      messages: [],
+    };
 
     expect((await post(Buffer.from("junk"))).json()).toEqual({ error: "import_invalid" });
     expect((await post(file({ ...base, world: { ...base.world, systemId: "unknown" } }))).statusCode).toBe(400);
     expect((await post(file({ ...base, assets: [{ id: "a", file: "assets/missing.png" }] }))).statusCode).toBe(400);
-    expect((await post(file({ ...base, assets: [{ id: "a", file: "assets/fake.png" }] }, { "assets/fake.png": new TextEncoder().encode("not an image") }))).statusCode).toBe(400);
+    expect(
+      (
+        await post(
+          file(
+            { ...base, assets: [{ id: "a", file: "assets/fake.png" }] },
+            { "assets/fake.png": new TextEncoder().encode("not an image") },
+          ),
+        )
+      ).statusCode,
+    ).toBe(400);
     expect((await post(file({ ...base, actors: [{ id: "x", type: "npc", name: "N", data: { hp: "bad" } }] }))).statusCode).toBe(400);
     expect((await call(app, user.cookie, "GET", "/api/worlds")).json()).toEqual([]);
     expect((await post(file(base))).statusCode).toBe(200);
