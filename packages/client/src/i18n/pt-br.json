@@ -1,0 +1,51 @@
+{
+  "app": { "title": "OpenVTT", "loading": "Carregando…" },
+  "language": { "label": "Idioma", "en": "English", "pt-br": "Português (Brasil)" },
+  "auth": {
+    "username": "Usuário",
+    "password": "Senha",
+    "login": "Entrar",
+    "register": "Criar conta",
+    "logout": "Sair",
+    "switchToRegister": "Ainda não tem conta? Crie uma",
+    "switchToLogin": "Já tem conta? Entre",
+    "firstUserHint": "A primeira conta criada vira o administrador da instalação."
+  },
+  "worlds": {
+    "title": "Seus mundos",
+    "empty": "Você ainda não faz parte de nenhum mundo.",
+    "newName": "Nome do mundo",
+    "create": "Criar mundo",
+    "open": "Abrir",
+    "roleGm": "Mestre",
+    "rolePlayer": "Jogador"
+  },
+  "invite": {
+    "title": "Entrar em um mundo",
+    "displayName": "Nome de exibição",
+    "color": "Cor",
+    "join": "Entrar",
+    "create": "Criar link de convite",
+    "linkLabel": "Link de convite"
+  },
+  "table": {
+    "members": "Membros",
+    "online": "online",
+    "offline": "offline",
+    "connecting": "Conectando…",
+    "disconnected": "Conexão perdida, reconectando…",
+    "back": "Voltar aos mundos"
+  },
+  "errors": {
+    "invalid_input": "Algumas informações são inválidas.",
+    "invalid_credentials": "Usuário ou senha incorretos.",
+    "username_taken": "Esse nome de usuário já está em uso.",
+    "too_many_attempts": "Muitas tentativas falhas. Tente novamente em alguns minutos.",
+    "unauthenticated": "Faça login primeiro.",
+    "forbidden": "Você não tem permissão para isso.",
+    "not_found": "Não encontrado.",
+    "invite_invalid": "Este link de convite não é válido.",
+    "internal_error": "Algo deu errado no servidor.",
+    "network": "Não foi possível falar com o servidor."
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "app": { "title": "OpenVTT", "loading": "Loading…" },
+  "language": { "label": "Language", "en": "English", "pt-br": "Português (Brasil)" },
+  "auth": {
+    "username": "Username",
+    "password": "Password",
+    "login": "Log in",
+    "register": "Create account",
+    "logout": "Log out",
+    "switchToRegister": "No account yet? Create one",
+    "switchToLogin": "Already have an account? Log in",
+    "firstUserHint": "The first account created becomes the installation administrator."
+  },
+  "worlds": {
+    "title": "Your worlds",
+    "empty": "You are not part of any world yet.",
+    "newName": "World name",
+    "create": "Create world",
+    "open": "Open",
+    "roleGm": "Game master",
+    "rolePlayer": "Player"
+  },
+  "invite": {
+    "title": "Join a world",
+    "displayName": "Display name",
+    "color": "Color",
+    "join": "Join",
+    "create": "Create invite link",
+    "linkLabel": "Invite link"
+  },
+  "table": {
+    "members": "Members",
+    "online": "online",
+    "offline": "offline",
+    "connecting": "Connecting…",
+    "disconnected": "Connection lost, reconnecting…",
+    "back": "Back to worlds"
+  },
+  "errors": {
+    "invalid_input": "Some of the information is invalid.",
+    "invalid_credentials": "Wrong username or password.",
+    "username_taken": "That username is already taken.",
+    "too_many_attempts": "Too many failed attempts. Try again in a few minutes.",
+    "unauthenticated": "Please log in first.",
+    "forbidden": "You are not allowed to do that.",
+    "not_found": "Not found.",
+    "invite_invalid": "This invite link is not valid.",
+    "internal_error": "Something went wrong on the server.",
+    "network": "Could not reach the server."
+  }
+}
