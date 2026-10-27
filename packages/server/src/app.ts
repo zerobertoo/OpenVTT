@@ -111,6 +111,8 @@ export function buildApp(options: AppOptions) {
     return user;
   };
 
+  app.get("/healthz", async () => ({ ok: true }));
+
   // ---- accounts -----------------------------------------------------------------------------
 
   app.post("/api/auth/register", async (req, reply) => {
