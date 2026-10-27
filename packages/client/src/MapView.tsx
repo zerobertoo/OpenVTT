@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Application, Container, Graphics, Sprite, Text, Texture, type FederatedPointerEvent } from "pixi.js";
+import { Application, Container, Graphics, Sprite, Text, Texture, type FederatedPointerEvent, type Ticker } from "pixi.js";
 import type { SceneDto, TokenDto } from "@openvtt/shared";
 import { assetUrl } from "./api";
 
@@ -38,6 +38,25 @@ function loadTexture(assetId: string): Promise<Texture> {
 }
 
 const hexToNumber = (hex: string) => parseInt(hex.slice(1), 16);
+
+/** Eases a view's scale from `from` back to 1 with a small overshoot (used when a token appears or lands). */
+function popScale(ticker: Ticker, view: Container, from: number, durationMs: number) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const started = performance.now();
+  view.scale.set(from);
+  const step = () => {
+    if (view.destroyed) return void ticker.remove(step);
+    const t = Math.min(1, (performance.now() - started) / durationMs);
+    const overshoot = 1.70158;
+    const eased = 1 + (overshoot + 1) * (t - 1) ** 3 + overshoot * (t - 1) ** 2;
+    view.scale.set(from + (1 - from) * eased);
+    if (t >= 1) {
+      view.scale.set(1);
+      ticker.remove(step);
+    }
+  };
+  ticker.add(step);
+}
 
 /** Mutable bag read by Pixi event handlers so they always see the latest props. */
 function useLatest<T>(value: T) {
@@ -245,9 +264,11 @@ export function MapView(props: Props) {
         }
         view.position.set(x + half, y + half);
         props_().onMove(token.id, x, y);
+        popScale(app.ticker, view, 1.15, 240);
       };
       view.on("pointerup", drop);
       view.on("pointerupoutside", drop);
+      popScale(app.ticker, view, 0, 360);
       return view;
     }
 
