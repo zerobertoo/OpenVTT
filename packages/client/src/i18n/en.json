@@ -10,7 +10,10 @@
     "logout": "Log out",
     "switchToRegister": "No account yet? Create one",
     "switchToLogin": "Already have an account? Log in",
-    "firstUserHint": "The first account created becomes the installation administrator."
+    "firstUserHint": "The first account created becomes the installation administrator.",
+    "welcomeTitle": "Your tabletop, wherever your friends are.",
+    "welcomeText": "Log in, pick a world and start playing. Nothing to install.",
+    "account": "Account"
   },
   "worlds": {
     "title": "Your worlds",
@@ -18,6 +21,7 @@
     "newName": "World name",
     "system": "Rules system",
     "create": "Create world",
+    "newTitle": "Start a new world",
     "open": "Open",
     "roleGm": "Game master",
     "rolePlayer": "Player",
@@ -39,7 +43,9 @@
     "connecting": "Connecting…",
     "disconnected": "Connection lost, reconnecting…",
     "back": "Back to worlds",
-    "panels": "Table panels"
+    "panels": "Table panels",
+    "hidePanels": "Hide panels",
+    "showPanels": "Show panels"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Sheets", "scenes": "Scenes", "settings": "World" },
   "map": {
@@ -48,6 +54,7 @@
     "ruler": "Ruler",
     "emptyGm": "No scene yet. Create one in the Scenes tab.",
     "emptyPlayer": "The game master has not shown a scene yet.",
+    "label": "Map",
     "hint": "Drag the background or use the right mouse button to pan, scroll to zoom."
   },
   "chat": {
@@ -58,7 +65,10 @@
     "gmOnly": "GM only",
     "send": "Send",
     "whisperTag": "whisper",
-    "gmOnlyTag": "GM only"
+    "gmOnlyTag": "GM only",
+    "rollSummary": "{{notation}}: total {{total}}",
+    "naturalTwenty": "Natural 20!",
+    "naturalOne": "Natural 1"
   },
   "scene": {
     "title": "Scenes",

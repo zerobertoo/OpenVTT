@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Application, Container, Graphics, Sprite, Text, Texture, type FederatedPointerEvent } from "pixi.js";
 import type { SceneDto, TokenDto } from "@openvtt/shared";
 import { assetUrl } from "./api";
@@ -46,6 +47,7 @@ function useLatest<T>(value: T) {
 }
 
 export function MapView(props: Props) {
+  const { t } = useTranslation();
   const host = useRef<HTMLDivElement>(null);
   const latest = useLatest(props);
   const syncAll = useRef<() => void>(() => {});
@@ -297,5 +299,5 @@ export function MapView(props: Props) {
     if (engine.current) engine.current.rulerLabel.text = "";
   }, [props.tool]);
 
-  return <div ref={host} className="map-host" role="application" aria-label="Map" />;
+  return <div ref={host} className="map-host" role="application" aria-label={t("map.label")} />;
 }

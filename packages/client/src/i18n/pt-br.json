@@ -10,7 +10,10 @@
     "logout": "Sair",
     "switchToRegister": "Ainda não tem conta? Crie uma",
     "switchToLogin": "Já tem conta? Entre",
-    "firstUserHint": "A primeira conta criada vira o administrador da instalação."
+    "firstUserHint": "A primeira conta criada vira o administrador da instalação.",
+    "welcomeTitle": "Sua mesa de RPG, onde seus amigos estiverem.",
+    "welcomeText": "Entre, escolha um mundo e comece a jogar. Sem instalar nada.",
+    "account": "Conta"
   },
   "worlds": {
     "title": "Seus mundos",
@@ -18,6 +21,7 @@
     "newName": "Nome do mundo",
     "system": "Sistema de regras",
     "create": "Criar mundo",
+    "newTitle": "Criar um mundo novo",
     "open": "Abrir",
     "roleGm": "Mestre",
     "rolePlayer": "Jogador",
@@ -39,7 +43,9 @@
     "connecting": "Conectando…",
     "disconnected": "Conexão perdida, reconectando…",
     "back": "Voltar aos mundos",
-    "panels": "Painéis da mesa"
+    "panels": "Painéis da mesa",
+    "hidePanels": "Ocultar painéis",
+    "showPanels": "Mostrar painéis"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Fichas", "scenes": "Cenas", "settings": "Mundo" },
   "map": {
@@ -48,6 +54,7 @@
     "ruler": "Régua",
     "emptyGm": "Nenhuma cena ainda. Crie uma na aba Cenas.",
     "emptyPlayer": "O mestre ainda não mostrou uma cena.",
+    "label": "Mapa",
     "hint": "Arraste o fundo ou use o botão direito para mover o mapa, role para dar zoom."
   },
   "chat": {
@@ -58,7 +65,10 @@
     "gmOnly": "Só o mestre",
     "send": "Enviar",
     "whisperTag": "sussurro",
-    "gmOnlyTag": "só o mestre"
+    "gmOnlyTag": "só o mestre",
+    "rollSummary": "{{notation}}: total {{total}}",
+    "naturalTwenty": "20 natural!",
+    "naturalOne": "1 natural"
   },
   "scene": {
     "title": "Cenas",

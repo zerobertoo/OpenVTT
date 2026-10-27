@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LOCALES, type UserDto, type WorldSummaryDto } from "@openvtt/shared";
 import { api } from "./api";
+import { Logo } from "./icons";
 import { normalizeLocale, setLocale } from "./i18n";
 import { Table } from "./Table";
 import { ErrorMessage, useAction } from "./ui";
@@ -21,7 +22,7 @@ function usePath() {
   return { path, navigate };
 }
 
-function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
+export function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
   const { t, i18n } = useTranslation();
   return (
     <label>
@@ -39,6 +40,16 @@ function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
         ))}
       </select>
     </label>
+  );
+}
+
+function AccountControls({ user, onLogout }: { user: UserDto | null; onLogout: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="account">
+      <LanguageSwitcher signedIn={!!user} />
+      {user && <button className="link" onClick={onLogout}>{t("auth.logout")} ({user.username})</button>}
+    </div>
   );
 }
 
@@ -60,19 +71,23 @@ function AuthForm({ onAuthenticated }: { onAuthenticated: (user: UserDto) => voi
   };
 
   return (
-    <form onSubmit={submit}>
-      <label>{t("auth.username")}<input name="username" autoComplete="username" required /></label>
-      <label>
-        {t("auth.password")}
-        <input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={8} />
-      </label>
-      <ErrorMessage error={error} />
-      <button type="submit">{t(mode === "login" ? "auth.login" : "auth.register")}</button>
-      {mode === "register" && <p className="muted">{t("auth.firstUserHint")}</p>}
-      <button type="button" className="link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
-        {t(mode === "login" ? "auth.switchToRegister" : "auth.switchToLogin")}
-      </button>
-    </form>
+    <div className="welcome">
+      <h1>{t("auth.welcomeTitle")}</h1>
+      <p className="muted">{t("auth.welcomeText")}</p>
+      <form className="card" onSubmit={submit}>
+        <label>{t("auth.username")}<input name="username" autoComplete="username" required /></label>
+        <label>
+          {t("auth.password")}
+          <input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={8} />
+        </label>
+        <ErrorMessage error={error} />
+        <button type="submit">{t(mode === "login" ? "auth.login" : "auth.register")}</button>
+        {mode === "register" && <p className="muted">{t("auth.firstUserHint")}</p>}
+        <button type="button" className="link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+          {t(mode === "login" ? "auth.switchToRegister" : "auth.switchToLogin")}
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -115,18 +130,24 @@ function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) =
 
   return (
     <section>
-      <h2>{t("worlds.title")}</h2>
-      {worlds.length === 0 && <p className="muted">{t("worlds.empty")}</p>}
-      <ul className="plain">
-        {worlds.map((w) => (
-          <li key={w.id}>
-            <strong>{w.name}</strong>
-            <span className="muted">{t(w.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")}</span>
-            <button onClick={() => navigate(`/world/${w.id}`)}>{t("worlds.open")}</button>
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={create}>
+      <div className="card">
+        <h1 className="page-title">{t("worlds.title")}</h1>
+        {worlds.length === 0 && <p className="muted">{t("worlds.empty")}</p>}
+        <ul className="world-list">
+          {worlds.map((w) => (
+            <li key={w.id} className="world-item">
+              <span className="world-badge" aria-hidden="true">{Array.from(w.name)[0]?.toUpperCase()}</span>
+              <span className="info">
+                <strong>{w.name}</strong>
+                <span className="muted">{t(w.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")}</span>
+              </span>
+              <button onClick={() => navigate(`/world/${w.id}`)}>{t("worlds.open")}</button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <form className="card" onSubmit={create}>
+        <h2>{t("worlds.newTitle")}</h2>
         <label>{t("worlds.newName")}<input name="name" required maxLength={80} /></label>
         <label>
           {t("worlds.system")}
@@ -136,10 +157,12 @@ function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) =
         </label>
         <button type="submit">{t("worlds.create")}</button>
       </form>
-      <label>{t("worlds.import")}<input type="file" accept=".zip,application/zip" onChange={(e) => importWorld(e.target.files?.[0])} /></label>
-      {user.role === "admin" && (
-        <label>{t("worlds.installSystem")}<input type="file" accept=".zip,application/zip" onChange={(e) => installSystem(e.target.files?.[0])} /></label>
-      )}
+      <div className="card worlds-actions">
+        <label>{t("worlds.import")}<input type="file" accept=".zip,application/zip" onChange={(e) => importWorld(e.target.files?.[0])} /></label>
+        {user.role === "admin" && (
+          <label>{t("worlds.installSystem")}<input type="file" accept=".zip,application/zip" onChange={(e) => installSystem(e.target.files?.[0])} /></label>
+        )}
+      </div>
       <ErrorMessage error={error} />
     </section>
   );
@@ -161,8 +184,8 @@ function JoinInvite({ code, user, navigate }: { code: string; user: UserDto; nav
   };
 
   return (
-    <form onSubmit={submit}>
-      <h2>{t("invite.title")}</h2>
+    <form className="card" onSubmit={submit}>
+      <h1 className="page-title">{t("invite.title")}</h1>
       <label>{t("invite.displayName")}<input name="displayName" defaultValue={user.username} required maxLength={40} /></label>
       <label>{t("invite.color")}<input name="color" type="color" defaultValue="#3d6fd8" /></label>
       <ErrorMessage error={error} />
@@ -191,30 +214,31 @@ export function App() {
     if (u.locale) setLocale(u.locale);
   };
 
+  const account = (
+    <AccountControls
+      user={user ?? null}
+      onLogout={async () => {
+        await api.logout();
+        setUser(null);
+        navigate("/");
+      }}
+    />
+  );
+
+  // The table is full-bleed: it owns its chrome and shows the account controls in its World panel.
+  if (user && path.startsWith("/world/")) return <Table worldId={path.slice(7)} user={user} navigate={navigate} account={account} />;
+
   let body;
   if (user === undefined) body = <p>{t("app.loading")}</p>;
   else if (user === null) body = <AuthForm onAuthenticated={authenticated} />;
   else if (path.startsWith("/join/")) body = <JoinInvite code={path.slice(6)} user={user} navigate={navigate} />;
-  else if (path.startsWith("/world/")) body = <Table worldId={path.slice(7)} user={user} navigate={navigate} />;
   else body = <WorldList user={user} navigate={navigate} />;
 
   return (
-    <main className={user && path.startsWith("/world/") ? "wide" : undefined}>
-      <header>
-        <h1>{t("app.title")}</h1>
-        <LanguageSwitcher signedIn={!!user} />
-        {user && (
-          <button
-            className="link"
-            onClick={async () => {
-              await api.logout();
-              setUser(null);
-              navigate("/");
-            }}
-          >
-            {t("auth.logout")} ({user.username})
-          </button>
-        )}
+    <main className="app-main">
+      <header className="app-header">
+        <span className="brand"><Logo />{t("app.title")}</span>
+        {account}
       </header>
       {body}
     </main>
