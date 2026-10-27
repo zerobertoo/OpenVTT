@@ -1,26 +1,48 @@
-import { useEffect, useState } from "react";
-import { WS_PATH, type ServerMessage, type WorldStateDto } from "@openvtt/shared";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { WS_PATH, type ClientMessage, type ServerMessage, type WorldStateDto } from "@openvtt/shared";
 
 const RECONNECT_DELAY_MS = 1500;
+const MAX_CLIENT_MESSAGES = 300;
 
-/** Keeps a WebSocket open to the world, reconnecting on loss; the server resends full state on connect. */
+function reducer(state: WorldStateDto | null, msg: ServerMessage): WorldStateDto | null {
+  if (msg.type === "world.state") return msg.state;
+  if (!state) return state;
+  switch (msg.type) {
+    case "token.upsert":
+      return {
+        ...state,
+        tokens: state.tokens.some((t) => t.id === msg.token.id)
+          ? state.tokens.map((t) => (t.id === msg.token.id ? msg.token : t))
+          : [...state.tokens, msg.token],
+      };
+    case "token.remove":
+      return { ...state, tokens: state.tokens.filter((t) => t.id !== msg.tokenId) };
+    case "chat.message":
+      return { ...state, messages: [...state.messages, msg.message].slice(-MAX_CLIENT_MESSAGES) };
+    default:
+      return state;
+  }
+}
+
+/**
+ * Keeps a WebSocket open to the world and folds server events into one state object.
+ * On every (re)connect the server sends a full snapshot, so reconnecting reconciles automatically.
+ */
 export function useWorldState(worldId: string) {
-  const [state, setState] = useState<WorldStateDto | null>(null);
+  const [state, dispatch] = useReducer(reducer, null);
   const [connected, setConnected] = useState(false);
+  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let disposed = false;
 
     const connect = () => {
       const scheme = location.protocol === "https:" ? "wss" : "ws";
-      socket = new WebSocket(`${scheme}://${location.host}${WS_PATH}?world=${encodeURIComponent(worldId)}`);
+      const socket = new WebSocket(`${scheme}://${location.host}${WS_PATH}?world=${encodeURIComponent(worldId)}`);
+      socketRef.current = socket;
       socket.onopen = () => setConnected(true);
-      socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data) as ServerMessage;
-        if (msg.type === "world.state") setState(msg.state);
-      };
+      socket.onmessage = (event) => dispatch(JSON.parse(event.data) as ServerMessage);
       socket.onclose = () => {
         setConnected(false);
         if (!disposed) timer = setTimeout(connect, RECONNECT_DELAY_MS);
@@ -31,9 +53,13 @@ export function useWorldState(worldId: string) {
     return () => {
       disposed = true;
       clearTimeout(timer);
-      socket?.close();
+      socketRef.current?.close();
     };
   }, [worldId]);
 
-  return { state, connected };
+  const send = useCallback((message: ClientMessage) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify(message));
+  }, []);
+
+  return { state, connected, send };
 }

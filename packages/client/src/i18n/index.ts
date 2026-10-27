@@ -33,6 +33,8 @@ void i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, "pt-br": { translation: ptBr } },
   lng: detectInitialLocale(),
   fallbackLng: "en",
+  // Without this i18next rewrites "pt-br" as "pt-BR", which would miss our resource key.
+  lowerCaseLng: true,
   interpolation: { escapeValue: false },
 });
 document.documentElement.lang = i18n.language;

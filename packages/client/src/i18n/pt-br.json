@@ -1,5 +1,6 @@
 {
   "app": { "title": "OpenVTT", "loading": "Carregando…" },
+  "common": { "save": "Salvar", "delete": "Excluir" },
   "language": { "label": "Idioma", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
     "username": "Usuário",
@@ -15,10 +16,13 @@
     "title": "Seus mundos",
     "empty": "Você ainda não faz parte de nenhum mundo.",
     "newName": "Nome do mundo",
+    "system": "Sistema de regras",
     "create": "Criar mundo",
     "open": "Abrir",
     "roleGm": "Mestre",
-    "rolePlayer": "Jogador"
+    "rolePlayer": "Jogador",
+    "import": "Importar arquivo de mundo (.zip)",
+    "installSystem": "Instalar pacote de sistema de regras (.zip, admin)"
   },
   "invite": {
     "title": "Entrar em um mundo",
@@ -34,7 +38,81 @@
     "offline": "offline",
     "connecting": "Conectando…",
     "disconnected": "Conexão perdida, reconectando…",
-    "back": "Voltar aos mundos"
+    "back": "Voltar aos mundos",
+    "panels": "Painéis da mesa"
+  },
+  "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Fichas", "scenes": "Cenas", "settings": "Mundo" },
+  "map": {
+    "tools": "Ferramentas do mapa",
+    "select": "Selecionar",
+    "ruler": "Régua",
+    "emptyGm": "Nenhuma cena ainda. Crie uma na aba Cenas.",
+    "emptyPlayer": "O mestre ainda não mostrou uma cena.",
+    "hint": "Arraste o fundo ou use o botão direito para mover o mapa, role para dar zoom."
+  },
+  "chat": {
+    "title": "Chat",
+    "placeholder": "Mensagem, ou /r 2d6+3 para rolar",
+    "to": "Para",
+    "everyone": "Todos",
+    "gmOnly": "Só o mestre",
+    "send": "Enviar",
+    "whisperTag": "sussurro",
+    "gmOnlyTag": "só o mestre"
+  },
+  "scene": {
+    "title": "Cenas",
+    "name": "Nome",
+    "grid": "Grade",
+    "gridSquare": "Quadrada",
+    "gridNone": "Sem grade",
+    "gridSize": "Tamanho da célula (px)",
+    "gridDistance": "Distância por célula",
+    "distanceUnit": "Unidade",
+    "active": "mostrada aos jogadores",
+    "activate": "Mostrar aos jogadores",
+    "new": "Nova cena",
+    "image": "Imagem do mapa (PNG, JPG, WebP)",
+    "width": "Largura (px, sem imagem)",
+    "height": "Altura (px, sem imagem)",
+    "create": "Criar cena"
+  },
+  "token": {
+    "title": "Tokens",
+    "name": "Nome",
+    "add": "Adicionar token",
+    "noneSelected": "Selecione um token no mapa.",
+    "rotation": "Rotação",
+    "size": "Tamanho (células)",
+    "color": "Cor",
+    "image": "Imagem",
+    "removeImage": "Remover imagem",
+    "hidden": "Oculto dos jogadores",
+    "actor": "Ficha vinculada",
+    "noActor": "Nenhuma",
+    "controllers": "Quem pode mover"
+  },
+  "sheet": {
+    "title": "Fichas",
+    "noneGm": "Nenhuma ficha ainda. Crie uma abaixo.",
+    "nonePlayer": "O mestre ainda não te deu uma ficha.",
+    "character": "Personagem",
+    "npc": "NPC",
+    "name": "Nome",
+    "type": "Tipo",
+    "create": "Criar ficha",
+    "owner": "Dono",
+    "noOwner": "Ninguém",
+    "addRow": "Adicionar linha"
+  },
+  "settings": {
+    "title": "Configurações do mundo",
+    "system": "Sistema de regras",
+    "export": "Exportar este mundo (.zip)",
+    "template": "Modelo de ficha (JSON)",
+    "templateHelp": "Edite os campos da ficha do tipo selecionado. Campos calculados usam fórmulas como floor((@strength - 10) / 2).",
+    "invalidJson": "Isso não é um JSON válido.",
+    "resetTemplate": "Restaurar padrão do sistema"
   },
   "errors": {
     "invalid_input": "Algumas informações são inválidas.",
@@ -45,6 +123,10 @@
     "forbidden": "Você não tem permissão para isso.",
     "not_found": "Não encontrado.",
     "invite_invalid": "Este link de convite não é válido.",
+    "asset_invalid": "Esse arquivo não é uma imagem válida ou é grande demais.",
+    "roll_invalid": "Essa notação de dados não é válida.",
+    "template_invalid": "Esse modelo de ficha não é válido.",
+    "import_invalid": "Não foi possível importar esse arquivo.",
     "internal_error": "Algo deu errado no servidor.",
     "network": "Não foi possível falar com o servidor."
   }

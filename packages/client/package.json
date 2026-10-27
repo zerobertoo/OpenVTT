@@ -10,6 +10,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "pixi.js": "^8.6.0",
     "@openvtt/sdk": "workspace:*",
     "@openvtt/shared": "workspace:*",
     "i18next": "^24.2.0",

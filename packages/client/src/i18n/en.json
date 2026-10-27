@@ -1,5 +1,6 @@
 {
   "app": { "title": "OpenVTT", "loading": "Loading…" },
+  "common": { "save": "Save", "delete": "Delete" },
   "language": { "label": "Language", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
     "username": "Username",
@@ -15,10 +16,13 @@
     "title": "Your worlds",
     "empty": "You are not part of any world yet.",
     "newName": "World name",
+    "system": "Rules system",
     "create": "Create world",
     "open": "Open",
     "roleGm": "Game master",
-    "rolePlayer": "Player"
+    "rolePlayer": "Player",
+    "import": "Import a world file (.zip)",
+    "installSystem": "Install a rules system package (.zip, admin)"
   },
   "invite": {
     "title": "Join a world",
@@ -34,7 +38,81 @@
     "offline": "offline",
     "connecting": "Connecting…",
     "disconnected": "Connection lost, reconnecting…",
-    "back": "Back to worlds"
+    "back": "Back to worlds",
+    "panels": "Table panels"
+  },
+  "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Sheets", "scenes": "Scenes", "settings": "World" },
+  "map": {
+    "tools": "Map tools",
+    "select": "Select",
+    "ruler": "Ruler",
+    "emptyGm": "No scene yet. Create one in the Scenes tab.",
+    "emptyPlayer": "The game master has not shown a scene yet.",
+    "hint": "Drag the background or use the right mouse button to pan, scroll to zoom."
+  },
+  "chat": {
+    "title": "Chat",
+    "placeholder": "Message, or /r 2d6+3 to roll",
+    "to": "To",
+    "everyone": "Everyone",
+    "gmOnly": "GM only",
+    "send": "Send",
+    "whisperTag": "whisper",
+    "gmOnlyTag": "GM only"
+  },
+  "scene": {
+    "title": "Scenes",
+    "name": "Name",
+    "grid": "Grid",
+    "gridSquare": "Square",
+    "gridNone": "No grid",
+    "gridSize": "Cell size (px)",
+    "gridDistance": "Distance per cell",
+    "distanceUnit": "Unit",
+    "active": "shown to players",
+    "activate": "Show to players",
+    "new": "New scene",
+    "image": "Map image (PNG, JPG, WebP)",
+    "width": "Width (px, without image)",
+    "height": "Height (px, without image)",
+    "create": "Create scene"
+  },
+  "token": {
+    "title": "Tokens",
+    "name": "Name",
+    "add": "Add token",
+    "noneSelected": "Select a token on the map.",
+    "rotation": "Rotation",
+    "size": "Size (cells)",
+    "color": "Color",
+    "image": "Image",
+    "removeImage": "Remove image",
+    "hidden": "Hidden from players",
+    "actor": "Linked sheet",
+    "noActor": "None",
+    "controllers": "Who can move it"
+  },
+  "sheet": {
+    "title": "Sheets",
+    "noneGm": "No sheets yet. Create one below.",
+    "nonePlayer": "The game master has not given you a sheet yet.",
+    "character": "Character",
+    "npc": "NPC",
+    "name": "Name",
+    "type": "Type",
+    "create": "Create sheet",
+    "owner": "Owner",
+    "noOwner": "Nobody",
+    "addRow": "Add row"
+  },
+  "settings": {
+    "title": "World settings",
+    "system": "Rules system",
+    "export": "Export this world (.zip)",
+    "template": "Sheet template (JSON)",
+    "templateHelp": "Edit the fields of the sheet for the selected type. Computed fields use formulas like floor((@strength - 10) / 2).",
+    "invalidJson": "This is not valid JSON.",
+    "resetTemplate": "Restore system default"
   },
   "errors": {
     "invalid_input": "Some of the information is invalid.",
@@ -45,6 +123,10 @@
     "forbidden": "You are not allowed to do that.",
     "not_found": "Not found.",
     "invite_invalid": "This invite link is not valid.",
+    "asset_invalid": "That file is not a valid image or is too large.",
+    "roll_invalid": "That dice notation is not valid.",
+    "template_invalid": "That sheet template is not valid.",
+    "import_invalid": "That file could not be imported.",
     "internal_error": "Something went wrong on the server.",
     "network": "Could not reach the server."
   }

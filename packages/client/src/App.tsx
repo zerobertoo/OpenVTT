@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LOCALES, type UserDto, type WorldSummaryDto } from "@openvtt/shared";
-import { api, ApiError } from "./api";
+import { api } from "./api";
 import { normalizeLocale, setLocale } from "./i18n";
-import { useWorldState } from "./useWorldState";
+import { Table } from "./Table";
+import { ErrorMessage, useAction } from "./ui";
+import type { SystemManifest } from "@openvtt/sdk";
 
 function usePath() {
   const [path, setPath] = useState(location.pathname);
@@ -17,13 +19,6 @@ function usePath() {
     setPath(to);
   }, []);
   return { path, navigate };
-}
-
-function ErrorMessage({ error }: { error: unknown }) {
-  const { t } = useTranslation();
-  if (!error) return null;
-  const code = error instanceof ApiError ? error.code : "internal_error";
-  return <p role="alert" className="error">{t(`errors.${code}`)}</p>;
 }
 
 function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
@@ -81,25 +76,41 @@ function AuthForm({ onAuthenticated }: { onAuthenticated: (user: UserDto) => voi
   );
 }
 
-function WorldList({ navigate }: { navigate: (to: string) => void }) {
+function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) => void }) {
   const { t } = useTranslation();
   const [worlds, setWorlds] = useState<WorldSummaryDto[]>([]);
-  const [error, setError] = useState<unknown>(null);
+  const [systems, setSystems] = useState<SystemManifest[]>([]);
+  const { run, error } = useAction();
 
+  const loadSystems = () => api.systems().then(setSystems);
   useEffect(() => {
-    api.worlds().then(setWorlds, setError);
-  }, []);
+    void run(async () => {
+      setWorlds(await api.worlds());
+      await loadSystems();
+    });
+  }, [run]);
 
-  const create = async (e: FormEvent<HTMLFormElement>) => {
+  const create = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    try {
-      const world = await api.createWorld(String(new FormData(form).get("name")));
+    const f = new FormData(form);
+    void run(async () => {
+      const world = await api.createWorld(String(f.get("name")), String(f.get("systemId")));
       setWorlds((prev) => [...prev, world]);
       form.reset();
-    } catch (err) {
-      setError(err);
-    }
+    });
+  };
+
+  const importWorld = (file: File | undefined) => {
+    if (file)
+      void run(async () => {
+        const world = await api.importWorld(file);
+        setWorlds((prev) => [...prev, world]);
+      });
+  };
+
+  const installSystem = (file: File | undefined) => {
+    if (file) void run(async () => { await api.installSystem(file); await loadSystems(); });
   };
 
   return (
@@ -117,8 +128,18 @@ function WorldList({ navigate }: { navigate: (to: string) => void }) {
       </ul>
       <form onSubmit={create}>
         <label>{t("worlds.newName")}<input name="name" required maxLength={80} /></label>
+        <label>
+          {t("worlds.system")}
+          <select name="systemId" defaultValue="generic">
+            {systems.map((s) => <option key={s.id} value={s.id}>{s.name} {s.version}</option>)}
+          </select>
+        </label>
         <button type="submit">{t("worlds.create")}</button>
       </form>
+      <label>{t("worlds.import")}<input type="file" accept=".zip,application/zip" onChange={(e) => importWorld(e.target.files?.[0])} /></label>
+      {user.role === "admin" && (
+        <label>{t("worlds.installSystem")}<input type="file" accept=".zip,application/zip" onChange={(e) => installSystem(e.target.files?.[0])} /></label>
+      )}
       <ErrorMessage error={error} />
     </section>
   );
@@ -150,48 +171,6 @@ function JoinInvite({ code, user, navigate }: { code: string; user: UserDto; nav
   );
 }
 
-function Table({ worldId, navigate }: { worldId: string; navigate: (to: string) => void }) {
-  const { t } = useTranslation();
-  const { state, connected } = useWorldState(worldId);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [error, setError] = useState<unknown>(null);
-
-  const invite = async () => {
-    try {
-      const { code } = await api.createInvite(worldId);
-      setInviteLink(`${location.origin}/join/${code}`);
-    } catch (err) {
-      setError(err);
-    }
-  };
-
-  if (!state) return <p>{t(connected ? "app.loading" : "table.connecting")}</p>;
-  return (
-    <section>
-      <button className="link" onClick={() => navigate("/")}>{t("table.back")}</button>
-      <h2>{state.name}</h2>
-      {!connected && <p className="muted">{t("table.disconnected")}</p>}
-      <h3>{t("table.members")}</h3>
-      <ul className="plain">
-        {state.members.map((m) => (
-          <li key={m.userId}>
-            <span className="dot" style={{ background: m.color }} />
-            {m.displayName}
-            <span className="muted">{t(m.online ? "table.online" : "table.offline")}</span>
-          </li>
-        ))}
-      </ul>
-      {state.yourRole === "gm" && (
-        <>
-          <button onClick={invite}>{t("invite.create")}</button>
-          {inviteLink && <p>{t("invite.linkLabel")}: <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} size={50} /></p>}
-          <ErrorMessage error={error} />
-        </>
-      )}
-    </section>
-  );
-}
-
 export function App() {
   const { t } = useTranslation();
   const { path, navigate } = usePath();
@@ -216,11 +195,11 @@ export function App() {
   if (user === undefined) body = <p>{t("app.loading")}</p>;
   else if (user === null) body = <AuthForm onAuthenticated={authenticated} />;
   else if (path.startsWith("/join/")) body = <JoinInvite code={path.slice(6)} user={user} navigate={navigate} />;
-  else if (path.startsWith("/world/")) body = <Table worldId={path.slice(7)} navigate={navigate} />;
-  else body = <WorldList navigate={navigate} />;
+  else if (path.startsWith("/world/")) body = <Table worldId={path.slice(7)} user={user} navigate={navigate} />;
+  else body = <WorldList user={user} navigate={navigate} />;
 
   return (
-    <main>
+    <main className={user && path.startsWith("/world/") ? "wide" : undefined}>
       <header>
         <h1>{t("app.title")}</h1>
         <LanguageSwitcher signedIn={!!user} />
