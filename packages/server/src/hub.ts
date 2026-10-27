@@ -1,14 +1,36 @@
 import type { IncomingMessage, Server } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import { WS_PATH, type ClientMessage, type ServerMessage } from "@openvtt/shared";
-import type { AuthService } from "./auth.ts";
-import type { WorldService } from "./worlds.ts";
+import { z } from "zod";
+import {
+  WS_PATH,
+  type MessageDto,
+  type ServerMessage,
+  type TokenDto,
+  type WorldRole,
+  type WorldStateDto,
+} from "@openvtt/shared";
+import { canReadMessage } from "./chat.ts";
+import { AppError } from "./errors.ts";
+import type { Services } from "./services.ts";
+import type { Viewer } from "./tokens.ts";
 
 interface Connection {
   socket: WebSocket;
-  userId: string;
+  viewer: Viewer;
   worldId: string;
 }
+
+const MAX_WS_PAYLOAD = 16 * 1024;
+
+const clientMessageSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("world.resync") }),
+  z.object({
+    type: z.literal("token.move"),
+    tokenId: z.string().uuid(),
+    x: z.number().finite(),
+    y: z.number().finite(),
+  }),
+]);
 
 export function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
@@ -19,13 +41,15 @@ export function parseCookies(header: string | undefined): Record<string, string>
   return out;
 }
 
-/** Authoritative WebSocket hub: one connection = one user inside one world (`/ws?world=<id>`). */
+/**
+ * Authoritative WebSocket hub: one connection = one user inside one world (`/ws?world=<id>`).
+ * Every outgoing message is built per recipient so hidden data never reaches unauthorized clients.
+ */
 export class Hub {
   private connections = new Set<Connection>();
 
   constructor(
-    private auth: AuthService,
-    private worlds: WorldService,
+    private s: Services,
     private cookieName: string,
   ) {}
 
@@ -37,40 +61,37 @@ export class Hub {
   }
 
   attach(server: Server): WebSocketServer {
-    const wss = new WebSocketServer({ noServer: true });
+    const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
     server.on("upgrade", (req, socket, head) => {
       const url = new URL(req.url ?? "/", "http://localhost");
       if (url.pathname !== WS_PATH) return socket.destroy();
-      const conn = this.authorize(req, url);
-      if (!conn) {
+      const identity = this.authorize(req, url);
+      if (!identity) {
         socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
         return socket.destroy();
       }
-      wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, conn.userId, conn.worldId));
+      wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, identity.viewer, identity.worldId));
     });
     return wss;
   }
 
   private authorize(req: IncomingMessage, url: URL) {
-    const user = this.auth.userFromSession(parseCookies(req.headers.cookie)[this.cookieName]);
+    const user = this.s.auth.userFromSession(parseCookies(req.headers.cookie)[this.cookieName]);
     const worldId = url.searchParams.get("world");
-    if (!user || !worldId || !this.worlds.roleOf(worldId, user.id)) return null;
-    return { userId: user.id, worldId };
+    const role = user && worldId ? this.s.worlds.roleOf(worldId, user.id) : null;
+    return user && worldId && role ? { viewer: { userId: user.id, role }, worldId } : null;
   }
 
-  private open(socket: WebSocket, userId: string, worldId: string) {
-    const conn: Connection = { socket, userId, worldId };
+  private open(socket: WebSocket, viewer: Viewer, worldId: string) {
+    const conn: Connection = { socket, viewer, worldId };
     this.connections.add(conn);
     this.broadcastState(worldId);
     socket.on("message", (raw) => {
-      let msg: ClientMessage;
       try {
-        msg = JSON.parse(raw.toString());
-      } catch {
-        return this.send(conn, { type: "error", code: "invalid_input" });
+        this.handle(conn, clientMessageSchema.parse(JSON.parse(raw.toString())));
+      } catch (error) {
+        this.send(conn, { type: "error", code: error instanceof AppError ? error.code : "invalid_input" });
       }
-      if (msg.type === "world.resync") this.sendState(conn);
-      else this.send(conn, { type: "error", code: "invalid_input" });
     });
     socket.on("close", () => {
       this.connections.delete(conn);
@@ -78,9 +99,26 @@ export class Hub {
     });
   }
 
+  private handle(conn: Connection, msg: z.infer<typeof clientMessageSchema>) {
+    if (msg.type === "world.resync") return this.sendState(conn);
+
+    // token.move: validate against the live DB, never trust the client's view of permissions.
+    const found = this.s.tokens.find(msg.tokenId);
+    if (!found || found.worldId !== conn.worldId) throw new AppError("not_found");
+    const activeSceneId = this.s.scenes.activeSceneId(conn.worldId);
+    const { token } = found;
+    if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId)) throw new AppError("not_found");
+    if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
+    const scene = this.s.scenes.get(token.sceneId)!;
+    const x = Math.min(Math.max(msg.x, 0), scene.width);
+    const y = Math.min(Math.max(msg.y, 0), scene.height);
+    const after = this.s.tokens.update(token.id, conn.worldId, { x, y });
+    this.publishToken(conn.worldId, token, after);
+  }
+
   private onlineIn(worldId: string): Set<string> {
     const ids = new Set<string>();
-    for (const c of this.connections) if (c.worldId === worldId) ids.add(c.userId);
+    for (const c of this.connections) if (c.worldId === worldId) ids.add(c.viewer.userId);
     return ids;
   }
 
@@ -88,13 +126,57 @@ export class Hub {
     if (conn.socket.readyState === conn.socket.OPEN) conn.socket.send(JSON.stringify(msg));
   }
 
-  private sendState(conn: Connection) {
-    const state = this.worlds.stateFor(conn.worldId, conn.userId, this.onlineIn(conn.worldId));
-    this.send(conn, { type: "world.state", state });
+  /** Builds the complete state a viewer is allowed to see. */
+  buildState(worldId: string, viewer: Viewer, online: ReadonlySet<string>): WorldStateDto {
+    const world = this.s.worlds.info(worldId);
+    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    const allScenes = this.s.scenes.list(worldId);
+    return {
+      id: world.id,
+      name: world.name,
+      systemId: world.systemId,
+      yourRole: viewer.role,
+      activeSceneId,
+      members: this.s.worlds.members(worldId, online),
+      scenes: viewer.role === "gm" ? allScenes : allScenes.filter((sc) => sc.id === activeSceneId),
+      tokens: this.s.tokens.visibleTo(worldId, viewer, activeSceneId),
+      actors: this.s.actors.visibleTo(worldId, viewer),
+      messages: this.s.chat.historyFor(worldId, viewer),
+    };
   }
 
-  /** State is rebuilt per recipient so role-based filtering stays on the server. */
+  private sendState(conn: Connection) {
+    // Role is re-read so a role change can never keep stale privileges on an open socket.
+    const role: WorldRole | null = this.s.worlds.roleOf(conn.worldId, conn.viewer.userId);
+    if (!role) return conn.socket.close();
+    conn.viewer.role = role;
+    this.send(conn, { type: "world.state", state: this.buildState(conn.worldId, conn.viewer, this.onlineIn(conn.worldId)) });
+  }
+
   broadcastState(worldId: string) {
     for (const c of this.connections) if (c.worldId === worldId) this.sendState(c);
+  }
+
+  /** `before` is the token prior to the change (null when created); it decides who must be told to drop it. */
+  publishToken(worldId: string, before: TokenDto | null, after: TokenDto) {
+    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    for (const c of this.connections) {
+      if (c.worldId !== worldId) continue;
+      if (this.s.tokens.canSee(after, c.viewer, activeSceneId)) this.send(c, { type: "token.upsert", token: after });
+      else if (before && this.s.tokens.canSee(before, c.viewer, activeSceneId))
+        this.send(c, { type: "token.remove", tokenId: after.id });
+    }
+  }
+
+  publishTokenRemoved(worldId: string, token: TokenDto) {
+    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    for (const c of this.connections)
+      if (c.worldId === worldId && this.s.tokens.canSee(token, c.viewer, activeSceneId))
+        this.send(c, { type: "token.remove", tokenId: token.id });
+  }
+
+  publishMessage(worldId: string, message: MessageDto) {
+    for (const c of this.connections)
+      if (c.worldId === worldId && canReadMessage(message, c.viewer)) this.send(c, { type: "chat.message", message });
   }
 }

@@ -1,0 +1,13 @@
+{
+  "id": "generic",
+  "name": "Generic",
+  "version": "0.1.0",
+  "author": "OpenVTT contributors",
+  "license": "MIT",
+  "minOpenVTT": "0.1.0",
+  "actorTypes": {
+    "character": { "template": "templates/character.json" },
+    "npc": { "template": "templates/npc.json" }
+  },
+  "locales": ["en", "pt-br"]
+}

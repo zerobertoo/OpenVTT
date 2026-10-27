@@ -1,0 +1,17 @@
+{
+  "attributes": "Atributos",
+  "strength": "Força",
+  "agility": "Agilidade",
+  "mind": "Mente",
+  "modifier": "Modificador",
+  "status": "Situação",
+  "hp": "Pontos de vida",
+  "hp_max": "Pontos de vida máximos",
+  "inspired": "Inspirado",
+  "belongings": "Pertences",
+  "inventory": "Inventário",
+  "item": "Item",
+  "quantity": "Quantidade",
+  "notes": "Anotações",
+  "attack_bonus": "Bônus de ataque"
+}

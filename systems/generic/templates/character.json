@@ -1,0 +1,41 @@
+{
+  "sections": [
+    {
+      "id": "attributes",
+      "label": "attributes",
+      "fields": [
+        { "id": "strength", "type": "number", "label": "strength", "default": 10, "min": 1, "max": 30 },
+        { "id": "strength_mod", "type": "computed", "label": "modifier", "formula": "floor((@strength - 10) / 2)" },
+        { "id": "agility", "type": "number", "label": "agility", "default": 10, "min": 1, "max": 30 },
+        { "id": "agility_mod", "type": "computed", "label": "modifier", "formula": "floor((@agility - 10) / 2)" },
+        { "id": "mind", "type": "number", "label": "mind", "default": 10, "min": 1, "max": 30 },
+        { "id": "mind_mod", "type": "computed", "label": "modifier", "formula": "floor((@mind - 10) / 2)" }
+      ]
+    },
+    {
+      "id": "status",
+      "label": "status",
+      "fields": [
+        { "id": "hp", "type": "number", "label": "hp", "default": 10 },
+        { "id": "hp_max", "type": "number", "label": "hp_max", "default": 10 },
+        { "id": "inspired", "type": "checkbox", "label": "inspired" }
+      ]
+    },
+    {
+      "id": "belongings",
+      "label": "belongings",
+      "fields": [
+        {
+          "id": "inventory",
+          "type": "list",
+          "label": "inventory",
+          "itemFields": [
+            { "id": "item", "type": "text", "label": "item" },
+            { "id": "quantity", "type": "number", "label": "quantity", "default": 1 }
+          ]
+        },
+        { "id": "notes", "type": "text", "label": "notes", "multiline": true }
+      ]
+    }
+  ]
+}

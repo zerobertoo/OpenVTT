@@ -9,6 +9,10 @@ const STATUS: Record<ErrorCode, number> = {
   forbidden: 403,
   not_found: 404,
   invite_invalid: 404,
+  asset_invalid: 400,
+  roll_invalid: 400,
+  template_invalid: 400,
+  import_invalid: 400,
   internal_error: 500,
 };
 

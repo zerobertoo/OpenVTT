@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import type { MemberDto, UserDto, WorldRole, WorldStateDto, WorldSummaryDto } from "@openvtt/shared";
+import type { MemberDto, UserDto, WorldRole, WorldSummaryDto } from "@openvtt/shared";
 import { transaction, type Db } from "./db.ts";
 import { AppError } from "./errors.ts";
 
@@ -9,10 +9,12 @@ export class WorldService {
   constructor(private db: Db) {}
 
   /** Creator becomes GM of the new world. */
-  create(user: UserDto, name: string): WorldSummaryDto {
+  create(user: UserDto, name: string, systemId = "generic"): WorldSummaryDto {
     const id = randomUUID();
     transaction(this.db, () => {
-      this.db.prepare("INSERT INTO worlds (id, name, created_at) VALUES (?, ?, ?)").run(id, name, Date.now());
+      this.db
+        .prepare("INSERT INTO worlds (id, name, system_id, created_at) VALUES (?, ?, ?, ?)")
+        .run(id, name, systemId, Date.now());
       this.db
         .prepare("INSERT INTO members (world_id, user_id, display_name, color, role) VALUES (?, ?, ?, ?, 'gm')")
         .run(id, user.id, user.username, DEFAULT_COLORS[0]!);
@@ -57,25 +59,36 @@ export class WorldService {
     return { id: invite.id, name: invite.name, role: "player" };
   }
 
-  /** Builds the state a given member is allowed to see. */
-  stateFor(worldId: string, userId: string, onlineUserIds: ReadonlySet<string>): WorldStateDto {
-    const role = this.roleOf(worldId, userId);
-    if (!role) throw new AppError("forbidden");
-    const world = this.db.prepare("SELECT id, name FROM worlds WHERE id = ?").get(worldId) as {
-      id: string;
-      name: string;
-    };
+  info(worldId: string): { id: string; name: string; systemId: string } {
+    const row = this.db.prepare("SELECT id, name, system_id FROM worlds WHERE id = ?").get(worldId) as
+      | { id: string; name: string; system_id: string }
+      | undefined;
+    if (!row) throw new AppError("not_found");
+    return { id: row.id, name: row.name, systemId: row.system_id };
+  }
+
+  rename(worldId: string, name: string): void {
+    this.db.prepare("UPDATE worlds SET name = ? WHERE id = ?").run(name, worldId);
+  }
+
+  member(worldId: string, userId: string): { displayName: string; role: WorldRole } | null {
+    const row = this.db
+      .prepare("SELECT display_name, role FROM members WHERE world_id = ? AND user_id = ?")
+      .get(worldId, userId) as { display_name: string; role: WorldRole } | undefined;
+    return row ? { displayName: row.display_name, role: row.role } : null;
+  }
+
+  members(worldId: string, onlineUserIds: ReadonlySet<string>): MemberDto[] {
     const rows = this.db
       .prepare("SELECT user_id, display_name, color, role FROM members WHERE world_id = ? ORDER BY display_name")
       .all(worldId) as { user_id: string; display_name: string; color: string; role: WorldRole }[];
-    const members: MemberDto[] = rows.map((r) => ({
+    return rows.map((r) => ({
       userId: r.user_id,
       displayName: r.display_name,
       color: r.color,
       role: r.role,
       online: onlineUserIds.has(r.user_id),
     }));
-    return { id: world.id, name: world.name, yourRole: role, members };
   }
 
   memberUserIds(worldId: string): string[] {

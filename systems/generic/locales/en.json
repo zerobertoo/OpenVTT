@@ -1,0 +1,17 @@
+{
+  "attributes": "Attributes",
+  "strength": "Strength",
+  "agility": "Agility",
+  "mind": "Mind",
+  "modifier": "Modifier",
+  "status": "Status",
+  "hp": "Hit points",
+  "hp_max": "Maximum hit points",
+  "inspired": "Inspired",
+  "belongings": "Belongings",
+  "inventory": "Inventory",
+  "item": "Item",
+  "quantity": "Quantity",
+  "notes": "Notes",
+  "attack_bonus": "Attack bonus"
+}

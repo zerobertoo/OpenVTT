@@ -1,0 +1,14 @@
+{
+  "sections": [
+    {
+      "id": "main",
+      "label": "status",
+      "fields": [
+        { "id": "hp", "type": "number", "label": "hp", "default": 5 },
+        { "id": "hp_max", "type": "number", "label": "hp_max", "default": 5 },
+        { "id": "attack_bonus", "type": "number", "label": "attack_bonus", "default": 0 },
+        { "id": "notes", "type": "text", "label": "notes", "multiline": true }
+      ]
+    }
+  ]
+}

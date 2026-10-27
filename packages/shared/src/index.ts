@@ -1,4 +1,12 @@
 import { z } from "zod";
+import {
+  actorTypeSchema,
+  type ActorType,
+  type RollResult,
+  type SheetData,
+  type SheetTemplate,
+  type SystemManifest,
+} from "@openvtt/sdk";
 
 /** Supported UI locales; the first one is the fallback. */
 export const SUPPORTED_LOCALES = ["en", "pt-br"] as const;
@@ -14,6 +22,10 @@ export const ERROR_CODES = [
   "forbidden",
   "not_found",
   "invite_invalid",
+  "asset_invalid",
+  "roll_invalid",
+  "template_invalid",
+  "import_invalid",
   "internal_error",
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -32,7 +44,10 @@ export const passwordSchema = z.string().min(8).max(128);
 export const credentialsSchema = z.object({ username: usernameSchema, password: passwordSchema });
 export const localeSchema = z.enum(SUPPORTED_LOCALES);
 export const updateProfileSchema = z.object({ locale: localeSchema });
-export const createWorldSchema = z.object({ name: z.string().trim().min(1).max(80) });
+export const createWorldSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  systemId: z.string().max(40).default("generic"),
+});
 export const joinWorldSchema = z.object({
   displayName: z.string().trim().min(1).max(40),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -59,20 +74,166 @@ export interface MemberDto {
   online: boolean;
 }
 
+export type GridType = "square" | "none";
+
+export interface SceneDto {
+  id: string;
+  name: string;
+  assetId: string | null;
+  /** Map size in pixels. */
+  width: number;
+  height: number;
+  gridType: GridType;
+  /** Pixels per grid cell. */
+  gridSize: number;
+  /** Real-world distance of one cell, used by the ruler. */
+  gridDistance: number;
+  distanceUnit: string;
+}
+
+export interface TokenDto {
+  id: string;
+  sceneId: string;
+  name: string;
+  /** Top-left corner in map pixels. */
+  x: number;
+  y: number;
+  /** Side length in grid cells. */
+  size: number;
+  rotation: number;
+  color: string;
+  assetId: string | null;
+  hidden: boolean;
+  actorId: string | null;
+  controllerIds: string[];
+}
+
+export type MessageKind = "chat" | "roll" | "whisper";
+
+export interface MessageDto {
+  id: string;
+  userId: string;
+  senderName: string;
+  kind: MessageKind;
+  toUserId: string | null;
+  gmOnly: boolean;
+  content: string;
+  roll: RollResult | null;
+  createdAt: number;
+}
+
+export interface ActorDto {
+  id: string;
+  type: ActorType;
+  name: string;
+  ownerId: string | null;
+  /** Raw stored values; computed fields are derived on the client with the SDK. */
+  data: SheetData;
+}
+
 /** Table state sent to a client, already filtered by role on the server. */
 export interface WorldStateDto {
   id: string;
   name: string;
+  systemId: string;
   yourRole: WorldRole;
+  activeSceneId: string | null;
   members: MemberDto[];
+  /** Players only receive the active scene; the GM receives all of them. */
+  scenes: SceneDto[];
+  tokens: TokenDto[];
+  actors: ActorDto[];
+  /** Most recent messages the recipient is allowed to read. */
+  messages: MessageDto[];
 }
 
 /** Server → client messages. */
 export type ServerMessage =
   | { type: "world.state"; state: WorldStateDto }
+  | { type: "token.upsert"; token: TokenDto }
+  | { type: "token.remove"; tokenId: string }
+  | { type: "chat.message"; message: MessageDto }
   | { type: "error"; code: ErrorCode };
 
 /** Client → server messages. */
-export type ClientMessage = { type: "world.resync" };
+export type ClientMessage =
+  | { type: "world.resync" }
+  | { type: "token.move"; tokenId: string; x: number; y: number };
 
 export const WS_PATH = "/ws";
+
+export const MAX_MAP_DIMENSION = 16384;
+export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+export const createSceneSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  assetId: z.string().uuid().nullable().default(null),
+  width: z.number().int().min(1).max(MAX_MAP_DIMENSION),
+  height: z.number().int().min(1).max(MAX_MAP_DIMENSION),
+  gridType: z.enum(["square", "none"]).default("square"),
+  gridSize: z.number().int().min(10).max(500).default(70),
+  gridDistance: z.number().positive().max(1000).default(5),
+  distanceUnit: z.string().trim().max(10).default("ft"),
+});
+export const updateSceneSchema = createSceneSchema.partial();
+
+const tokenFields = {
+  name: z.string().trim().min(1).max(60),
+  x: z.number().finite().min(-MAX_MAP_DIMENSION).max(MAX_MAP_DIMENSION),
+  y: z.number().finite().min(-MAX_MAP_DIMENSION).max(MAX_MAP_DIMENSION),
+  size: z.number().min(0.25).max(20),
+  rotation: z.number().finite().min(-360).max(360),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  assetId: z.string().uuid().nullable(),
+  hidden: z.boolean(),
+  actorId: z.string().uuid().nullable(),
+  controllerIds: z.array(z.string().uuid()).max(20),
+};
+export const createTokenSchema = z.object({
+  sceneId: z.string().uuid(),
+  name: tokenFields.name,
+  x: tokenFields.x,
+  y: tokenFields.y,
+  size: tokenFields.size.default(1),
+  color: tokenFields.color.default("#3d6fd8"),
+  hidden: tokenFields.hidden.default(false),
+  actorId: tokenFields.actorId.default(null),
+  assetId: tokenFields.assetId.default(null),
+  controllerIds: tokenFields.controllerIds.default([]),
+});
+export const updateTokenSchema = z.object(tokenFields).partial();
+/** Fields a non-GM controller may change on their own tokens. */
+export const PLAYER_EDITABLE_TOKEN_FIELDS = ["x", "y", "rotation"] as const;
+
+export const sendMessageSchema = z.object({
+  content: z.string().trim().min(1).max(2000),
+  toUserId: z.string().uuid().nullable().default(null),
+  gmOnly: z.boolean().default(false),
+});
+
+export const createActorSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  type: actorTypeSchema,
+});
+export const updateActorSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  ownerId: z.string().uuid().nullable().optional(),
+  data: z.record(z.unknown()).optional(),
+});
+
+export const updateWorldSchema = z.object({
+  activeSceneId: z.string().uuid().nullable().optional(),
+  name: z.string().trim().min(1).max(80).optional(),
+  /** Per actor type, a replacement sheet template written by the GM. */
+  templateOverrides: z.record(actorTypeSchema, z.unknown()).optional(),
+});
+
+/** What the client needs to render sheets of a world: manifest, templates and label strings. */
+export interface SystemInfoDto {
+  manifest: SystemManifest;
+  templates: Partial<Record<ActorType, SheetTemplate>>;
+  strings: Record<string, Record<string, string>>;
+  /** Whether the template of the type is a GM override rather than the system default. */
+  overridden: ActorType[];
+}
