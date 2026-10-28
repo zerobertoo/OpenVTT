@@ -22,7 +22,7 @@ The server is authoritative: every action is validated by role, and hidden token
 docker compose up -d --build
 ```
 
-Open http://localhost:3000. Data (database, uploaded maps, installed systems) lives in the `openvtt-data` volume; back it up by copying that volume. Behind an HTTPS reverse proxy, set `OPENVTT_SECURE_COOKIES=1` (see `docker-compose.yml`) and make sure the proxy forwards WebSocket upgrades on `/ws`.
+Open http://localhost:3000. Data (database, uploaded maps, installed systems) lives in the `openvtt-data` volume; back it up by copying that volume. Behind an HTTPS reverse proxy, set `OPENVTT_SECURE_COOKIES=1` (see `compose.yaml`) and make sure the proxy forwards WebSocket upgrades on `/ws`.
 
 ## Running from source
 
@@ -41,6 +41,15 @@ Environment variables:
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | Listen address |
 | `OPENVTT_DB` | `data/openvtt.db` | SQLite file; assets and installed systems are stored next to it |
 | `OPENVTT_SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
+| `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video accepted; images stay capped at 15 MiB |
+
+### Animated maps
+
+A scene background can be a `.webm` or `.mp4` video. It plays muted and in a loop; with the system setting "reduce motion" it starts paused, and it pauses while the tab is hidden. The file is streamed to disk in the data directory, checked by its bytes (not its name), and served with HTTP Range support so players can seek. Exports and imports of a world stream the videos too.
+
+Codecs depend on the browser that plays the map, not on the server. WebM with VP9 works in most browsers; MP4 with H.264 is the most compatible choice. HEVC and AV1 only play on some devices. If a browser cannot decode the file, the scene shows a notice and the map is drawn without the video.
+
+Behind a reverse proxy, allow bodies at least as large as the video limit and long upload timeouts (nginx: `client_max_body_size 110m;` and `proxy_request_buffering off;`).
 
 A forgotten password is reset by the administrator through `POST /api/admin/reset-password` (no email server involved).
 

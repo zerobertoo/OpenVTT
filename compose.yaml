@@ -4,11 +4,15 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      # The database, uploaded maps (images and videos) and installed systems all live here.
       - openvtt-data:/data
     restart: unless-stopped
-    # Uncomment when serving through an HTTPS reverse proxy.
+    # Optional settings; uncomment what you need.
     # environment:
+    #   # Serving through an HTTPS reverse proxy.
     #   OPENVTT_SECURE_COOKIES: "1"
+    #   # Largest animated map video in bytes (default 104857600 = 100 MiB).
+    #   OPENVTT_MAX_VIDEO_BYTES: "104857600"
 
 volumes:
   openvtt-data:
