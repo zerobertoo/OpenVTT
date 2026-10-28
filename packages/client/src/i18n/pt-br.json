@@ -167,6 +167,14 @@
     "grid": "Grade",
     "gridSquare": "Quadrada",
     "gridNone": "Sem grade",
+    "gridAdjust": {
+      "open": "Ajustar a grade no mapa",
+      "adjustTitle": "Ajustar a grade",
+      "adjustHint": "Mude o tamanho da célula até as linhas acompanharem o mapa. Use o zoom para conferir o canto mais distante.",
+      "exact": "Tamanho da célula",
+      "zoom": "Zoom",
+      "apply": "Usar esta grade"
+    },
     "gridSize": "Tamanho da célula (px)",
     "gridDistance": "Distância por célula",
     "distanceUnit": "Unidade",

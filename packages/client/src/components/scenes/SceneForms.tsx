@@ -20,13 +20,15 @@ function GridTypeSelect({ defaultValue }: { defaultValue: string }) {
 }
 
 interface SettingsProps {
+  /** Opens the visual grid adjuster; the button is left out when not given. */
+  onAdjustGrid?: () => void;
   scene: SceneDto;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   pending?: boolean;
 }
 
 /** Name and grid of the scene being looked at. The parent remounts it (via `key`) when the scene changes. */
-export function SceneSettingsForm({ scene, onSubmit, pending }: SettingsProps) {
+export function SceneSettingsForm({ scene, onSubmit, pending, onAdjustGrid }: SettingsProps) {
   const { t } = useTranslation();
   return (
     <form onSubmit={onSubmit} aria-label={t("scene.settings")} className="grid gap-3">
@@ -45,9 +47,16 @@ export function SceneSettingsForm({ scene, onSubmit, pending }: SettingsProps) {
           {(control) => <Input {...control} name="distanceUnit" list="distance-units" defaultValue={scene.distanceUnit} maxLength={10} />}
         </Field>
       </div>
-      <Button type="submit" pending={pending} className="justify-self-start">
-        {t("common.save")}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" pending={pending}>
+          {t("common.save")}
+        </Button>
+        {onAdjustGrid && scene.gridType === "square" && (
+          <Button type="button" variant="secondary" onClick={onAdjustGrid}>
+            {t("scene.gridAdjust.open")}
+          </Button>
+        )}
+      </div>
     </form>
   );
 }

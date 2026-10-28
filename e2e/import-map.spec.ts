@@ -71,3 +71,19 @@ test("a file that is not a map is explained", async ({ page }) => {
     .setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hi") });
   await expect(page.getByRole("alert").filter({ hasText: "Use a .dd2vtt" })).toBeVisible();
 });
+
+test("the grid can be lined up by eye and applied to the scene", async ({ page }) => {
+  await registerNewUser(page);
+  await createAndOpenWorld(page, "Grid world");
+  await page.getByRole("tab", { name: "Scenes" }).click();
+  await page.getByRole("button", { name: "Import map" }).click();
+  await page.getByRole("dialog", { name: "Import maps" }).getByLabel("Map files").setInputFiles([UVTT, VIDEO]);
+  await page.getByRole("dialog", { name: "Import maps" }).getByRole("button", { name: "Create scene" }).click();
+  await page.getByRole("button", { name: "Adjust grid on the map" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Adjust the grid" });
+  await dialog.getByLabel("Cell size", { exact: true }).fill("64");
+  await expectNoAxeViolations(page);
+  await dialog.getByRole("button", { name: "Use this grid" }).click();
+  await expect(page.getByRole("form", { name: "Scene settings" }).getByLabel(/Cell size/)).toHaveValue("64");
+});

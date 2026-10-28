@@ -2,6 +2,7 @@ import type { WorldStateDto } from "@openvtt/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
+import { GridAdjuster } from "../components/scenes/GridAdjuster";
 import { type MapImportChoice, MapImportDialog } from "../components/scenes/MapImportDialog";
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
@@ -24,6 +25,7 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
   const { run, error, pending } = useAction();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [adjustingGrid, setAdjustingGrid] = useState(false);
   const showMapData = useTableUi((s) => s.showMapData);
   const setShowMapData = useTableUi((s) => s.setShowMapData);
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
@@ -133,7 +135,13 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
 
       {current && (
         // The key makes the uncontrolled inputs reset when another scene (or a server update) is shown.
-        <SceneSettingsForm key={JSON.stringify(current)} scene={current} onSubmit={save} pending={pending} />
+        <SceneSettingsForm
+          key={JSON.stringify(current)}
+          scene={current}
+          onSubmit={save}
+          pending={pending}
+          onAdjustGrid={() => setAdjustingGrid(true)}
+        />
       )}
 
       <h3>{t("scene.new")}</h3>
@@ -141,6 +149,21 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
       <Button variant="secondary" onClick={() => setImporting(true)} className="justify-self-start">
         {t("scene.import.open")}
       </Button>
+      {current && (
+        <GridAdjuster
+          key={`${current.id}-${current.gridSize}`}
+          open={adjustingGrid}
+          onOpenChange={setAdjustingGrid}
+          scene={current}
+          pending={pending}
+          onApply={(gridSize) =>
+            void run(async () => {
+              await api.updateScene(current.id, { gridSize });
+              setAdjustingGrid(false);
+            })
+          }
+        />
+      )}
       <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} />
       <datalist id="distance-units">
         <option value="ft" />

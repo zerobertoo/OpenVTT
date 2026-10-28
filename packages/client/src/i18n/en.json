@@ -167,6 +167,14 @@
     "grid": "Grid",
     "gridSquare": "Square",
     "gridNone": "No grid",
+    "gridAdjust": {
+      "open": "Adjust grid on the map",
+      "adjustTitle": "Adjust the grid",
+      "adjustHint": "Change the cell size until the lines follow the map. Use the zoom to check the far corner.",
+      "exact": "Cell size",
+      "zoom": "Zoom",
+      "apply": "Use this grid"
+    },
     "gridSize": "Cell size (px)",
     "gridDistance": "Distance per cell",
     "distanceUnit": "Unit",
