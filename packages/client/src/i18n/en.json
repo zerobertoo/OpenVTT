@@ -1,6 +1,13 @@
 {
   "app": { "title": "OpenVTT", "loading": "Loading…" },
-  "common": { "save": "Save", "delete": "Delete", "retry": "Try again", "close": "Close", "cancel": "Cancel" },
+  "common": {
+    "save": "Save",
+    "delete": "Delete",
+    "retry": "Try again",
+    "close": "Close",
+    "cancel": "Cancel",
+    "notifications": "Notifications"
+  },
   "states": { "loadFailed": "We could not load this." },
   "language": { "label": "Language", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
