@@ -8,8 +8,12 @@ const TEMP_DB = resolve(import.meta.dirname, `e2e/.tmp/openvtt-${Date.now()}.db`
 
 export default defineConfig({
   testDir: "./e2e",
-  // Screenshot checks for local review only; run them with SHOTS=1.
-  testIgnore: process.env.SHOTS ? undefined : "**/*.local.spec.ts",
+  // Screenshot checks for local review only; run them with SHOTS=1. Visual regression only runs when asked for
+  // by name (`pnpm test:visual`), because its baselines come from Linux CI.
+  testIgnore: [
+    ...(process.env.SHOTS ? [] : ["**/*.local.spec.ts"]),
+    ...(process.argv.some((arg) => arg.includes("visual")) ? [] : ["**/visual.spec.ts"]),
+  ],
   // One worker: every test registers its own user against the same temporary database.
   workers: 1,
   retries: process.env.CI ? 1 : 0,

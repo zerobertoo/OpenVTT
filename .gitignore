@@ -6,4 +6,6 @@ data/
 e2e/.tmp/
 test-results/
 playwright-report/
+e2e/*-snapshots/*-win32.png
+e2e/*-snapshots/*-darwin.png
 storybook-static/

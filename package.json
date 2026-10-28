@@ -17,6 +17,7 @@
     "lint": "biome check .",
     "catalog": "pnpm --filter @openvtt/client catalog",
     "test:e2e": "pnpm build && playwright test",
+    "test:visual": "pnpm build && playwright test visual",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:bundle": "node scripts/check-bundle-size.mjs"
   },
