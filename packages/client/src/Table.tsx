@@ -1,11 +1,12 @@
 import type { TokenDto, UserDto } from "@openvtt/shared";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { Tabs } from "radix-ui";
 import { type CSSProperties, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountControls } from "./components/AccountControls";
 import { TableLoading } from "./components/screens/TableLoading";
+import { TabContent, TabList, Tabs, TabTrigger } from "./components/ui/tabs";
+import { ToolbarChoices } from "./components/ui/toolbar";
 import { Tip, TipProvider } from "./components/ui/tooltip";
 import { Icon, type IconName, Logo } from "./icons";
 import { type MapTool, MapView } from "./MapView";
@@ -94,14 +95,13 @@ export function Table({ worldId, user }: Props) {
             )}
           </header>
 
-          <div className="chrome dock" role="group" aria-label={t("map.tools")}>
-            {(["select", "ruler"] as const).map((id) => (
-              <button key={id} aria-pressed={tool === id} onClick={() => setTool(id)}>
-                <Icon name={id} />
-                {t(`map.${id}`)}
-              </button>
-            ))}
-          </div>
+          <ToolbarChoices
+            className="dock"
+            label={t("map.tools")}
+            value={tool}
+            onValueChange={setTool}
+            choices={(["select", "ruler"] as const).map((id) => ({ value: id, label: t(`map.${id}`), icon: <Icon name={id} /> }))}
+          />
           <p className="map-hint">{t("map.hint")}</p>
 
           <div className="chrome online-chip">
@@ -129,8 +129,7 @@ export function Table({ worldId, user }: Props) {
 
           <AnimatePresence>
             {drawerOpen && (
-              // Radix Tabs provides the tablist/tab/tabpanel roles, ids and arrow-key navigation.
-              <Tabs.Root value={tab} onValueChange={(value) => setTab(value as Tab)} orientation="vertical" asChild>
+              <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} orientation="vertical" asChild>
                 <motion.aside
                   id="drawer"
                   className="drawer"
@@ -140,16 +139,16 @@ export function Table({ worldId, user }: Props) {
                   exit={{ opacity: 0, x: 48 }}
                   transition={{ type: "spring", stiffness: 380, damping: 34 }}
                 >
-                  <Tabs.List aria-label={t("table.panels")} className="drawer-tabs">
+                  <TabList aria-label={t("table.panels")}>
                     {tabs.map((id) => (
-                      <Tabs.Trigger key={id} value={id}>
+                      <TabTrigger key={id} value={id}>
                         <Icon name={TAB_ICONS[id]} />
                         {t(`tabs.${id}`)}
-                      </Tabs.Trigger>
+                      </TabTrigger>
                     ))}
-                  </Tabs.List>
+                  </TabList>
                   {tabs.map((id) => (
-                    <Tabs.Content key={id} value={id} asChild>
+                    <TabContent key={id} value={id} asChild>
                       <motion.div
                         className="drawer-panel"
                         initial={{ opacity: 0, y: 10 }}
@@ -170,10 +169,10 @@ export function Table({ worldId, user }: Props) {
                           </>
                         )}
                       </motion.div>
-                    </Tabs.Content>
+                    </TabContent>
                   ))}
                 </motion.aside>
-              </Tabs.Root>
+              </Tabs>
             )}
           </AnimatePresence>
         </main>

@@ -198,10 +198,7 @@ ul.plain li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; 
 .title-chip .status { color: var(--dice); font-size: 0.85rem; }
 .back-button { padding: 0.35rem; color: var(--on-chrome); background: var(--chrome-2); }
 .back-button:hover:not(:disabled) { box-shadow: none; background: var(--chrome-line); }
-.dock { bottom: 1rem; left: calc((100% - var(--drawer-space, 0px)) / 2); transform: translateX(-50%); padding: 0.35rem; border-radius: 1.2rem; gap: 0.2rem; }
-.dock button { flex-direction: column; gap: 0.1rem; padding: 0.45rem 1rem; color: var(--on-chrome-2); background: none; border-radius: 0.9rem; font-size: 0.78rem; }
-.dock button:hover:not(:disabled) { color: var(--on-chrome); background: var(--chrome-2); box-shadow: none; }
-.dock button[aria-pressed="true"] { color: var(--on-dice); background: var(--dice); }
+.dock { position: absolute; bottom: 1rem; left: calc((100% - var(--drawer-space, 0px)) / 2); transform: translateX(-50%); }
 .map-hint { position: absolute; left: 0.9rem; bottom: 1rem; margin: 0; max-width: 16rem; padding: 0.4rem 0.8rem; font-size: 0.78rem; color: var(--on-chrome-2); background: color-mix(in srgb, var(--chrome) 85%, transparent); border-radius: var(--radius); }
 .online-chip { top: 0.9rem; right: calc(var(--drawer-space, 0px) + 0.9rem); padding: 0.3rem 0.75rem 0.3rem 0.5rem; font-size: 0.85rem; color: var(--on-chrome-2); }
 .avatar { display: inline-grid; place-items: center; width: 1.9rem; height: 1.9rem; flex: none; border-radius: 50%; font-weight: 800; font-size: 0.8rem; color: oklch(0.2 0 0); color: oklch(from var(--who, var(--accent)) clamp(0.2, (0.62 - l) * 100, 0.97) 0 0); background: var(--who, var(--accent)); box-shadow: 0 0 0 2px var(--chrome); }
@@ -211,11 +208,6 @@ ul.plain li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; 
 .drawer-toggle:hover:not(:disabled) { box-shadow: var(--shadow-chrome); }
 
 .drawer { position: absolute; top: 0.9rem; right: 0.9rem; bottom: 0.9rem; z-index: 2; width: var(--drawer-width); max-width: calc(100% - 1.8rem); display: grid; grid-template-columns: 4.1rem minmax(0, 1fr); overflow: hidden; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-chrome); }
-.drawer-tabs { display: flex; flex-direction: column; gap: 0.3rem; padding: 3.6rem 0.4rem 0.6rem; background: var(--chrome); }
-.drawer-tabs button { flex-direction: column; gap: 0.15rem; padding: 0.55rem 0.1rem; font-size: 0.68rem; color: var(--on-chrome-2); background: none; border-radius: 0.8rem; }
-.drawer-tabs button:hover:not(:disabled) { color: var(--on-chrome); background: var(--chrome-2); box-shadow: none; }
-.drawer-tabs button[aria-selected="true"] { color: var(--on-accent); background: var(--accent); }
-.drawer-tabs :focus-visible { outline-color: var(--dice); }
 .drawer-panel { min-width: 0; min-height: 0; overflow-y: auto; padding: 3.6rem 1rem 1rem; display: flex; flex-direction: column; }
 .drawer-panel > section { display: flex; flex-direction: column; gap: 0.7rem; flex: 1 0 auto; }
 .drawer-panel > section.chat { flex: 1 1 0; min-height: 0; }
@@ -271,8 +263,6 @@ ul.plain li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; 
 @media (max-width: 52rem) {
   :root { --drawer-width: 100%; }
   .drawer { top: auto; left: 0.6rem; right: 0.6rem; bottom: 0.6rem; width: auto; max-width: none; height: min(62dvh, 34rem); grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
-  .drawer-tabs { flex-direction: row; padding: 0.4rem 3.2rem 0.4rem 0.4rem; overflow-x: auto; }
-  .drawer-tabs button { flex: 1; min-width: 3.6rem; }
   .drawer-panel { padding: 0.8rem; }
   .drawer-toggle { top: auto; right: 1.2rem; }
   .dock { top: 4.2rem; bottom: auto; left: 0.9rem; transform: none; }
