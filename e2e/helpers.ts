@@ -17,9 +17,10 @@ export async function registerNewUser(page: Page) {
 
 /** Creates a world from the list screen and opens its table. */
 export async function createAndOpenWorld(page: Page, name: string) {
+  await page.getByRole("button", { name: "New world" }).click();
   await page.getByLabel("World name").fill(name);
   await page.getByRole("button", { name: "Create world" }).click();
-  await page.getByRole("button", { name: "Open" }).click();
+  await page.getByRole("button", { name: /^Open/ }).click();
   await expect(page.getByRole("tablist")).toBeVisible();
 }
 

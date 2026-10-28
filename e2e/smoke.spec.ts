@@ -39,7 +39,7 @@ test("register, create a world, open the table and roll dice in the chat", async
 
   await createAndOpenWorld(page, "Smoke test world");
   await expect(page).toHaveURL(/\/world\/[\w-]+$/);
-  await expect(page.getByText("Smoke test world")).toBeVisible();
+  await expect(page.locator("header").getByText("Smoke test world")).toBeVisible();
 
   await page.getByLabel("Message, or /r 2d6+3 to roll").fill("/r 1d20");
   await page.getByRole("button", { name: "Send" }).click();

@@ -1,7 +1,8 @@
 import { createRootRoute, createRoute, createRouter, Navigate, Outlet } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
-import { JoinInvite, useUser, WorldList } from "./App";
+import { JoinInvite, useUser } from "./App";
 import { TableLoading } from "./components/screens/TableLoading";
+import { WorldListScreen } from "./components/screens/WorldListScreen";
 import { Root, Shell } from "./Root";
 
 // The table pulls in PixiJS and motion, so it is its own chunk and never loads on the sign-in screen.
@@ -20,7 +21,7 @@ const shellRoute = createRoute({
   ),
 });
 
-const worldsRoute = createRoute({ getParentRoute: () => shellRoute, path: "/", component: WorldList });
+const worldsRoute = createRoute({ getParentRoute: () => shellRoute, path: "/", component: WorldListScreen });
 
 const joinRoute = createRoute({
   getParentRoute: () => shellRoute,
