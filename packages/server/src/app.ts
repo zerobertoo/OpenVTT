@@ -29,6 +29,7 @@ import {
 } from "@openvtt/shared";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ZodError, z } from "zod";
+import { parseRange } from "./assets.ts";
 import { SESSION_TTL_MS } from "./auth.ts";
 import { openDatabase } from "./db.ts";
 import { AppError } from "./errors.ts";
@@ -225,11 +226,26 @@ export function buildApp(options: AppOptions) {
     const asset = s.assets.find(req.params.id);
     // Same answer for missing assets and assets of other worlds.
     if (!asset || !s.worlds.roleOf(asset.worldId, requireUser(req).id)) throw new AppError("not_found");
-    return reply
+    // The id never changes what it points to, so it doubles as the validator.
+    const etag = `"${asset.id}"`;
+    reply
       .header("cache-control", "private, max-age=31536000, immutable")
       .header("x-content-type-options", "nosniff")
-      .type(asset.mime)
-      .send(s.assets.read(asset));
+      .header("accept-ranges", "bytes")
+      .header("etag", etag)
+      .type(asset.mime);
+    const sent = String(req.headers["if-none-match"] ?? "");
+    if (sent.split(",").some((tag) => tag.trim().replace(/^W\//, "") === etag || tag.trim() === "*")) return reply.status(304).send();
+    const range = parseRange(req.headers.range, asset.size);
+    if (range === "unsatisfiable") return reply.status(416).header("content-range", `bytes */${asset.size}`).send();
+    if (range) {
+      return reply
+        .status(206)
+        .header("content-range", `bytes ${range.start}-${range.end}/${asset.size}`)
+        .header("content-length", range.end - range.start + 1)
+        .send(s.assets.open(asset, range));
+    }
+    return reply.header("content-length", asset.size).send(s.assets.open(asset));
   });
 
   // ---- scenes -------------------------------------------------------------------------------

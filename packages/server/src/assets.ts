@@ -82,6 +82,31 @@ function copyToFile(source: Readable, guard: Transform, path: string): Promise<v
   });
 }
 
+/**
+ * Parses a single-range `Range` header against a file size (RFC 9110). Returns the inclusive byte
+ * range, "unsatisfiable" for a 416, or null when the header is absent, malformed or asks for
+ * several ranges (the caller then sends the whole file, which the RFC allows).
+ */
+export function parseRange(header: string | undefined, size: number): { start: number; end: number } | "unsatisfiable" | null {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header?.trim() ?? "");
+  if (!match || (match[1] === "" && match[2] === "")) return null;
+  let start: number;
+  let end: number;
+  if (match[1] === "") {
+    // Suffix range: the last N bytes.
+    const length = Number(match[2]);
+    if (length === 0) return "unsatisfiable";
+    start = Math.max(0, size - length);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] === "" ? size - 1 : Math.min(Number(match[2]), size - 1);
+    if (start >= size) return "unsatisfiable";
+    if (end < start) return null;
+  }
+  return { start, end };
+}
+
 export interface AssetRecord {
   id: string;
   worldId: string;

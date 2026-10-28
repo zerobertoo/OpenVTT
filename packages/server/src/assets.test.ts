@@ -104,6 +104,61 @@ describe("video assets", () => {
     await vi.waitFor(() => expect(assetFiles(app)).toEqual([]));
   });
 
+  it("serves ranges so the browser can seek and start playing early", async () => {
+    const { app, gm, world } = await setup();
+    const body = fakeWebm(1000);
+    const id = (await upload(app, gm.cookie, world.id, body, "video/webm")).json().id;
+    const get = (headers: Record<string, string> = {}) =>
+      app.inject({ method: "GET", url: `/api/assets/${id}`, headers: { cookie: gm.cookie, ...headers } });
+
+    const full = await get();
+    expect(full.statusCode).toBe(200);
+    expect(full.headers["accept-ranges"]).toBe("bytes");
+    expect(full.headers["content-length"]).toBe(String(body.length));
+    expect(full.headers["cache-control"]).toBe("private, max-age=31536000, immutable");
+
+    const part = await get({ range: "bytes=10-19" });
+    expect(part.statusCode).toBe(206);
+    expect(part.headers["content-range"]).toBe(`bytes 10-19/${body.length}`);
+    expect(part.rawPayload.equals(body.subarray(10, 20))).toBe(true);
+
+    const open = await get({ range: "bytes=1000-" });
+    expect(open.rawPayload.equals(body.subarray(1000))).toBe(true);
+    const suffix = await get({ range: "bytes=-5" });
+    expect(suffix.statusCode).toBe(206);
+    expect(suffix.rawPayload.equals(body.subarray(body.length - 5))).toBe(true);
+    // An end past the file is clamped.
+    expect((await get({ range: "bytes=0-99999" })).headers["content-range"]).toBe(`bytes 0-${body.length - 1}/${body.length}`);
+
+    const beyond = await get({ range: `bytes=${body.length}-` });
+    expect(beyond.statusCode).toBe(416);
+    expect(beyond.headers["content-range"]).toBe(`bytes */${body.length}`);
+    // Malformed or multi-range requests fall back to the whole file.
+    expect((await get({ range: "bytes=abc" })).statusCode).toBe(200);
+    expect((await get({ range: "bytes=0-1,5-6" })).statusCode).toBe(200);
+  });
+
+  it("answers 304 when the browser already has the asset, and still hides other worlds' assets", async () => {
+    const { app, gm, world } = await setup();
+    const id = (await upload(app, gm.cookie, world.id, PNG)).json().id;
+    const first = await call(app, gm.cookie, "GET", `/api/assets/${id}`);
+    expect(first.headers.etag).toBe(`"${id}"`);
+    const again = await app.inject({
+      method: "GET",
+      url: `/api/assets/${id}`,
+      headers: { cookie: gm.cookie, "if-none-match": first.headers.etag as string },
+    });
+    expect(again.statusCode).toBe(304);
+    expect(again.rawPayload.length).toBe(0);
+    const eve = await signUp(app, "eve");
+    const hidden = await app.inject({
+      method: "GET",
+      url: `/api/assets/${id}`,
+      headers: { cookie: eve.cookie, "if-none-match": first.headers.etag as string },
+    });
+    expect(hidden.statusCode).toBe(404);
+  });
+
   it("only lets the game master upload", async () => {
     const { app, bob, world } = await setup();
     expect((await upload(app, bob.cookie, world.id, fakeWebm(), "video/webm")).statusCode).toBe(403);
