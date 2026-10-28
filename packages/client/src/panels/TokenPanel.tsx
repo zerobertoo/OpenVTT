@@ -10,6 +10,7 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { useTableUi } from "../tableStore";
 import { ErrorMessage, useAction } from "../ui";
+import { useCan } from "../useCan";
 
 interface Props {
   state: WorldStateDto;
@@ -22,7 +23,7 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const selectToken = useTableUi((ui) => ui.selectToken);
-  const isGm = state.yourRole === "gm";
+  const { isGm, canControlToken } = useCan(state.yourRole, userId);
   const scene = state.scenes.find((s) => s.id === viewSceneId);
   const sceneTokens = state.tokens.filter((candidate) => candidate.sceneId === viewSceneId);
 
@@ -48,7 +49,7 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
   };
 
   const players = state.members.filter((m) => m.role === "player");
-  const canControl = token && (isGm || token.controllerIds.includes(userId));
+  const canControl = token && canControlToken(token);
 
   return (
     <section aria-label={t("token.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">

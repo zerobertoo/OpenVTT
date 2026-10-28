@@ -1,4 +1,4 @@
-import type { TokenDto, UserDto } from "@openvtt/shared";
+import type { UserDto } from "@openvtt/shared";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,8 @@ import { SettingsPanel } from "./panels/SettingsPanel";
 import { SheetsPanel } from "./panels/SheetsPanel";
 import { TokenPanel } from "./panels/TokenPanel";
 import { type TableTab, useTableUi } from "./tableStore";
+import { useCan } from "./useCan";
+import { useFormat } from "./useFormat";
 import { useWorldState } from "./useWorldState";
 
 interface Props {
@@ -34,15 +36,14 @@ export function Table({ worldId, user }: Props) {
   useEffect(() => reset, [worldId, reset]);
   const [helpOpen, setHelpOpen] = useState(false);
 
-  const canControl = useCallback(
-    (token: TokenDto) => state?.yourRole === "gm" || token.controllerIds.includes(user.id),
-    [state?.yourRole, user.id],
-  );
+  const can = useCan(state?.yourRole, user.id);
+  const canControl = can.canControlToken;
+  const format = useFormat();
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
 
   if (!state) return <TableLoading connecting={!connected} />;
 
-  const isGm = state.yourRole === "gm";
+  const isGm = can.isGm;
   // Players always follow the active scene; the GM can look at any scene.
   const viewSceneId = isGm
     ? gmViewSceneId && state.scenes.some((s) => s.id === gmViewSceneId)
@@ -59,7 +60,7 @@ export function Table({ worldId, user }: Props) {
   const renderPanel = (id: TableTab) => {
     switch (id) {
       case "chat":
-        return <ChatPanel state={state} userId={user.id} locale={i18n.language} />;
+        return <ChatPanel state={state} userId={user.id} />;
       case "tokens":
         return <TokenPanel state={state} userId={user.id} viewSceneId={viewSceneId} token={selectedToken} />;
       case "sheets":
@@ -96,9 +97,7 @@ export function Table({ worldId, user }: Props) {
               canControl={canControl}
               onSelect={selectToken}
               onMove={move}
-              formatDistance={(cells) =>
-                `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(cells * scene.gridDistance)} ${scene.distanceUnit}`
-              }
+              formatDistance={(cells) => format.distance(cells, scene)}
             />
           ) : (
             <p className="empty-map">{t(isGm ? "map.emptyGm" : "map.emptyPlayer")}</p>

@@ -2,12 +2,12 @@ import type { MessageDto } from "@openvtt/shared";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useFormat } from "../../useFormat";
 import { Avatar } from "../ui/avatar";
 import { DiceRoll, naturalD20, TUMBLE_MS } from "./DiceRoll";
 
 interface Props {
   message: MessageDto;
-  locale: string;
   /** Sender color, from the member list. */
   color: string | undefined;
   /** Only messages that arrive while the panel is open animate and celebrate. */
@@ -15,11 +15,11 @@ interface Props {
 }
 
 /** One chat line: a plain message, a whisper or a dice roll. */
-export function ChatMessage({ message, locale, color, isNew }: Props) {
+export function ChatMessage({ message, color, isNew }: Props) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const animateDice = isNew && !reduceMotion;
-  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(message.createdAt);
+  const time = useFormat().time(message.createdAt);
   const tags = [message.toUserId ? t("chat.whisperTag") : null, message.gmOnly ? t("chat.gmOnlyTag") : null].filter(Boolean);
   const roll = message.roll;
   const natural = roll ? naturalD20(roll) : null;

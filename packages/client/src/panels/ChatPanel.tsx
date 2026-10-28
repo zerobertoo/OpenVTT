@@ -5,8 +5,9 @@ import { api } from "../api";
 import { ChatComposer } from "../components/chat/ChatComposer";
 import { ChatMessage } from "../components/chat/ChatMessage";
 import { useAction } from "../ui";
+import { useCan } from "../useCan";
 
-export function ChatPanel({ state, userId, locale }: { state: WorldStateDto; userId: string; locale: string }) {
+export function ChatPanel({ state, userId }: { state: WorldStateDto; userId: string }) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const listRef = useRef<HTMLUListElement>(null);
@@ -18,14 +19,15 @@ export function ChatPanel({ state, userId, locale }: { state: WorldStateDto; use
   }, [state.messages.length]);
 
   // Players may only whisper the GM (the server enforces it too).
-  const recipients = state.members.filter((m) => m.userId !== userId && (state.yourRole === "gm" || m.role === "gm"));
+  const can = useCan(state.yourRole, userId);
+  const recipients = state.members.filter(can.canWhisperTo);
   const colorOf = (id: string) => state.members.find((m) => m.userId === id)?.color;
 
   return (
     <section aria-label={t("chat.title")} className="chat">
       <ul className="chat-log" ref={listRef} aria-live="polite">
         {state.messages.map((m) => (
-          <ChatMessage key={m.id} message={m} locale={locale} color={colorOf(m.userId)} isNew={!seenOnOpen.current.has(m.id)} />
+          <ChatMessage key={m.id} message={m} color={colorOf(m.userId)} isNew={!seenOnOpen.current.has(m.id)} />
         ))}
       </ul>
       <ChatComposer

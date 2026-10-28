@@ -36,25 +36,25 @@ const inList = (ui: React.ReactElement) => <ul aria-live="polite">{ui}</ul>;
 
 describe("ChatMessage", () => {
   it("shows text with sender and tags for whispers", () => {
-    render(inList(<ChatMessage message={{ ...base, toUserId: "u2" }} locale="en" color="#3366aa" isNew={false} />));
+    render(inList(<ChatMessage message={{ ...base, toUserId: "u2" }} color="#3366aa" isNew={false} />));
     expect(screen.getByText("Hello table")).toBeInTheDocument();
     expect(screen.getByText("Ada")).toBeInTheDocument();
     expect(screen.getByText("whisper")).toBeInTheDocument();
   });
 
   it("gives a roll a text summary for screen readers, since the dice are decorative", () => {
-    render(inList(<ChatMessage message={rollMessage} locale="en" color={undefined} isNew={false} />));
+    render(inList(<ChatMessage message={rollMessage} color={undefined} isNew={false} />));
     expect(screen.getByText("1d20+3: total 23")).toHaveClass("sr-only");
     expect(screen.getByText("Natural 20!")).toBeInTheDocument();
   });
 
   it("is announced through a polite live region", () => {
-    render(inList(<ChatMessage message={base} locale="en" color={undefined} isNew />));
+    render(inList(<ChatMessage message={base} color={undefined} isNew />));
     expect(screen.getByRole("list")).toHaveAttribute("aria-live", "polite");
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = render(inList(<ChatMessage message={base} locale="en" color="#3366aa" isNew={false} />));
+    const { container } = render(inList(<ChatMessage message={base} color="#3366aa" isNew={false} />));
     expect(await axe(container)).toHaveNoViolations();
   });
 });
