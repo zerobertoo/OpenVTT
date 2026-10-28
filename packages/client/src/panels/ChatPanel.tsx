@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { Button } from "../components/ui/button";
 import { Icon } from "../icons";
 import { ErrorMessage, useAction } from "../ui";
 
@@ -202,9 +203,9 @@ export function ChatPanel({ state, userId, locale }: { state: WorldStateDto; use
             aria-label={t("chat.placeholder")}
             maxLength={2000}
           />
-          <button type="submit" aria-label={t("chat.send")} title={t("chat.send")}>
+          <Button type="submit" size="icon" aria-label={t("chat.send")} title={t("chat.send")}>
             <Icon name="send" />
-          </button>
+          </Button>
         </div>
         <div className="chat-options">
           <label>

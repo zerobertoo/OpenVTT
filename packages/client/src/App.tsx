@@ -5,6 +5,7 @@ import { createContext, type FormEvent, useContext, useEffect, useState } from "
 import { useTranslation } from "react-i18next";
 import { api } from "./api";
 import { AccountControls } from "./components/AccountControls";
+import { Button } from "./components/ui/button";
 import { setLocale } from "./i18n";
 import { Logo } from "./icons";
 import { queryKeys, useMe, useSystems, useWorlds } from "./queries";
@@ -58,11 +59,11 @@ export function AuthForm() {
           />
         </label>
         <ErrorMessage error={error} />
-        <button type="submit">{t(mode === "login" ? "auth.login" : "auth.register")}</button>
+        <Button type="submit">{t(mode === "login" ? "auth.login" : "auth.register")}</Button>
         {mode === "register" && <p className="muted">{t("auth.firstUserHint")}</p>}
-        <button type="button" className="link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+        <Button type="button" variant="link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
           {t(mode === "login" ? "auth.switchToRegister" : "auth.switchToLogin")}
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -116,9 +117,9 @@ export function WorldList() {
                 <strong>{w.name}</strong>
                 <span className="muted">{t(w.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")}</span>
               </span>
-              <button type="button" onClick={() => navigate({ to: "/world/$worldId", params: { worldId: w.id } })}>
+              <Button type="button" onClick={() => navigate({ to: "/world/$worldId", params: { worldId: w.id } })}>
                 {t("worlds.open")}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -139,7 +140,7 @@ export function WorldList() {
             ))}
           </select>
         </label>
-        <button type="submit">{t("worlds.create")}</button>
+        <Button type="submit">{t("worlds.create")}</Button>
       </form>
       <div className="card worlds-actions">
         <label>
@@ -187,7 +188,7 @@ export function JoinInvite({ code }: { code: string }) {
         <input name="color" type="color" defaultValue="#3d6fd8" />
       </label>
       <ErrorMessage error={error} />
-      <button type="submit">{t("invite.join")}</button>
+      <Button type="submit">{t("invite.join")}</Button>
     </form>
   );
 }

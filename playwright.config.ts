@@ -8,6 +8,8 @@ const TEMP_DB = resolve(import.meta.dirname, `e2e/.tmp/openvtt-${Date.now()}.db`
 
 export default defineConfig({
   testDir: "./e2e",
+  // Screenshot checks for local review only; run them with SHOTS=1.
+  testIgnore: process.env.SHOTS ? undefined : "**/*.local.spec.ts",
   // One worker: every test registers its own user against the same temporary database.
   workers: 1,
   retries: process.env.CI ? 1 : 0,

@@ -2,6 +2,7 @@ import type { TokenDto, WorldStateDto } from "@openvtt/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { Button } from "../components/ui/button";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
@@ -45,7 +46,7 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
       {isGm && scene && (
         <form onSubmit={add} className="row">
           <input name="name" required maxLength={60} placeholder={t("token.name")} aria-label={t("token.name")} />
-          <button type="submit">{t("token.add")}</button>
+          <Button type="submit">{t("token.add")}</Button>
         </form>
       )}
       {!token && <p className="muted">{t("token.noneSelected")}</p>}
@@ -106,9 +107,9 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
                 <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => uploadImage(e.target.files?.[0])} />
               </label>
               {token.assetId && (
-                <button className="link" onClick={() => patch({ assetId: null })}>
+                <Button variant="link" onClick={() => patch({ assetId: null })}>
                   {t("token.removeImage")}
-                </button>
+                </Button>
               )}
               <label className="inline">
                 <input type="checkbox" defaultChecked={token.hidden} onChange={(e) => patch({ hidden: e.target.checked })} />{" "}
@@ -144,9 +145,9 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
                   </label>
                 ))}
               </fieldset>
-              <button className="danger" onClick={() => run(() => api.deleteToken(token.id))}>
+              <Button variant="danger" onClick={() => run(() => api.deleteToken(token.id))}>
                 {t("common.delete")}
-              </button>
+              </Button>
             </>
           )}
           <ErrorMessage error={error} />

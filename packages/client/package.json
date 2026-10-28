@@ -18,13 +18,16 @@
     "@tanstack/react-query": "^5.105.0",
     "@tanstack/react-router": "^1.170.46",
     "canvas-confetti": "^1.9.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "i18next": "^24.2.0",
     "motion": "^14.7.1",
     "pixi.js": "^8.6.0",
     "radix-ui": "^1.8.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-i18next": "^15.4.0"
+    "react-i18next": "^15.4.0",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.5",

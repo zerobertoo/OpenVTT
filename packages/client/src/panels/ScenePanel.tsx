@@ -2,6 +2,7 @@ import { MAX_MAP_DIMENSION, type SceneDto, type WorldStateDto } from "@openvtt/s
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, readImageSize } from "../api";
+import { Button } from "../components/ui/button";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
@@ -54,7 +55,7 @@ function SceneSettings({ scene }: { scene: SceneDto }) {
         {t("scene.distanceUnit")}
         <input name="distanceUnit" defaultValue={scene.distanceUnit} maxLength={10} />
       </label>
-      <button type="submit">{t("common.save")}</button>
+      <Button type="submit">{t("common.save")}</Button>
       <ErrorMessage error={error} />
     </form>
   );
@@ -94,19 +95,19 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
       <ul className="plain">
         {state.scenes.map((s) => (
           <li key={s.id}>
-            <button className={s.id === viewSceneId ? "" : "secondary"} aria-pressed={s.id === viewSceneId} onClick={() => onView(s.id)}>
+            <Button variant="secondary" aria-pressed={s.id === viewSceneId} onClick={() => onView(s.id)}>
               {s.name}
-            </button>
+            </Button>
             {s.id === state.activeSceneId ? (
               <span className="muted">{t("scene.active")}</span>
             ) : (
-              <button className="link" onClick={() => run(() => api.updateWorld(state.id, { activeSceneId: s.id }))}>
+              <Button variant="link" onClick={() => run(() => api.updateWorld(state.id, { activeSceneId: s.id }))}>
                 {t("scene.activate")}
-              </button>
+              </Button>
             )}
-            <button className="link danger" onClick={() => run(() => api.deleteScene(s.id))}>
+            <Button variant="dangerLink" onClick={() => run(() => api.deleteScene(s.id))}>
               {t("common.delete")}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
@@ -137,9 +138,9 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
             <option value="none">{t("scene.gridNone")}</option>
           </select>
         </label>
-        <button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending}>
           {t("scene.create")}
-        </button>
+        </Button>
       </form>
       <ErrorMessage error={error} />
     </section>

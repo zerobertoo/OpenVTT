@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
+import { Button } from "../components/ui/button";
 import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
@@ -70,11 +71,11 @@ function TemplateEditor({ worldId }: { worldId: string }) {
       )}
       <ErrorMessage error={error instanceof ApiError ? error : error} />
       <div className="row">
-        <button onClick={save}>{t("common.save")}</button>
+        <Button onClick={save}>{t("common.save")}</Button>
         {system.overridden.includes(type) && (
-          <button className="secondary" onClick={reset}>
+          <Button variant="secondary" onClick={reset}>
             {t("settings.resetTemplate")}
-          </button>
+          </Button>
         )}
       </div>
     </section>
@@ -115,9 +116,9 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
       )}
       {isGm && (
         <>
-          <button onClick={() => run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id)).code}`))}>
+          <Button onClick={() => run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id)).code}`))}>
             {t("invite.create")}
-          </button>
+          </Button>
           {inviteLink && (
             <p>
               {t("invite.linkLabel")}: <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} size={40} />

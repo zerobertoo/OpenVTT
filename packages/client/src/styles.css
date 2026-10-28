@@ -61,7 +61,12 @@
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
   --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
   --color-dice: var(--dice);
+  --color-on-dice: var(--on-dice);
+  --color-crit: var(--crit);
+  --color-fumble: var(--fumble);
+  --color-chrome-line: var(--chrome-line);
   --color-chrome: var(--chrome);
   --color-chrome-2: var(--chrome-2);
   --color-on-chrome: var(--on-chrome);

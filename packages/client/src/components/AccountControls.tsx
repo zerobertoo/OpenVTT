@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { normalizeLocale, setLocale } from "../i18n";
 import { queryKeys, useMe } from "../queries";
+import { Button } from "./ui/button";
 
 function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
   const { t, i18n } = useTranslation();
@@ -48,9 +49,9 @@ export function AccountControls() {
     <div className="account">
       <LanguageSwitcher signedIn={!!user} />
       {user && (
-        <button type="button" className="link" onClick={logout}>
+        <Button type="button" variant="link" onClick={logout}>
           {t("auth.logout")} ({user.username})
-        </button>
+        </Button>
       )}
     </div>
   );

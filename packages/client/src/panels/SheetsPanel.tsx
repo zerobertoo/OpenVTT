@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { Button } from "../components/ui/button";
 import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
@@ -106,16 +107,16 @@ function FieldInput({ field, value, label, labelFor, onCommit, readOnly }: Field
                 />
               ))}
               {!readOnly && (
-                <button type="button" className="link danger" onClick={() => update(rows.filter((_, j) => j !== i))}>
+                <Button type="button" variant="dangerLink" onClick={() => update(rows.filter((_, j) => j !== i))}>
                   {t("common.delete")}
-                </button>
+                </Button>
               )}
             </div>
           ))}
           {!readOnly && (
-            <button type="button" className="secondary" onClick={() => update([...rows, {}])}>
+            <Button type="button" variant="secondary" onClick={() => update([...rows, {}])}>
               {t("sheet.addRow")}
-            </button>
+            </Button>
           )}
         </fieldset>
       );
@@ -196,13 +197,9 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
       <ul className="plain">
         {state.actors.map((a) => (
           <li key={a.id}>
-            <button
-              className={a.id === selected?.id ? "" : "secondary"}
-              aria-pressed={a.id === selected?.id}
-              onClick={() => setSelectedId(a.id)}
-            >
+            <Button variant="secondary" aria-pressed={a.id === selected?.id} onClick={() => setSelectedId(a.id)}>
               {a.name}
-            </button>
+            </Button>
             <span className="muted">{t(a.type === "npc" ? "sheet.npc" : "sheet.character")}</span>
           </li>
         ))}
@@ -214,7 +211,7 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
             <option value="character">{t("sheet.character")}</option>
             <option value="npc">{t("sheet.npc")}</option>
           </select>
-          <button type="submit">{t("sheet.create")}</button>
+          <Button type="submit">{t("sheet.create")}</Button>
         </form>
       )}
       {selected && isGm && (
@@ -235,9 +232,9 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
                 ))}
             </select>
           </label>
-          <button className="danger" onClick={() => run(() => api.deleteActor(selected.id))}>
+          <Button variant="danger" onClick={() => run(() => api.deleteActor(selected.id))}>
             {t("common.delete")}
-          </button>
+          </Button>
         </div>
       )}
       {selected && template && system && <SheetForm actor={selected} template={template} system={system} locale={locale} />}
