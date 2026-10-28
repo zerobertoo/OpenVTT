@@ -47,7 +47,7 @@ test("a Universal VTT file and its video become a scene with the grid from the f
   await page.getByRole("tab", { name: "Scenes" }).click();
   await page.getByRole("button", { name: "Import map" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Import a map" });
+  const dialog = page.getByRole("dialog", { name: "Import maps" });
   await dialog.getByLabel("Map files").setInputFiles([UVTT, VIDEO]);
   await expect(dialog.getByText(/128×96 px, 1 lights/)).toBeVisible();
   await expect(dialog.getByText(/2 walls and doors/)).toBeVisible();
@@ -66,7 +66,7 @@ test("a file that is not a map is explained", async ({ page }) => {
   await page.getByRole("tab", { name: "Scenes" }).click();
   await page.getByRole("button", { name: "Import map" }).click();
   await page
-    .getByRole("dialog", { name: "Import a map" })
+    .getByRole("dialog", { name: "Import maps" })
     .getByLabel("Map files")
     .setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hi") });
   await expect(page.getByRole("alert").filter({ hasText: "Use a .dd2vtt" })).toBeVisible();

@@ -55,25 +55,34 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
 
   const importMap = (choice: MapImportChoice) =>
     void run(async () => {
-      const assetId = (await api.uploadAsset(state.id, choice.media)).id;
-      const scene = await api.createScene(state.id, {
-        name: choice.name,
-        assetId,
-        width: choice.width,
-        height: choice.height,
-        gridType: "square",
-        gridSize: choice.gridSize,
-        gridDistance: choice.gridDistance,
-        distanceUnit: choice.distanceUnit,
-        walls: [
-          ...(choice.uvtt?.walls ?? []).map((w) => ({ ...w, kind: "wall" })),
-          ...(choice.uvtt?.doors ?? []).map(({ closed, ...w }) => ({ ...w, kind: "door", open: !closed })),
-        ],
-        lights: choice.uvtt?.lights ?? [],
-        bakedLighting: choice.uvtt?.bakedLighting ?? false,
-      });
+      // Files that are floors of one map share a group so the scenes stay together.
+      const groups = new Map<string, string>();
+      let first: string | null = null;
+      for (const draft of choice) {
+        const assetId = (await api.uploadAsset(state.id, draft.media)).id;
+        if (draft.floorKey && !groups.has(draft.floorKey)) groups.set(draft.floorKey, crypto.randomUUID());
+        const scene = await api.createScene(state.id, {
+          name: draft.name,
+          assetId,
+          width: draft.width,
+          height: draft.height,
+          gridType: "square",
+          gridSize: draft.gridSize,
+          gridDistance: draft.gridDistance,
+          distanceUnit: draft.distanceUnit,
+          walls: [
+            ...(draft.data?.walls ?? []).map((w) => ({ ...w, kind: "wall" })),
+            ...(draft.data?.doors ?? []).map(({ closed, ...w }) => ({ ...w, kind: "door", open: !closed })),
+          ],
+          lights: draft.data?.lights ?? [],
+          bakedLighting: draft.data?.bakedLighting ?? false,
+          floorGroup: draft.floorKey ? (groups.get(draft.floorKey) ?? null) : null,
+          floor: draft.floor,
+        });
+        first ??= scene.id;
+      }
       setImporting(false);
-      onView(scene.id);
+      if (first) onView(first);
     });
 
   const save = (e: FormEvent<HTMLFormElement>) => {

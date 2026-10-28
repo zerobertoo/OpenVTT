@@ -29,7 +29,7 @@ export interface ImportedLight {
   shadows: boolean;
 }
 
-export type UvttWarning = "no_walls" | "no_image" | "truncated";
+export type UvttWarning = "no_walls" | "no_image" | "truncated" | "grid_offset";
 
 export interface ImportedUvtt {
   gridSize: number;

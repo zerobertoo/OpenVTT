@@ -42,6 +42,7 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
         <span className="grid min-w-0 gap-0.5">
           <span className="truncate font-semibold">{scene.name}</span>
           {shown && <Badge tone="accent">{t("scene.active")}</Badge>}
+          {scene.floorGroup && <Badge tone="neutral">{t("scene.floor", { n: scene.floor })}</Badge>}
         </span>
       </button>
 
