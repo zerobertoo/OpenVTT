@@ -144,7 +144,7 @@ This was chosen from six explored directions (`docs/design-explorations/`, stati
 - Always-dark chrome (dock, title chip, drawer tab strip, roll cards) in light and dark themes.
 - Pill buttons, rounded containers, chat bubbles, tabs with icon and name.
 - Tone of text: plain, friendly, second person; "game master" and "player" are spelled out.
-- Light and dark follow the browser (`prefers-color-scheme`).
+- Light and dark follow the browser (`prefers-color-scheme`). In `styles.css` each theme-dependent token is one `light-dark(light, dark)` value; `data-theme="light"` or `"dark"` on `<html>` forces a side (used by the component catalog, ready for a manual toggle).
 
 ## Colors
 
