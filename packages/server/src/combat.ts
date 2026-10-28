@@ -50,13 +50,17 @@ export class CombatService {
     if (!token) throw new AppError("not_found");
     this.db.prepare("INSERT OR IGNORE INTO combats (world_id) VALUES (?)").run(worldId);
     this.db
-      .prepare("INSERT INTO combatants (token_id, world_id, score) VALUES (?, ?, ?) ON CONFLICT(token_id) DO UPDATE SET score = excluded.score")
+      .prepare(
+        "INSERT INTO combatants (token_id, world_id, score) VALUES (?, ?, ?) ON CONFLICT(token_id) DO UPDATE SET score = excluded.score",
+      )
       .run(tokenId, worldId, score);
   }
 
   removeCombatant(worldId: string, tokenId: string) {
     this.db.prepare("DELETE FROM combatants WHERE token_id = ? AND world_id = ?").run(tokenId, worldId);
-    const combat = this.db.prepare("SELECT turn_token_id FROM combats WHERE world_id = ?").get(worldId) as { turn_token_id: string | null } | undefined;
+    const combat = this.db.prepare("SELECT turn_token_id FROM combats WHERE world_id = ?").get(worldId) as
+      | { turn_token_id: string | null }
+      | undefined;
     // The turn of a removed token passes on instead of dangling.
     if (combat?.turn_token_id === tokenId) this.db.prepare("UPDATE combats SET turn_token_id = NULL WHERE world_id = ?").run(worldId);
   }

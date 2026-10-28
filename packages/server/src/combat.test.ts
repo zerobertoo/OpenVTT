@@ -1,4 +1,4 @@
-import type { ServerMessage, SceneDto, TokenDto } from "@openvtt/shared";
+import type { SceneDto, ServerMessage, TokenDto } from "@openvtt/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { call, closeApps, connect, listen, newApp, signUp } from "./test-utils.ts";
 
@@ -11,9 +11,13 @@ async function setup() {
   const world = (await call(app, gm.cookie, "POST", "/api/worlds", { name: "Table" })).json();
   const { code } = (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/invites`)).json();
   await call(app, bob.cookie, "POST", `/api/invites/${code}/join`, { displayName: "Bob", color: "#112233" });
-  const scene = (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Arena", width: 500, height: 500 })).json() as SceneDto;
+  const scene = (
+    await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Arena", width: 500, height: 500 })
+  ).json() as SceneDto;
   const token = async (name: string, hidden = false) =>
-    (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: scene.id, name, x: 10, y: 10, hidden })).json() as TokenDto;
+    (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: scene.id, name, x: 10, y: 10, hidden })
+    ).json() as TokenDto;
   const initiative = (tokenId: string, score: number) =>
     call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/combat/combatants`, { tokenId, score });
   return { app, gm, bob, world, token, initiative };
@@ -65,7 +69,9 @@ describe("initiative", () => {
     expect(seen.turnTokenId).toBeNull();
     expect(JSON.stringify(seen)).not.toContain("ambusher");
 
-    expect((await call(app, bob.cookie, "PUT", `/api/worlds/${world.id}/combat/combatants`, { tokenId: visible.id, score: 99 })).statusCode).toBe(403);
+    expect(
+      (await call(app, bob.cookie, "PUT", `/api/worlds/${world.id}/combat/combatants`, { tokenId: visible.id, score: 99 })).statusCode,
+    ).toBe(403);
     expect((await call(app, bob.cookie, "POST", `/api/worlds/${world.id}/combat/next`)).statusCode).toBe(403);
     expect((await call(app, bob.cookie, "DELETE", `/api/worlds/${world.id}/combat`)).statusCode).toBe(403);
   });
