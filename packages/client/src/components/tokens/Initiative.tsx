@@ -62,7 +62,10 @@ export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, 
       {isGm && (
         <>
           <form onSubmit={add} className="flex items-end gap-2">
-            <Field label={selectedToken ? t("initiative.scoreFor", { name: selectedToken.name }) : t("initiative.score")} className="flex-1">
+            <Field
+              label={selectedToken ? t("initiative.scoreFor", { name: selectedToken.name }) : t("initiative.score")}
+              className="flex-1"
+            >
               {(control) => (
                 <Input
                   {...control}

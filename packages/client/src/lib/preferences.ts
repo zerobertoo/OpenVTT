@@ -7,6 +7,9 @@ interface PreferencesState {
   /** Animate other people's rolls over the table. */
   diceOverlay: boolean;
   setDiceOverlay: (on: boolean) => void;
+  /** Throw solid dice in the overlay instead of flat ones (downloads the 3D library on first roll). */
+  dice3d: boolean;
+  setDice3d: (on: boolean) => void;
   setMeasure: (measure: Partial<MeasurePrefs>) => void;
 }
 
@@ -17,6 +20,8 @@ export const usePreferences = create<PreferencesState>()(
       measure: DEFAULT_MEASURE_PREFS,
       diceOverlay: true,
       setDiceOverlay: (diceOverlay) => set({ diceOverlay }),
+      dice3d: true,
+      setDice3d: (dice3d) => set({ dice3d }),
       setMeasure: (measure) => set((state) => ({ measure: { ...state.measure, ...measure } })),
     }),
     { name: "openvtt-preferences", version: 1 },

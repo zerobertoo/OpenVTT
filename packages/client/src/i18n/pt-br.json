@@ -86,6 +86,8 @@
     "system": "Distâncias",
     "systemHint": "Só muda o que você vê, neste navegador.",
     "diceOverlay": "Mostrar os dados rolando na mesa",
+    "dice3d": "Jogar dados 3D",
+    "dice3dHint": "Dados sólidos para d4, d6, d8, d12 e d20; os outros ficam planos. Carrega um pouco a mais na primeira vez.",
     "diceOverlayHint": "As rolagens aparecem só para quem pode lê-las. Desligado quando o sistema pede menos movimento.",
     "scene": "Como a cena define",
     "imperial": "Imperial (ft, mi)",
