@@ -39,9 +39,9 @@ const subscribe = (listener: () => void) => {
 const getSnapshot = () => items;
 
 const toastStyles = cva(
-  "grid grid-cols-[1fr_auto] items-start gap-x-3 rounded-card bg-chrome p-3 pl-4 text-on-chrome shadow-float data-[state=open]:animate-dialog-in motion-reduce:animate-none",
+  "grid grid-cols-[1fr_auto] items-start gap-x-3 rounded-card bg-chrome p-3 text-on-chrome shadow-float data-[state=open]:animate-dialog-in motion-reduce:animate-none",
   {
-    variants: { tone: { info: "", success: "border-l-4 border-crit", error: "border-l-4 border-fumble" } },
+    variants: { tone: { info: "", success: "ring-2 ring-crit ring-inset", error: "ring-2 ring-fumble ring-inset" } },
     defaultVariants: { tone: "info" },
   },
 );
