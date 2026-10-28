@@ -75,6 +75,7 @@
   --radius-card: 0.9rem;
   --radius-panel: 1.25rem;
   --shadow-float: var(--shadow-chrome);
+  --shadow-card: var(--shadow);
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
