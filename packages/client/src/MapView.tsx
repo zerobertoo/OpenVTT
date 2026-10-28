@@ -3,6 +3,7 @@ import { Application, Container, type FederatedPointerEvent, Graphics, Sprite, T
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "./api";
+import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 
 export type MapTool = "select" | "ruler";
 
@@ -87,6 +88,8 @@ export function MapView(props: Props) {
     const element = host.current!;
     const app = new Application();
     let destroyed = false;
+    // True while two fingers are down; token drags, pans and the ruler stand still meanwhile.
+    let pinching = false;
     const ready = app
       .init({ resizeTo: element, background: 0x1b1d22, antialias: true, resolution: window.devicePixelRatio, autoDensity: true })
       .then(() => {
@@ -147,6 +150,59 @@ export function MapView(props: Props) {
       };
       app.stage.on("pointerup", stop);
       app.stage.on("pointerupoutside", stop);
+      // Two fingers pinch-zoom and pan. They run in the capture phase so Pixi never sees them as a drag or a ruler.
+      const touches = new Map<number, { x: number; y: number }>();
+      let twoFingers: TwoFingerState | null = null;
+      const touchPoint = (e: PointerEvent) => {
+        const rect = element.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      };
+      const currentTwoFingers = () => {
+        const [a, b] = [...touches.values()];
+        return a && b ? twoFingerState(a, b) : null;
+      };
+      element.addEventListener(
+        "pointerdown",
+        (e) => {
+          if (e.pointerType !== "touch") return;
+          touches.set(e.pointerId, touchPoint(e));
+          if (touches.size === 2) {
+            pinching = true;
+            panning = null;
+            rulerStart = null;
+            twoFingers = currentTwoFingers();
+          }
+          if (pinching) e.stopPropagation();
+        },
+        true,
+      );
+      element.addEventListener(
+        "pointermove",
+        (e) => {
+          if (e.pointerType !== "touch" || !touches.has(e.pointerId)) return;
+          touches.set(e.pointerId, touchPoint(e));
+          if (!pinching) return;
+          e.stopPropagation();
+          const next = currentTwoFingers();
+          if (!next || !twoFingers) return;
+          const view = applyTwoFingerGesture({ scale: world.scale.x, x: world.x, y: world.y }, twoFingers, next, MIN_ZOOM, MAX_ZOOM);
+          world.scale.set(view.scale);
+          world.position.set(view.x, view.y);
+          twoFingers = next;
+        },
+        true,
+      );
+      const releaseTouch = (e: PointerEvent) => {
+        if (e.pointerType !== "touch") return;
+        touches.delete(e.pointerId);
+        // A finger left behind does not start a pan or a drag; the next touch starts fresh.
+        if (touches.size < 2) {
+          pinching = false;
+          twoFingers = null;
+        }
+      };
+      element.addEventListener("pointerup", releaseTouch, true);
+      element.addEventListener("pointercancel", releaseTouch, true);
       element.addEventListener("contextmenu", (e) => e.preventDefault());
       element.addEventListener(
         "wheel",
@@ -241,6 +297,7 @@ export function MapView(props: Props) {
       });
       view.on("globalpointermove", (e) => {
         if (!drag) return;
+        if (pinching) return void (drag = null);
         const scene = props_().scene;
         const current = currentToken(token.id);
         if (!scene || !current) return;

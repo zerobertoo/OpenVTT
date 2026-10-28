@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "files": {
     "includes": [
       "packages/*/src/**",
@@ -20,8 +20,8 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
-      "a11y": { "recommended": true, "useButtonType": "warn", "useSemanticElements": "warn" },
+      "preset": "recommended",
+      "a11y": { "preset": "recommended", "useButtonType": "warn", "useSemanticElements": "warn" },
       "correctness": { "useExhaustiveDependencies": "warn" },
       "suspicious": {
         "noArrayIndexKey": "warn",
