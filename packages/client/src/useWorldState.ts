@@ -19,6 +19,8 @@ function reducer(state: WorldStateDto | null, msg: ServerMessage): WorldStateDto
       };
     case "token.remove":
       return { ...state, tokens: state.tokens.filter((t) => t.id !== msg.tokenId) };
+    case "vision.update":
+      return { ...state, vision: msg.vision };
     case "chat.message":
       return { ...state, messages: [...state.messages, msg.message].slice(-MAX_CLIENT_MESSAGES) };
     default:

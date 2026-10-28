@@ -1,4 +1,4 @@
-import type { SceneDto, TokenDto } from "@openvtt/shared";
+import type { SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
 import { Application, Container, type FederatedPointerEvent, Graphics, Sprite, Text, Texture, type Ticker, VideoSource } from "pixi.js";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,6 +19,8 @@ interface Props {
   onSelect: (tokenId: string | null) => void;
   /** Called while dragging (throttled) and once on drop with the snapped position. */
   onMove: (tokenId: string, x: number, y: number) => void;
+  /** What this player can see; null shows the whole map (the game master, or a scene without vision). */
+  vision: VisionDto | null;
   /** Draw walls, doors and lights (only the game master receives them). */
   showMapData: boolean;
   onToggleDoor: (wallId: string, open: boolean) => void;
@@ -98,6 +100,8 @@ export function MapView(props: Props) {
     background: Container;
     grid: Graphics;
     mapData: Container;
+    fog: Graphics;
+    fogHole: Graphics;
     tokenLayer: Container;
     ruler: Graphics;
     rulerLabel: Text;
@@ -123,10 +127,15 @@ export function MapView(props: Props) {
         const background = new Container();
         const grid = new Graphics();
         const mapData = new Container();
+        const fog = new Graphics();
+        fog.eventMode = "none";
+        // The visible area, used as an inverse mask: fog is drawn everywhere except under it.
+        const fogHole = new Graphics();
+        fog.setMask({ mask: fogHole, inverse: true });
         const tokenLayer = new Container();
         const ruler = new Graphics();
         const rulerLabel = new Text({ text: "", style: { fill: 0xffffff, fontSize: 16, stroke: { color: 0x000000, width: 4 } } });
-        world.addChild(background, grid, mapData, tokenLayer, ruler, rulerLabel);
+        world.addChild(background, grid, mapData, tokenLayer, fog, fogHole, ruler, rulerLabel);
         app.stage.addChild(world);
         app.stage.eventMode = "static";
         app.stage.hitArea = app.screen;
@@ -136,6 +145,8 @@ export function MapView(props: Props) {
           background,
           grid,
           mapData,
+          fog,
+          fogHole,
           tokenLayer,
           ruler,
           rulerLabel,
@@ -260,6 +271,7 @@ export function MapView(props: Props) {
     syncAll.current = () => {
       void syncScene();
       syncTokens();
+      syncFog();
     };
 
     async function syncScene() {
@@ -356,6 +368,18 @@ export function MapView(props: Props) {
       }
       walls.stroke({ width: 5, color: 0xff4d4d });
       e.mapData.addChild(lights, walls, doors);
+    }
+
+    /** Darkens everything a player cannot see right now; the polygons come from the server, which never sends walls. */
+    function syncFog() {
+      const e = engine.current;
+      const { scene, vision } = props_();
+      if (!e) return;
+      e.fog.clear();
+      e.fogHole.clear();
+      if (!scene || !vision || vision.sceneId !== scene.id) return;
+      e.fog.rect(0, 0, scene.width, scene.height).fill({ color: 0x000000, alpha: 0.94 });
+      for (const polygon of vision.polygons) if (polygon.length >= 6) e.fogHole.poly(polygon).fill(0xffffff);
     }
 
     /** Starts loading an animated background; it plays at once unless the person prefers reduced motion. */
@@ -516,7 +540,7 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     syncAll.current();
-  }, [props.scene, props.tokens, props.selectedTokenId, props.showMapData]);
+  }, [props.scene, props.tokens, props.selectedTokenId, props.showMapData, props.vision]);
 
   useEffect(() => {
     engine.current?.ruler.clear();

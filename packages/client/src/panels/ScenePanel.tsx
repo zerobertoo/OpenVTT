@@ -98,6 +98,8 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
         gridSize: Number(f.get("gridSize")),
         gridDistance: Number(f.get("gridDistance")),
         distanceUnit: String(f.get("distanceUnit")),
+        visionEnabled: f.get("visionEnabled") === "on",
+        visionRadius: Number(f.get("visionRadius")),
       }),
     );
   };

@@ -2,6 +2,7 @@ import { MAX_MAP_DIMENSION, type SceneDto } from "@openvtt/shared";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import { Field } from "../ui/field";
 import { Input, Select } from "../ui/input";
 
@@ -47,6 +48,14 @@ export function SceneSettingsForm({ scene, onSubmit, pending, onAdjustGrid }: Se
           {(control) => <Input {...control} name="distanceUnit" list="distance-units" defaultValue={scene.distanceUnit} maxLength={10} />}
         </Field>
       </div>
+      <Field label={t("scene.vision")} hint={t("scene.visionHint")} inline>
+        {(control) => <Checkbox {...control} name="visionEnabled" defaultChecked={scene.visionEnabled} />}
+      </Field>
+      <Field label={t("scene.visionRadius")}>
+        {(control) => (
+          <Input {...control} name="visionRadius" type="number" min={1} max={200} step="any" defaultValue={scene.visionRadius} />
+        )}
+      </Field>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" pending={pending}>
           {t("common.save")}

@@ -116,6 +116,7 @@ export function Table({ worldId, user }: Props) {
               canControl={canControl}
               onSelect={selectToken}
               onMove={move}
+              vision={state.vision}
               showMapData={showMapData}
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
               formatDistance={(cells) => format.distance(cells, scene)}
