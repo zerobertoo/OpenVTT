@@ -6,3 +6,4 @@ data/
 e2e/.tmp/
 test-results/
 playwright-report/
+storybook-static/
