@@ -67,6 +67,14 @@ export function MapImportDialog({ open, onOpenChange, onCreate, pending }: Props
           />
         )}
       </Field>
+      <details className="rounded-lg bg-surface-2 p-3">
+        <summary className="cursor-pointer font-semibold">{t("scene.import.guide.title")}</summary>
+        <ul className="m-0 mt-2 grid gap-1.5 pl-5 text-ink-2">
+          {(["universal", "foundry", "video", "image", "floors", "grid", "lights"] as const).map((step) => (
+            <li key={step}>{t(`scene.import.guide.${step}`)}</li>
+          ))}
+        </ul>
+      </details>
       {reading && <p role="status">{t("scene.import.reading")}</p>}
       {errorKey && (
         <p role="alert" className="error">

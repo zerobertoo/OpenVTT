@@ -196,6 +196,16 @@
       "files": "Arquivos do mapa",
       "filesHint": "Selecione o arquivo de dados e a imagem ou o vídeo juntos (segure Ctrl ou Shift). Arquivos chamados Mapa_0, Mapa_1 viram os andares de um mesmo mapa.",
       "reading": "Lendo os arquivos…",
+      "guide": {
+        "title": "Como exportar do Dungeon Alchemist",
+        "universal": "Melhor escolha: formato \"UniversalVTT Export\". Selecione o arquivo .dd2vtt junto com a imagem ou o vídeo exportado. Ele traz a grade, as paredes, as portas e as luzes.",
+        "foundry": "Ou \"Foundry Export\": selecione o .json junto com a imagem ou o vídeo de mesmo nome.",
+        "video": "Para um mapa animado, escolha o tipo de arquivo de vídeo (MP4 ou WebM) e mantenha o .dd2vtt ao lado. O MP4 toca em mais navegadores.",
+        "image": "\"Image Only\" também serve, mas não leva paredes nem luzes. Deixe o tamanho da grade no nome do arquivo (por exemplo mapa_28x38.png) e a célula é lida sozinha.",
+        "floors": "Vários andares: exporte cada andar separado e nomeie os arquivos Mapa_0, Mapa_1 e assim por diante. Selecione todos de uma vez e eles ficam juntos como andares.",
+        "grid": "Desligue a grade na exportação. O OpenVTT desenha a própria grade, então a da imagem ficaria duplicada.",
+        "lights": "Se o mapa deve ficar igual ao do Dungeon Alchemist, escolha \"Render lights in image AND export to VTT\". Paredes e luzes só aparecem para você, nunca para os jogadores."
+      },
       "confirm": "Confirmar a cena",
       "create_one": "Criar cena",
       "create_other": "Criar {{count}} cenas",

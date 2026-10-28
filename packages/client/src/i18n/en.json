@@ -196,6 +196,16 @@
       "files": "Map files",
       "filesHint": "Select the data file and the image or video together (hold Ctrl or Shift). Files named Map_0, Map_1 become the floors of one map.",
       "reading": "Reading the files…",
+      "guide": {
+        "title": "How to export from Dungeon Alchemist",
+        "universal": "Best choice: Format \"UniversalVTT Export\". Select the .dd2vtt file together with the image or video it exported. It brings the grid, walls, doors and lights.",
+        "foundry": "Or \"Foundry Export\": select the .json together with the image or video that has the same name.",
+        "video": "For an animated map, pick the video file type (MP4 or WebM) and keep the .dd2vtt next to it. MP4 plays in the most browsers.",
+        "image": "\"Image Only\" works too, but carries no walls or lights. Keep the grid size in the file name (for example map_28x38.png) and the cell size is read for you.",
+        "floors": "Several floors: export each floor on its own and name the files Map_0, Map_1 and so on. Select them all at once and they stay together as floors.",
+        "grid": "Turn the grid off in the export. OpenVTT draws its own grid, so the one in the picture would double up.",
+        "lights": "If the map should look the same as in Dungeon Alchemist, choose \"Render lights in image AND export to VTT\". Walls and lights are visible to you only, never to players."
+      },
       "confirm": "Confirm the scene",
       "create_one": "Create scene",
       "create_other": "Create {{count}} scenes",
