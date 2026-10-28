@@ -14,4 +14,15 @@ void i18n.use(initReactI18next).init({ lng: "en", resources: { en: { translation
 // jsdom has no canvas; axe probes it for color-contrast, which e2e covers in a real browser instead.
 HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
 
+// jsdom lacks a few browser APIs that Radix popper-based widgets (popover, menu, tooltip) call.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.setPointerCapture ??= () => {};
+Element.prototype.releasePointerCapture ??= () => {};
+Element.prototype.scrollIntoView ??= () => {};
+
 afterEach(cleanup);
