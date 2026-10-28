@@ -9,6 +9,17 @@
     "notifications": "Notificações"
   },
   "asset": { "choose": "Escolher imagem", "change": "Trocar imagem", "remove": "Remover imagem", "formats": "PNG, JPG ou WebP" },
+  "shortcuts": {
+    "title": "Atalhos de teclado",
+    "intro": "Funcionam em qualquer lugar da mesa, menos enquanto você digita.",
+    "select": "Ferramenta de seleção",
+    "ruler": "Ferramenta de régua",
+    "move": "Mover o token selecionado uma casa",
+    "deselect": "Desmarcar o token",
+    "panels": "Mostrar ou ocultar os painéis",
+    "help": "Mostrar esta lista",
+    "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}"
+  },
   "states": { "loadFailed": "Não foi possível carregar isto." },
   "language": { "label": "Idioma", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {

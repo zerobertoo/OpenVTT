@@ -9,6 +9,17 @@
     "notifications": "Notifications"
   },
   "asset": { "choose": "Choose image", "change": "Change image", "remove": "Remove image", "formats": "PNG, JPG or WebP" },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "intro": "These work anywhere on the table except while typing.",
+    "select": "Select tool",
+    "ruler": "Ruler tool",
+    "move": "Move the selected token one cell",
+    "deselect": "Deselect the token",
+    "panels": "Show or hide the panels",
+    "help": "Show this list",
+    "moved": "{{name}} moved to column {{column}}, row {{row}}"
+  },
   "states": { "loadFailed": "We could not load this." },
   "language": { "label": "Language", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {

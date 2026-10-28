@@ -1,11 +1,12 @@
 import type { TokenDto, UserDto } from "@openvtt/shared";
 import { MotionConfig } from "motion/react";
-import { type CSSProperties, useCallback, useEffect } from "react";
+import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TableLoading } from "./components/screens/TableLoading";
 import { Drawer } from "./components/table/Drawer";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
+import { TableKeyboard } from "./components/table/TableKeyboard";
 import { TitleChip } from "./components/table/TitleChip";
 import { TipProvider } from "./components/ui/tooltip";
 import { AccountBox } from "./components/world/AccountBox";
@@ -31,6 +32,7 @@ export function Table({ worldId, user }: Props) {
 
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
   useEffect(() => reset, [worldId, reset]);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const canControl = useCallback(
     (token: TokenDto) => state?.yourRole === "gm" || token.controllerIds.includes(user.id),
@@ -95,7 +97,14 @@ export function Table({ worldId, user }: Props) {
             <p className="empty-map">{t(isGm ? "map.emptyGm" : "map.emptyPlayer")}</p>
           )}
 
-          <TitleChip worldName={state.name} connected={connected} />
+          <TitleChip worldName={state.name} connected={connected} onShowShortcuts={() => setHelpOpen(true)} />
+          <TableKeyboard
+            scene={scene}
+            movableToken={selectedToken && canControl(selectedToken) ? selectedToken : null}
+            onMove={move}
+            helpOpen={helpOpen}
+            onHelpOpenChange={setHelpOpen}
+          />
           <MapToolbar tool={tool} onToolChange={setTool} />
           <p className="map-hint">{t("map.hint")}</p>
           <OnlineChip members={state.members} />

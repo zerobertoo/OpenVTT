@@ -71,6 +71,8 @@ test("a game master can set up a scene, a token, a sheet and an invite, with no 
     .getByRole("button", { name: /Goblin/ })
     .click();
   await expect(page.getByRole("region", { name: "Edit token" })).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByText("Goblin moved to column 3, row 2")).toBeAttached();
   await expectNoAxeViolations(page);
 
   await page.getByRole("tab", { name: "Sheets" }).click();

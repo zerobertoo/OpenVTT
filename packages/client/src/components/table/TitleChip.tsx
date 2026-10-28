@@ -7,10 +7,11 @@ import { Tip } from "../ui/tooltip";
 interface Props {
   worldName: string;
   connected: boolean;
+  onShowShortcuts: () => void;
 }
 
 /** Top-left chip: way back to the world list, the world name and the connection state. */
-export function TitleChip({ worldName, connected }: Props) {
+export function TitleChip({ worldName, connected, onShowShortcuts }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   return (
@@ -33,6 +34,20 @@ export function TitleChip({ worldName, connected }: Props) {
           {t("table.disconnected")}
         </span>
       )}
+      {/* Phones have no keyboard, so the shortcut help stays out of the way there. */}
+      <Tip label={t("shortcuts.title")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9 text-on-chrome-2 hover:not-disabled:bg-chrome-2 max-[52rem]:hidden"
+          aria-label={t("shortcuts.title")}
+          onClick={onShowShortcuts}
+        >
+          <span aria-hidden="true" className="font-bold">
+            ?
+          </span>
+        </Button>
+      </Tip>
     </header>
   );
 }
