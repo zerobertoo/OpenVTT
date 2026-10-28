@@ -5,7 +5,7 @@ import { AccountControls } from "../AccountControls";
 export function AccountBox() {
   const { t } = useTranslation();
   return (
-    <section aria-label={t("auth.account")} className="mt-2 grid gap-2 border-line border-t-[1.5px] pt-3">
+    <section aria-label={t("auth.account")} className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2 border-line border-t-[1.5px] pt-3">
       <h3>{t("auth.account")}</h3>
       <AccountControls />
     </section>

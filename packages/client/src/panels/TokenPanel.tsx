@@ -51,7 +51,7 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
   const canControl = token && (isGm || token.controllerIds.includes(userId));
 
   return (
-    <section aria-label={t("token.title")} className="grid content-start gap-3">
+    <section aria-label={t("token.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
       <h3>{t("token.title")}</h3>
       {isGm && scene && (
         <form onSubmit={add} className="flex items-end gap-2">

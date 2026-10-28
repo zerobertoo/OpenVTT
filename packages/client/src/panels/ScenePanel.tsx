@@ -58,7 +58,7 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
   };
 
   return (
-    <section aria-label={t("scene.title")} className="grid content-start gap-3">
+    <section aria-label={t("scene.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
       <h3>{t("scene.title")}</h3>
       {state.scenes.length === 0 ? (
         <EmptyState title={t("scene.none")} description={t("scene.noneHint")} headingLevel={4} />

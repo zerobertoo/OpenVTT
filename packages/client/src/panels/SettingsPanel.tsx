@@ -47,7 +47,7 @@ function TemplateEditor({ worldId }: { worldId: string }) {
 
   if (!system) return null;
   return (
-    <section aria-label={t("settings.template")} className="grid gap-3">
+    <section aria-label={t("settings.template")} className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <h3>{t("settings.template")}</h3>
       <Field label={t("sheet.type")}>
         {(control) => (
@@ -95,11 +95,11 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
   const isGm = state.yourRole === "gm";
 
   return (
-    <section aria-label={t("settings.title")} className="grid content-start gap-3">
+    <section aria-label={t("settings.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
       <h3>{t("table.members")}</h3>
       <MemberList members={state.members} />
       {system && (
-        <p className="m-0 text-ink-2 text-sm">
+        <p className="m-0 break-words text-ink-2 text-sm">
           {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
           {system.manifest.attribution && (
             <>

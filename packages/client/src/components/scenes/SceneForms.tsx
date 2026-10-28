@@ -34,7 +34,7 @@ export function SceneSettingsForm({ scene, onSubmit, pending }: SettingsProps) {
         {(control) => <Input {...control} name="name" defaultValue={scene.name} required maxLength={80} />}
       </Field>
       <GridTypeSelect defaultValue={scene.gridType} />
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 items-end gap-2">
         <Field label={t("scene.gridSize")}>
           {(control) => <Input {...control} name="gridSize" type="number" min={10} max={500} defaultValue={scene.gridSize} />}
         </Field>

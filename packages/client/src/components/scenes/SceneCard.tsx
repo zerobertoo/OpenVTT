@@ -30,7 +30,7 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
         type="button"
         aria-pressed={viewing}
         onClick={onView}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-xl bg-transparent p-1 text-left text-ink pointer-coarse:min-h-11"
+        className="flex min-w-0 flex-1 cursor-pointer items-center justify-start gap-2.5 rounded-xl bg-transparent p-1 text-left text-ink pointer-coarse:min-h-11"
       >
         {scene.assetId ? (
           <img src={assetUrl(scene.assetId)} alt="" className="size-11 flex-none rounded-lg object-cover" />

@@ -57,7 +57,7 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
   };
 
   return (
-    <section aria-label={t("sheet.title")} className="grid content-start gap-3">
+    <section aria-label={t("sheet.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
       <h3>{t("sheet.title")}</h3>
 
       {isGm && (

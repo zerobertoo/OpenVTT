@@ -20,7 +20,7 @@ export function ActorList({ actors, selectedId, onSelect }: Props) {
             type="button"
             aria-pressed={actor.id === selectedId}
             onClick={() => onSelect(actor.id)}
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl bg-transparent px-2 py-1.5 text-left text-ink shadow-[inset_0_0_0_1.5px_transparent] hover:bg-surface-2 aria-pressed:bg-surface-2 aria-pressed:shadow-[inset_0_0_0_1.5px_var(--accent)] pointer-coarse:min-h-11"
+            className="flex w-full cursor-pointer items-center justify-start gap-2.5 rounded-xl bg-transparent px-2 py-1.5 text-left text-ink shadow-[inset_0_0_0_1.5px_transparent] hover:bg-surface-2 aria-pressed:bg-surface-2 aria-pressed:shadow-[inset_0_0_0_1.5px_var(--accent)] pointer-coarse:min-h-11"
           >
             <Avatar name={actor.name} />
             <span className="min-w-0 flex-1 truncate font-semibold">{actor.name}</span>
