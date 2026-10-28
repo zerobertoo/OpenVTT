@@ -63,6 +63,7 @@
     "displayName": "Nome de exibição",
     "color": "Cor",
     "join": "Entrar",
+    "intro": "Você foi convidado para um mundo. Escolha como aparecer para os outros por lá.",
     "create": "Criar link de convite",
     "linkLabel": "Link de convite",
     "copy": "Copiar link",

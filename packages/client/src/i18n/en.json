@@ -63,6 +63,7 @@
     "displayName": "Display name",
     "color": "Color",
     "join": "Join",
+    "intro": "You were invited to a world. Choose how you appear to the others there.",
     "create": "Create invite link",
     "linkLabel": "Invite link",
     "copy": "Copy link",

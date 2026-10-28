@@ -1,7 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { UserContext } from "./App";
 import { AccountControls } from "./components/AccountControls";
 import { SignInScreen } from "./components/screens/SignInScreen";
 import { Card } from "./components/ui/card";
@@ -9,6 +8,7 @@ import { Loading, Skeleton } from "./components/ui/skeleton";
 import { setLocale } from "./i18n";
 import { Logo } from "./icons";
 import { useMe } from "./queries";
+import { UserContext } from "./userContext";
 
 /** Page chrome shared by every screen except the table, which is full-bleed and owns its own. */
 export function Shell({ children }: { children: React.ReactNode }) {

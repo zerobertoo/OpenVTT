@@ -1,9 +1,10 @@
 import { createRootRoute, createRoute, createRouter, Navigate, Outlet } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
-import { JoinInvite, useUser } from "./App";
+import { JoinInviteScreen } from "./components/screens/JoinInviteScreen";
 import { TableLoading } from "./components/screens/TableLoading";
 import { WorldListScreen } from "./components/screens/WorldListScreen";
 import { Root, Shell } from "./Root";
+import { useUser } from "./userContext";
 
 // The table pulls in PixiJS and motion, so it is its own chunk and never loads on the sign-in screen.
 const Table = lazy(() => import("./Table").then((module) => ({ default: module.Table })));
@@ -27,7 +28,7 @@ const joinRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: "/join/$code",
   component: function JoinRoute() {
-    return <JoinInvite code={joinRoute.useParams().code} />;
+    return <JoinInviteScreen code={joinRoute.useParams().code} />;
   },
 });
 
