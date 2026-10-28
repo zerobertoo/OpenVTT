@@ -234,3 +234,4 @@ export interface SystemInfoDto {
   /** Whether the template of the type is a GM override rather than the system default. */
   overridden: ActorType[];
 }
+export * from "./uvtt.ts";
