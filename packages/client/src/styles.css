@@ -166,16 +166,6 @@ output { font-weight: 800; font-size: 1.1rem; }
 .app-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; margin-bottom: 1.5rem; }
 .app-header .account { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
 .account select { width: auto; padding: 0.35rem 0.7rem; }
-.card { padding: 1.25rem; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
-.card + .card { margin-top: 1rem; }
-.page-title { font-size: 1.6rem; letter-spacing: -0.02em; }
-.world-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
-.world-item { display: flex; align-items: center; gap: 0.9rem; padding: 0.8rem 0.9rem; background: var(--surface-2); border-radius: var(--radius); }
-.world-badge { width: 2.8rem; height: 2.8rem; border-radius: 0.85rem; display: grid; place-items: center; font-weight: 800; font-size: 1.15rem; background: var(--accent); color: var(--on-accent); flex: none; }
-.world-item .info { display: grid; min-width: 0; }
-.world-item .info strong { overflow-wrap: anywhere; }
-.world-item button { margin-left: auto; }
-.worlds-actions { display: grid; gap: 0.75rem; margin-top: 1rem; }
 
 /* --- the table: full-bleed map with floating chrome --- */
 .table-stage { position: fixed; inset: 0; background: var(--map); overflow: hidden; }

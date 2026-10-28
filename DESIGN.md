@@ -223,6 +223,10 @@ Round and soft. Radii are 0.6rem (inputs, small chips, tooltips), 0.9rem (rows, 
 
 Components are Tailwind v4 utilities in markup plus a few named classes in `styles.css`; accessible widgets are **Radix UI** primitives wrapped in `components/ui/` (Tabs for the drawer, Tooltip).
 
+Primitives live in `components/ui/` (Button, Field, Input/Textarea/Select, Checkbox/Switch, Card, Badge, Avatar, Skeleton, EmptyState, Dialog, Popover/DropdownMenu, Tooltip, Toast, Tabs, Toolbar, AssetPicker, FileButton), each with a unit test and a Storybook story; table, chat, token, sheet, scene, world and screen components compose them. Live table state stays in `useWorldState`; UI state (tab, drawer, tool, selection) is the Zustand `tableStore`. Every screen has loading, empty, error and offline states; the empty table doubles as the first-run guide (`TableGuide`, also reachable from the title chip).
+
+Checks: `pnpm test` (unit, axe), `pnpm test:e2e` (flows with axe in desktop and mobile-dark), `pnpm test:visual` (screenshots of key screens; baselines come from Linux CI, other platforms are git-ignored), `pnpm storybook`, `pnpm check:i18n`, `pnpm check:bundle`.
+
 ### Buttons
 - **Shape:** full pill (999px).
 - **Primary:** teal fill, `on-accent` text, 700 weight, padding 0.55rem 1.1rem, icon gap 0.45rem.
