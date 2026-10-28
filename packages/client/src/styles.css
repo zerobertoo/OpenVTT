@@ -7,34 +7,36 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light dark; /* follows the browser; [data-theme] forces one (used by Storybook) */
   font-family: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Text", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 
   /* Colors are oklch (Tailwind v4's space). Comments give the sRGB hex they were derived from. */
-  --bg: oklch(0.951 0.009 171.8); /* #e9f1ee */
-  --surface: oklch(1 0 0);
-  --surface-2: oklch(0.971 0.007 174.4); /* #f1f7f5 */
-  --text: oklch(0.243 0.02 173.5); /* #16231f */
-  --text-2: oklch(0.466 0.028 172.7); /* #4a5f58 */
-  --line: oklch(0.873 0.017 172.6); /* #cbd9d4 */
-  --accent: oklch(0.537 0.08 177.2); /* #2f7d6d */
-  --accent-text: oklch(0.463 0.072 175.5); /* #236657, links on the page background */
-  --accent-soft: oklch(0.923 0.024 176.8); /* #d6ebe5 */
-  --on-accent: oklch(1 0 0);
-  --danger: oklch(0.513 0.167 28.1); /* #b3322a */
-  --on-danger: oklch(1 0 0);
+  --bg: light-dark(oklch(0.951 0.009 171.8), oklch(0.206 0.017 175.7)); /* light #e9f1ee, dark #0f1a17 */
+  --surface: light-dark(oklch(1 0 0), oklch(0.269 0.023 177.2)); /* light white, dark #1a2a26 */
+  --surface-2: light-dark(oklch(0.971 0.007 174.4), oklch(0.314 0.027 180.6)); /* light #f1f7f5, dark #223632 */
+  --text: light-dark(oklch(0.243 0.02 173.5), oklch(0.957 0.01 174.3)); /* light #16231f, dark #eaf3f0 */
+  --text-2: light-dark(oklch(0.466 0.028 172.7), oklch(0.787 0.028 173.5)); /* light #4a5f58, dark #a8c0b8 */
+  --line: light-dark(oklch(0.873 0.017 172.6), oklch(0.407 0.035 179.5)); /* light #cbd9d4, dark #34504a */
+  --accent: light-dark(oklch(0.537 0.08 177.2), oklch(0.72 0.094 177.6)); /* light #2f7d6d, dark #5bb8a4 */
+  --accent-text: light-dark(oklch(0.463 0.072 175.5), oklch(0.72 0.094 177.6)); /* light #236657 (links on the page background), dark same as accent */
+  --accent-soft: light-dark(oklch(0.923 0.024 176.8), oklch(0.356 0.039 177.8)); /* light #d6ebe5, dark #24433c */
+  --on-accent: light-dark(oklch(1 0 0), oklch(0.223 0.023 176.4)); /* light white, dark #0f1f1b */
+  --danger: light-dark(oklch(0.513 0.167 28.1), oklch(0.716 0.142 26.9)); /* light #b3322a, dark #ef7d72 */
+  --on-danger: light-dark(oklch(1 0 0), oklch(0.204 0.051 28.2)); /* light white, dark #2a0c09 */
   --dice: oklch(0.817 0.14 80.1); /* #f2b84b, amber used for dice and the active tool */
   --on-dice: oklch(0.228 0.039 79.5); /* #261a05 */
   --crit: oklch(0.837 0.135 153.4); /* #7ee3a0 */
   --fumble: oklch(0.768 0.137 26.6); /* #ff8f84 */
-  --chrome: oklch(0.204 0.01 220); /* #12181a, floating dock, title chip, roll cards */
-  --chrome-2: oklch(0.28 0.014 211.2); /* #212b2d */
+  --chrome: light-dark(oklch(0.204 0.01 220), oklch(0.163 0.008 181.7)); /* light #12181a, dark #0a0f0e; floating dock, title chip, roll cards */
+  --chrome-2: light-dark(oklch(0.28 0.014 211.2), oklch(0.253 0.016 182.6)); /* light #212b2d, dark #1a2523 */
   --chrome-line: oklch(0.366 0.019 180.7); /* #34423f */
   --on-chrome: oklch(0.964 0.008 168.8); /* #eef5f2 */
   --on-chrome-2: oklch(0.811 0.021 173.8); /* #b4c6c0 */
   --map: oklch(0.231 0.01 268.2); /* #1b1d22, always dark so map art stands out */
-  --shadow: 0 1px 2px oklch(0.3 0.04 175 / 0.1), 0 8px 24px oklch(0.3 0.04 175 / 0.12);
+  --shadow-near: light-dark(oklch(0.3 0.04 175 / 0.1), oklch(0 0 0 / 0.4));
+  --shadow-far: light-dark(oklch(0.3 0.04 175 / 0.12), oklch(0 0 0 / 0.35));
+  --shadow: 0 1px 2px var(--shadow-near), 0 8px 24px var(--shadow-far);
   --shadow-chrome: 0 2px 4px oklch(0.1 0.01 180 / 0.3), 0 12px 32px oklch(0.1 0.01 180 / 0.35);
 
   --radius-sm: 0.6rem;
@@ -43,25 +45,9 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --drawer-width: 26rem;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: oklch(0.206 0.017 175.7); /* #0f1a17 */
-    --surface: oklch(0.269 0.023 177.2); /* #1a2a26 */
-    --surface-2: oklch(0.314 0.027 180.6); /* #223632 */
-    --text: oklch(0.957 0.01 174.3); /* #eaf3f0 */
-    --text-2: oklch(0.787 0.028 173.5); /* #a8c0b8 */
-    --line: oklch(0.407 0.035 179.5); /* #34504a */
-    --accent: oklch(0.72 0.094 177.6); /* #5bb8a4 */
-    --accent-text: oklch(0.72 0.094 177.6);
-    --accent-soft: oklch(0.356 0.039 177.8); /* #24433c */
-    --on-accent: oklch(0.223 0.023 176.4); /* #0f1f1b */
-    --danger: oklch(0.716 0.142 26.9); /* #ef7d72 */
-    --on-danger: oklch(0.204 0.051 28.2); /* #2a0c09 */
-    --chrome: oklch(0.163 0.008 181.7); /* #0a0f0e */
-    --chrome-2: oklch(0.253 0.016 182.6); /* #1a2523 */
-    --shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 8px 24px oklch(0 0 0 / 0.35);
-  }
-}
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 @theme inline {
   --color-bg: var(--bg);

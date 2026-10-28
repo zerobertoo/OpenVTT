@@ -25,7 +25,13 @@ export async function createAndOpenWorld(page: Page, name: string) {
 
 /** Fails the test on any axe violation, including color contrast (checked in a real browser). */
 export async function expectNoAxeViolations(page: Page) {
+  // `motion` still fades elements in under reduced motion; axe would measure a half-transparent background.
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll<HTMLElement>("[style*='opacity']")].every((el) => getComputedStyle(el).opacity === "1"),
+  );
   const results = await new AxeBuilder({ page }).analyze();
-  const summary = results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`).join("\n");
+  const summary = results.violations
+    .map((v) => `${v.id}: ${v.nodes.map((n) => `${n.target.join(" ")} ${JSON.stringify(n.any[0]?.data ?? {})}`).join(", ")}`)
+    .join("\n");
   expect(summary).toBe("");
 }
