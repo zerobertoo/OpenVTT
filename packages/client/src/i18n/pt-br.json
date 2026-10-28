@@ -80,6 +80,15 @@
     "account": "Conta",
     "sessionEnded": "Sua sessão terminou. Entre de novo para continuar."
   },
+  "measure": {
+    "system": "Distâncias",
+    "systemHint": "Só muda o que você vê, neste navegador.",
+    "scene": "Como a cena define",
+    "imperial": "Imperial (ft, mi)",
+    "metric": "Métrico (m, km)",
+    "metersPerFoot": "Metros por pé",
+    "metersPerFootHint": "0,3 faz 5 ft valerem 1,5 m, como na maioria das mesas. 0,3048 é o valor exato."
+  },
   "validation": {
     "required": "Preencha este campo.",
     "usernameInvalid": "Use de 3 a 32 letras, números, pontos, hífens ou sublinhados.",

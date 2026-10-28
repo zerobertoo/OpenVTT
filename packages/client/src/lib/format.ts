@@ -1,4 +1,5 @@
 import type { SceneDto } from "@openvtt/shared";
+import { convertDistance, type MeasurePrefs } from "./units";
 
 export interface Formatter {
   /** Clock time, for example "14:05". */
@@ -8,7 +9,7 @@ export interface Formatter {
   /** Number with at most `maximumFractionDigits` decimals (default 1). */
   number: (value: number, maximumFractionDigits?: number) => string;
   /** Distance across `cells` grid cells in the scene's unit, for example "15 ft". */
-  distance: (cells: number, scene: Pick<SceneDto, "gridDistance" | "distanceUnit">) => string;
+  distance: (cells: number, scene: Pick<SceneDto, "gridDistance" | "distanceUnit">, prefs?: MeasurePrefs) => string;
 }
 
 const cache = new Map<string, Formatter>();
@@ -32,7 +33,12 @@ export function createFormatter(locale: string): Formatter {
     time: (timestamp) => time.format(timestamp),
     date: (timestamp) => date.format(timestamp),
     number,
-    distance: (cells, scene) => `${number(cells * scene.gridDistance)} ${scene.distanceUnit}`,
+    distance: (cells, scene, prefs) => {
+      const shown = prefs
+        ? convertDistance(cells * scene.gridDistance, scene.distanceUnit, prefs)
+        : { value: cells * scene.gridDistance, unit: scene.distanceUnit };
+      return `${number(shown.value)} ${shown.unit}`;
+    },
   };
   cache.set(locale, formatter);
   return formatter;

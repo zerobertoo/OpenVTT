@@ -107,7 +107,9 @@ export function MapImportDialog({ open, onOpenChange, onCreate, pending }: Props
               )}
             </Field>
             <Field label={t("scene.distanceUnit")}>
-              {(control) => <Input {...control} name="distanceUnit" defaultValue={draft.distanceUnit} maxLength={10} />}
+              {(control) => (
+                <Input {...control} name="distanceUnit" list="distance-units" defaultValue={draft.distanceUnit} maxLength={10} />
+              )}
             </Field>
           </div>
           <Button type="submit" pending={pending} className="justify-self-start">

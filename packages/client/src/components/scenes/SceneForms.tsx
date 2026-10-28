@@ -42,7 +42,7 @@ export function SceneSettingsForm({ scene, onSubmit, pending }: SettingsProps) {
           {(control) => <Input {...control} name="gridDistance" type="number" min={0.1} step="any" defaultValue={scene.gridDistance} />}
         </Field>
         <Field label={t("scene.distanceUnit")}>
-          {(control) => <Input {...control} name="distanceUnit" defaultValue={scene.distanceUnit} maxLength={10} />}
+          {(control) => <Input {...control} name="distanceUnit" list="distance-units" defaultValue={scene.distanceUnit} maxLength={10} />}
         </Field>
       </div>
       <Button type="submit" pending={pending} className="justify-self-start">

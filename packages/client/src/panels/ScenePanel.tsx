@@ -133,6 +133,11 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
         {t("scene.import.open")}
       </Button>
       <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} />
+      <datalist id="distance-units">
+        <option value="ft" />
+        <option value="m" />
+        <option value="sq" />
+      </datalist>
       <ErrorMessage error={error} />
     </section>
   );

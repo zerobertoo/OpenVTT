@@ -80,6 +80,15 @@
     "account": "Account",
     "sessionEnded": "Your session ended. Sign in again to continue."
   },
+  "measure": {
+    "system": "Distances",
+    "systemHint": "Only changes what you see, in this browser.",
+    "scene": "As the scene says",
+    "imperial": "Imperial (ft, mi)",
+    "metric": "Metric (m, km)",
+    "metersPerFoot": "Meters per foot",
+    "metersPerFootHint": "0.3 makes 5 ft equal 1.5 m, as most tables do. 0.3048 is the exact value."
+  },
   "validation": {
     "required": "This field is required.",
     "usernameInvalid": "Use 3 to 32 letters, numbers, dots, dashes or underscores.",
