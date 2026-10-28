@@ -83,6 +83,8 @@
   "measure": {
     "system": "Distâncias",
     "systemHint": "Só muda o que você vê, neste navegador.",
+    "diceOverlay": "Mostrar os dados rolando na mesa",
+    "diceOverlayHint": "As rolagens aparecem só para quem pode lê-las. Desligado quando o sistema pede menos movimento.",
     "scene": "Como a cena define",
     "imperial": "Imperial (ft, mi)",
     "metric": "Métrico (m, km)",

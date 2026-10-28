@@ -83,6 +83,8 @@
   "measure": {
     "system": "Distances",
     "systemHint": "Only changes what you see, in this browser.",
+    "diceOverlay": "Show dice rolling on the table",
+    "diceOverlayHint": "Rolls are shown only to the people who can read them. Off when your system asks for reduced motion.",
     "scene": "As the scene says",
     "imperial": "Imperial (ft, mi)",
     "metric": "Metric (m, km)",

@@ -5,6 +5,7 @@ import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "./api";
 import { TableLoading } from "./components/screens/TableLoading";
+import { DiceOverlay } from "./components/table/DiceOverlay";
 import { Drawer } from "./components/table/Drawer";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
@@ -125,6 +126,7 @@ export function Table({ worldId, user }: Props) {
             <EmptyMap isGm={isGm} />
           )}
 
+          <DiceOverlay messages={state.messages} />
           <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
           <TableKeyboard
             scene={scene}

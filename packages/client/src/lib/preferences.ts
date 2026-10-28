@@ -4,6 +4,9 @@ import { DEFAULT_MEASURE_PREFS, type MeasurePrefs } from "./units";
 
 interface PreferencesState {
   measure: MeasurePrefs;
+  /** Animate other people's rolls over the table. */
+  diceOverlay: boolean;
+  setDiceOverlay: (on: boolean) => void;
   setMeasure: (measure: Partial<MeasurePrefs>) => void;
 }
 
@@ -12,6 +15,8 @@ export const usePreferences = create<PreferencesState>()(
   persist(
     (set) => ({
       measure: DEFAULT_MEASURE_PREFS,
+      diceOverlay: true,
+      setDiceOverlay: (diceOverlay) => set({ diceOverlay }),
       setMeasure: (measure) => set((state) => ({ measure: { ...state.measure, ...measure } })),
     }),
     { name: "openvtt-preferences", version: 1 },
