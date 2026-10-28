@@ -1,13 +1,13 @@
 import type { ServerMessage } from "@openvtt/shared";
 import { WebSocket } from "ws";
-import { buildApp, SESSION_COOKIE } from "./app.ts";
+import { type AppOptions, buildApp, SESSION_COOKIE } from "./app.ts";
 
 export type App = ReturnType<typeof buildApp>;
 
 export const apps: App[] = [];
 
-export function newApp(dbPath = ":memory:"): App {
-  const app = buildApp({ dbPath });
+export function newApp(dbPath = ":memory:", options: Partial<AppOptions> = {}): App {
+  const app = buildApp({ dbPath, ...options });
   apps.push(app);
   return app;
 }
@@ -27,6 +27,16 @@ export const call = (app: App, cookie: string, method: "GET" | "POST" | "PATCH" 
   app.inject({ method, url, payload, headers: { cookie } });
 
 export const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
+
+/** Minimal buffers that carry just the container signature, padded to `size` bytes. */
+export const fakeWebm = (size = 8192) =>
+  Buffer.concat([
+    Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0x82, 0x84]),
+    Buffer.from("webm"),
+    Buffer.alloc(size, 7),
+  ]);
+export const fakeMp4 = (size = 8192) =>
+  Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x18]), Buffer.from("ftypisom"), Buffer.alloc(size, 9)]);
 
 export const upload = (app: App, cookie: string, worldId: string, body: Buffer, type = "image/png") =>
   app.inject({

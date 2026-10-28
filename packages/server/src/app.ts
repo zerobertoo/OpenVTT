@@ -1,15 +1,18 @@
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { Readable } from "node:stream";
 import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import {
   ALLOWED_IMAGE_TYPES,
+  ALLOWED_VIDEO_TYPES,
   createActorSchema,
   createSceneSchema,
   createTokenSchema,
   createWorldSchema,
   credentialsSchema,
+  DEFAULT_MAX_VIDEO_BYTES,
   type ErrorCode,
   joinWorldSchema,
   MAX_UPLOAD_BYTES,
@@ -45,13 +48,16 @@ export interface AppOptions {
   /** Directory with the built client; served when it exists. */
   clientDir?: string;
   secureCookies?: boolean;
+  /** Largest accepted map video in bytes; defaults to `DEFAULT_MAX_VIDEO_BYTES`. */
+  maxVideoBytes?: number;
 }
 
 export function buildApp(options: AppOptions) {
   const db = openDatabase(options.dbPath);
   const dataDir =
     options.dataDir ?? (options.dbPath === ":memory:" ? mkdtempSync(join(tmpdir(), "openvtt-data-")) : dirname(resolve(options.dbPath)));
-  const s = createServices(db, dataDir, options.systemsDir ?? resolve(import.meta.dirname, "../../../systems"));
+  const maxVideoBytes = options.maxVideoBytes ?? DEFAULT_MAX_VIDEO_BYTES;
+  const s = createServices(db, dataDir, options.systemsDir ?? resolve(import.meta.dirname, "../../../systems"), { maxVideoBytes });
   const hub = new Hub(s, SESSION_COOKIE);
   const app = Fastify({ logger: false });
 
@@ -65,6 +71,8 @@ export function buildApp(options: AppOptions) {
   app.addContentTypeParser([...ALLOWED_IMAGE_TYPES], { parseAs: "buffer", bodyLimit: MAX_UPLOAD_BYTES }, (_req, body, done) =>
     done(null, body),
   );
+  // Videos are never buffered: the route receives the raw request stream and writes it to disk.
+  app.addContentTypeParser([...ALLOWED_VIDEO_TYPES], (_req, payload, done) => done(null, payload));
 
   app.setErrorHandler((error, _req, reply) => {
     if (error instanceof AppError) return reply.status(error.status).send({ error: error.code });
@@ -197,10 +205,19 @@ export function buildApp(options: AppOptions) {
 
   // ---- assets -------------------------------------------------------------------------------
 
-  app.post<{ Params: { id: string } }>("/api/worlds/:id/assets", async (req) => {
+  app.post<{ Params: { id: string } }>("/api/worlds/:id/assets", async (req, reply) => {
     requireGm(req, req.params.id);
-    if (!Buffer.isBuffer(req.body)) throw new AppError("asset_invalid");
-    const asset = s.assets.save(req.params.id, req.body);
+    if (Buffer.isBuffer(req.body)) {
+      const asset = s.assets.save(req.params.id, req.body);
+      return { id: asset.id, mime: asset.mime };
+    }
+    if (!(req.body instanceof Readable)) throw new AppError("asset_invalid");
+    // Refuse early when the declared size is already too big, without reading the body.
+    if (Number(req.headers["content-length"] ?? 0) > maxVideoBytes) {
+      reply.header("connection", "close");
+      throw new AppError("asset_too_large");
+    }
+    const asset = await s.assets.saveVideoStream(req.params.id, req.body);
     return { id: asset.id, mime: asset.mime };
   });
 

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { ActorService } from "./actors.ts";
-import { AssetService } from "./assets.ts";
+import { type AssetLimits, AssetService } from "./assets.ts";
 import { AuthService } from "./auth.ts";
 import { ChatService } from "./chat.ts";
 import type { Db } from "./db.ts";
@@ -22,9 +22,9 @@ export interface Services {
   systems: SystemRegistry;
 }
 
-export function createServices(db: Db, dataDir: string, builtInSystemsDir: string): Services {
+export function createServices(db: Db, dataDir: string, builtInSystemsDir: string, assetLimits?: AssetLimits): Services {
   const systems = new SystemRegistry(builtInSystemsDir, join(dataDir, "systems"));
-  const assets = new AssetService(db, join(dataDir, "assets"));
+  const assets = new AssetService(db, join(dataDir, "assets"), assetLimits);
   return {
     db,
     dataDir,

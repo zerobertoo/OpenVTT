@@ -123,7 +123,7 @@ export class TokenService {
 
   /** Rejects references to assets, actors or users that do not belong to the world. */
   private assertReferences(worldId: string, assetId: string | null, actorId: string | null, controllerIds: string[]) {
-    if (!this.assets.belongsToWorld(assetId, worldId)) throw new AppError("asset_invalid");
+    if (!this.assets.belongsToWorld(assetId, worldId, "image")) throw new AppError("asset_invalid");
     if (actorId) {
       const actor = this.db.prepare("SELECT world_id FROM actors WHERE id = ?").get(actorId) as { world_id: string } | undefined;
       if (actor?.world_id !== worldId) throw new AppError("not_found");

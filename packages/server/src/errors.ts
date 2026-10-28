@@ -10,6 +10,7 @@ const STATUS: Record<ErrorCode, number> = {
   not_found: 404,
   invite_invalid: 404,
   asset_invalid: 400,
+  asset_too_large: 413,
   roll_invalid: 400,
   template_invalid: 400,
   import_invalid: 400,
