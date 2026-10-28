@@ -10,6 +10,7 @@ interface SceneRow {
   world_id: string;
   name: string;
   asset_id: string | null;
+  asset_mime: string | null;
   width: number;
   height: number;
   grid_type: "square" | "none";
@@ -18,10 +19,13 @@ interface SceneRow {
   distance_unit: string;
 }
 
+const SELECT_SCENE = "SELECT scenes.*, assets.mime AS asset_mime FROM scenes LEFT JOIN assets ON assets.id = scenes.asset_id";
+
 const toDto = (r: SceneRow): SceneDto => ({
   id: r.id,
   name: r.name,
   assetId: r.asset_id,
+  assetKind: r.asset_mime === null ? null : r.asset_mime.startsWith("video/") ? "video" : "image",
   width: r.width,
   height: r.height,
   gridType: r.grid_type,
@@ -37,7 +41,7 @@ export class SceneService {
   ) {}
 
   list(worldId: string): SceneDto[] {
-    const rows = this.db.prepare("SELECT * FROM scenes WHERE world_id = ? ORDER BY created_at, id").all(worldId);
+    const rows = this.db.prepare(`${SELECT_SCENE} WHERE scenes.world_id = ? ORDER BY scenes.created_at, scenes.id`).all(worldId);
     return (rows as unknown as SceneRow[]).map(toDto);
   }
 
@@ -47,7 +51,7 @@ export class SceneService {
   }
 
   get(sceneId: string): SceneDto | null {
-    const row = this.db.prepare("SELECT * FROM scenes WHERE id = ?").get(sceneId) as SceneRow | undefined;
+    const row = this.db.prepare(`${SELECT_SCENE} WHERE scenes.id = ?`).get(sceneId) as SceneRow | undefined;
     return row ? toDto(row) : null;
   }
 

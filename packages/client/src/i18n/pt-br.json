@@ -134,7 +134,10 @@
     "select": "Selecionar",
     "ruler": "Régua",
     "label": "Mapa",
-    "hint": "Arraste o fundo ou use o botão direito para mover o mapa, role para dar zoom."
+    "hint": "Arraste o fundo ou use o botão direito para mover o mapa, role para dar zoom.",
+    "playVideo": "Reproduzir animação do mapa",
+    "pauseVideo": "Pausar animação do mapa",
+    "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele."
   },
   "chat": {
     "title": "Chat",
@@ -161,7 +164,7 @@
     "active": "mostrada aos jogadores",
     "activate": "Mostrar aos jogadores",
     "new": "Nova cena",
-    "image": "Imagem do mapa (PNG, JPG, WebP)",
+    "image": "Imagem ou vídeo do mapa (PNG, JPG, WebP, WebM, MP4)",
     "width": "Largura (px, sem imagem)",
     "height": "Altura (px, sem imagem)",
     "create": "Criar cena",
@@ -237,6 +240,7 @@
     "template_invalid": "Esse modelo de ficha não é válido.",
     "import_invalid": "Não foi possível importar esse arquivo.",
     "internal_error": "Algo deu errado no servidor.",
-    "network": "Não foi possível falar com o servidor."
+    "network": "Não foi possível falar com o servidor.",
+    "video_unsupported": "Este navegador não consegue reproduzir esse vídeo. WebM (VP9) ou MP4 (H.264) costumam funcionar."
   }
 }

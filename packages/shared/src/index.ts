@@ -74,6 +74,8 @@ export interface SceneDto {
   id: string;
   name: string;
   assetId: string | null;
+  /** What the background asset is, so the client picks a loader without asking the server. */
+  assetKind: "image" | "video" | null;
   /** Map size in pixels. */
   width: number;
   height: number;

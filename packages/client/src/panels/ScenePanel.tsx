@@ -1,10 +1,11 @@
 import type { WorldStateDto } from "@openvtt/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, readImageSize } from "../api";
+import { ApiError, api } from "../api";
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
 import { EmptyState } from "../components/ui/empty-state";
+import { readMediaSize, UnsupportedMediaError } from "../lib/media";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
@@ -27,7 +28,9 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
       let size = { width: Number(f.get("width")), height: Number(f.get("height")) };
       let assetId: string | null = null;
       if (imageFile) {
-        size = await readImageSize(imageFile);
+        size = await readMediaSize(imageFile).catch((error) => {
+          throw error instanceof UnsupportedMediaError ? new ApiError("video_unsupported") : error;
+        });
         assetId = (await api.uploadAsset(state.id, imageFile)).id;
       }
       const scene = await api.createScene(state.id, {

@@ -10,6 +10,7 @@ const scene: SceneDto = {
   id: "s1",
   name: "Tavern",
   assetId: null,
+  assetKind: null,
   width: 2000,
   height: 1500,
   gridType: "square",

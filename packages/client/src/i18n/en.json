@@ -134,7 +134,10 @@
     "select": "Select",
     "ruler": "Ruler",
     "label": "Map",
-    "hint": "Drag the background or use the right mouse button to pan, scroll to zoom."
+    "hint": "Drag the background or use the right mouse button to pan, scroll to zoom.",
+    "playVideo": "Play map animation",
+    "pauseVideo": "Pause map animation",
+    "videoUnsupported": "This browser cannot play the map video, so the map is shown without it."
   },
   "chat": {
     "title": "Chat",
@@ -161,7 +164,7 @@
     "active": "shown to players",
     "activate": "Show to players",
     "new": "New scene",
-    "image": "Map image (PNG, JPG, WebP)",
+    "image": "Map image or video (PNG, JPG, WebP, WebM, MP4)",
     "width": "Width (px, without image)",
     "height": "Height (px, without image)",
     "create": "Create scene",
@@ -237,6 +240,7 @@
     "template_invalid": "That sheet template is not valid.",
     "import_invalid": "That file could not be imported.",
     "internal_error": "Something went wrong on the server.",
-    "network": "Could not reach the server."
+    "network": "Could not reach the server.",
+    "video_unsupported": "This browser cannot play that video. WebM (VP9) or MP4 (H.264) usually work."
   }
 }

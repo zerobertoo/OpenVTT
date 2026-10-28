@@ -1,9 +1,12 @@
 import type { SceneDto, TokenDto } from "@openvtt/shared";
-import { Application, Container, type FederatedPointerEvent, Graphics, Sprite, Text, Texture, type Ticker } from "pixi.js";
-import { useEffect, useRef } from "react";
+import { Application, Container, type FederatedPointerEvent, Graphics, Sprite, Text, Texture, type Ticker, VideoSource } from "pixi.js";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "./api";
+import { Button } from "./components/ui/button";
+import { Icon } from "./icons";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
+import { closeVideo, openVideo } from "./lib/media";
 
 export type MapTool = "select" | "ruler";
 
@@ -39,6 +42,21 @@ function loadTexture(assetId: string): Promise<Texture> {
 }
 
 const hexToNumber = (hex: string) => parseInt(hex.slice(1), 16);
+
+/** An animated map background. Only one lives at a time; it is rebuilt only when the scene's asset changes. */
+interface VideoBackground {
+  assetId: string;
+  /** What the person asked for; the element itself also pauses while the tab is hidden. */
+  wantPlaying: boolean;
+  loaded: { element: HTMLVideoElement; texture: Texture } | null;
+  /** Resolves to null when the browser cannot play the file. */
+  ready: Promise<{ element: HTMLVideoElement; texture: Texture } | null>;
+}
+
+interface VideoUi {
+  status: "none" | "ready" | "unsupported";
+  playing: boolean;
+}
 
 /** Eases a view's scale from `from` back to 1 with a small overshoot (used when a token appears or lands). */
 function popScale(ticker: Ticker, view: Container, from: number, durationMs: number) {
@@ -81,7 +99,9 @@ export function MapView(props: Props) {
     rulerLabel: Text;
     tokenViews: Map<string, Container>;
     fitted: string | null;
+    video: VideoBackground | null;
   } | null>(null);
+  const [videoUi, setVideoUi] = useState<VideoUi>({ status: "none", playing: false });
 
   // One Pixi application for the lifetime of the component.
   useEffect(() => {
@@ -105,7 +125,7 @@ export function MapView(props: Props) {
         app.stage.addChild(world);
         app.stage.eventMode = "static";
         app.stage.hitArea = app.screen;
-        engine.current = { app, world, background, grid, tokenLayer, ruler, rulerLabel, tokenViews: new Map(), fitted: null };
+        engine.current = { app, world, background, grid, tokenLayer, ruler, rulerLabel, tokenViews: new Map(), fitted: null, video: null };
         bindInteractions(app, world, ruler, rulerLabel);
         syncAll.current();
       });
@@ -233,9 +253,28 @@ export function MapView(props: Props) {
       e.grid.clear();
       e.ruler.clear();
       e.rulerLabel.text = "";
-      if (!scene) return;
+      if (!scene) return void disposeVideo(e);
       const sceneId = scene.id;
-      if (scene.assetId) {
+      if (scene.assetId && scene.assetKind === "video") {
+        if (e.video?.assetId !== scene.assetId) {
+          disposeVideo(e);
+          e.video = startVideo(e, scene.assetId);
+        }
+        const loaded = await e.video.ready;
+        // Another scene was shown while the video loaded; its own sync draws the map.
+        if (props_().scene?.id !== sceneId) return;
+        e.background.removeChildren().forEach((c) => c.destroy());
+        if (loaded) {
+          const sprite = new Sprite(loaded.texture);
+          sprite.width = scene.width;
+          sprite.height = scene.height;
+          e.background.addChild(sprite);
+        } else {
+          // Without the video the map is still usable: plain background plus grid and tokens.
+          e.background.addChild(new Graphics().rect(0, 0, scene.width, scene.height).fill(0x2a2d34));
+        }
+      } else if (scene.assetId) {
+        disposeVideo(e);
         const texture = await loadTexture(scene.assetId);
         if (engine.current?.fitted !== null && props_().scene?.id !== sceneId) return;
         const sprite = new Sprite(texture);
@@ -243,8 +282,10 @@ export function MapView(props: Props) {
         sprite.height = scene.height;
         e.background.addChild(sprite);
       } else {
+        disposeVideo(e);
         e.background.addChild(new Graphics().rect(0, 0, scene.width, scene.height).fill(0x2a2d34));
       }
+      e.grid.clear();
       if (scene.gridType === "square") {
         for (let x = 0; x <= scene.width; x += scene.gridSize) e.grid.moveTo(x, 0).lineTo(x, scene.height);
         for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
@@ -257,6 +298,45 @@ export function MapView(props: Props) {
         e.world.position.set((e.app.screen.width - scene.width * scale) / 2, (e.app.screen.height - scene.height * scale) / 2);
         e.fitted = sceneId;
       }
+    }
+
+    /** Starts loading an animated background; it plays at once unless the person prefers reduced motion. */
+    function startVideo(e: NonNullable<typeof engine.current>, assetId: string): VideoBackground {
+      const background: VideoBackground = {
+        assetId,
+        wantPlaying: !matchMedia("(prefers-reduced-motion: reduce)").matches,
+        loaded: null,
+        ready: Promise.resolve(null),
+      };
+      background.ready = openVideo(assetUrl(assetId)).then(
+        async (element) => {
+          // The scene changed while the file loaded: drop it without ever showing it.
+          if (e.video !== background) {
+            closeVideo(element);
+            return null;
+          }
+          const texture = new Texture({ source: new VideoSource({ resource: element, autoPlay: false }) });
+          background.loaded = { element, texture };
+          if (background.wantPlaying) await element.play().catch(() => void (background.wantPlaying = false));
+          // A decode failure after the first frame (corrupt file, lost connection) ends the animation cleanly.
+          element.addEventListener("error", () => setVideoUi({ status: "unsupported", playing: false }));
+          setVideoUi({ status: "ready", playing: background.wantPlaying });
+          return background.loaded;
+        },
+        () => {
+          if (e.video === background) setVideoUi({ status: "unsupported", playing: false });
+          return null;
+        },
+      );
+      return background;
+    }
+
+    function disposeVideo(e: NonNullable<typeof engine.current>) {
+      const background = e.video;
+      if (!background) return;
+      e.video = null;
+      setVideoUi({ status: "none", playing: false });
+      void background.ready.then((loaded) => loaded?.texture.destroy(true));
     }
 
     function syncTokens() {
@@ -368,6 +448,7 @@ export function MapView(props: Props) {
     return () => {
       destroyed = true;
       void ready.then(() => {
+        if (engine.current) disposeVideo(engine.current);
         engine.current = null;
         app.destroy(true, { children: true });
       });
@@ -384,5 +465,45 @@ export function MapView(props: Props) {
     if (engine.current) engine.current.rulerLabel.text = "";
   }, [props.tool]);
 
-  return <div ref={host} className="map-host" role="application" aria-label={t("map.label")} />;
+  // A hidden tab has nobody to watch the map, so the video stops decoding until it is shown again.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      const background = engine.current?.video;
+      if (!background?.loaded) return;
+      if (document.hidden) background.loaded.element.pause();
+      else if (background.wantPlaying) void background.loaded.element.play().catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  const toggleVideo = () => {
+    const background = engine.current?.video;
+    if (!background?.loaded) return;
+    background.wantPlaying = !background.wantPlaying;
+    if (background.wantPlaying) {
+      void background.loaded.element.play().catch(() => {
+        background.wantPlaying = false;
+        setVideoUi({ status: "ready", playing: false });
+      });
+    } else background.loaded.element.pause();
+    setVideoUi({ status: "ready", playing: background.wantPlaying });
+  };
+
+  return (
+    <>
+      <div ref={host} className="map-host" role="application" aria-label={t("map.label")} />
+      {videoUi.status === "ready" && (
+        <Button variant="secondary" size="sm" className="video-control" onClick={toggleVideo}>
+          <Icon name={videoUi.playing ? "pause" : "play"} />
+          {t(videoUi.playing ? "map.pauseVideo" : "map.playVideo")}
+        </Button>
+      )}
+      {videoUi.status === "unsupported" && (
+        <p role="alert" className="video-control video-notice">
+          {t("map.videoUnsupported")}
+        </p>
+      )}
+    </>
+  );
 }

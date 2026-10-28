@@ -3,7 +3,7 @@ import type { ActorDto, ErrorCode, MessageDto, SceneDto, SystemInfoDto, TokenDto
 
 /** Error carrying a server error code (or "network") that maps to `errors.<code>` in translations. */
 export class ApiError extends Error {
-  constructor(readonly code: ErrorCode | "network") {
+  constructor(readonly code: ErrorCode | "network" | "video_unsupported") {
     super(code);
   }
 }
@@ -29,15 +29,6 @@ const get = <T>(url: string) => request<T>("GET", url);
 const post = <T>(url: string, body?: unknown) => request<T>("POST", url, body ?? {});
 const patch = <T>(url: string, body: unknown) => request<T>("PATCH", url, body);
 const del = <T = unknown>(url: string) => request<T>("DELETE", url);
-
-/** Reads the pixel size of an image file; the server trusts it only within fixed bounds. */
-export function readImageSize(file: Blob): Promise<{ width: number; height: number }> {
-  return createImageBitmap(file).then((bitmap) => {
-    const size = { width: bitmap.width, height: bitmap.height };
-    bitmap.close();
-    return size;
-  });
-}
 
 export const assetUrl = (assetId: string) => `/api/assets/${assetId}`;
 

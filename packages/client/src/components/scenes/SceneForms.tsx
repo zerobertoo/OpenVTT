@@ -72,7 +72,7 @@ export function SceneCreateForm({ onSubmit, pending, imageFile, onImageChange }:
             {...control}
             name="image"
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/png,image/jpeg,image/webp,video/webm,video/mp4"
             onChange={(e) => onImageChange(e.target.files?.[0] ?? null)}
           />
         )}
