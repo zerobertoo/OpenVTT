@@ -8,6 +8,7 @@
     "cancel": "Cancelar",
     "notifications": "Notificações"
   },
+  "asset": { "choose": "Escolher imagem", "change": "Trocar imagem", "remove": "Remover imagem", "formats": "PNG, JPG ou WebP" },
   "states": { "loadFailed": "Não foi possível carregar isto." },
   "language": { "label": "Idioma", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
@@ -111,8 +112,14 @@
     "size": "Tamanho (células)",
     "color": "Cor",
     "image": "Imagem",
-    "removeImage": "Remover imagem",
     "hidden": "Oculto dos jogadores",
+    "hiddenBadge": "Oculto",
+    "list": "Tokens desta cena",
+    "none": "Nenhum token nesta cena ainda.",
+    "noneHint": "Adicione um acima e arraste no mapa.",
+    "deleteTitle": "Excluir {{name}}?",
+    "deleteBody": "O token some do mapa para todos. Isso não pode ser desfeito.",
+    "edit": "Editar token",
     "actor": "Ficha vinculada",
     "noActor": "Nenhuma",
     "controllers": "Quem pode mover"

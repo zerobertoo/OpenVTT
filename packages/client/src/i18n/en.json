@@ -8,6 +8,7 @@
     "cancel": "Cancel",
     "notifications": "Notifications"
   },
+  "asset": { "choose": "Choose image", "change": "Change image", "remove": "Remove image", "formats": "PNG, JPG or WebP" },
   "states": { "loadFailed": "We could not load this." },
   "language": { "label": "Language", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
@@ -111,8 +112,14 @@
     "size": "Size (cells)",
     "color": "Color",
     "image": "Image",
-    "removeImage": "Remove image",
     "hidden": "Hidden from players",
+    "hiddenBadge": "Hidden",
+    "list": "Tokens in this scene",
+    "none": "No tokens in this scene yet.",
+    "noneHint": "Add one above, then drag it on the map.",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "The token disappears from the map for everyone. This cannot be undone.",
+    "edit": "Edit token",
     "actor": "Linked sheet",
     "noActor": "None",
     "controllers": "Who can move it"
