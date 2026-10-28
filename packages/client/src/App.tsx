@@ -1,67 +1,28 @@
-import { SUPPORTED_LOCALES, type UserDto, type WorldSummaryDto } from "@openvtt/shared";
+import type { UserDto, WorldSummaryDto } from "@openvtt/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { Outlet, useNavigate } from "@tanstack/react-router";
+import { createContext, type FormEvent, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "./api";
-import { normalizeLocale, setLocale } from "./i18n";
+import { AccountControls } from "./components/AccountControls";
+import { setLocale } from "./i18n";
 import { Logo } from "./icons";
 import { queryKeys, useMe, useSystems, useWorlds } from "./queries";
-import { Table } from "./Table";
 import { ErrorMessage } from "./ui";
 
-function usePath() {
-  const [path, setPath] = useState(location.pathname);
-  useEffect(() => {
-    const onPop = () => setPath(location.pathname);
-    addEventListener("popstate", onPop);
-    return () => removeEventListener("popstate", onPop);
-  }, []);
-  const navigate = useCallback((to: string) => {
-    history.pushState(null, "", to);
-    setPath(to);
-  }, []);
-  return { path, navigate };
+export const UserContext = createContext<UserDto | null>(null);
+
+/** The signed-in user; only valid below `Root`, which renders routes only once there is one. */
+export function useUser(): UserDto {
+  const user = useContext(UserContext);
+  if (!user) throw new Error("useUser called outside a signed-in route");
+  return user;
 }
 
-export function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
-  const { t, i18n } = useTranslation();
-  return (
-    <label>
-      <span className="muted">{t("language.label")}</span>
-      <select
-        value={normalizeLocale(i18n.language) ?? "en"}
-        onChange={(e) => {
-          const locale = normalizeLocale(e.target.value)!;
-          setLocale(locale);
-          if (signedIn) void api.setLocale(locale);
-        }}
-      >
-        {SUPPORTED_LOCALES.map((l) => (
-          <option key={l} value={l}>
-            {t(`language.${l}`)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function AccountControls({ user, onLogout }: { user: UserDto | null; onLogout: () => void }) {
+export function AuthForm() {
   const { t } = useTranslation();
-  return (
-    <div className="account">
-      <LanguageSwitcher signedIn={!!user} />
-      {user && (
-        <button className="link" onClick={onLogout}>
-          {t("auth.logout")} ({user.username})
-        </button>
-      )}
-    </div>
-  );
-}
-
-function AuthForm({ onAuthenticated }: { onAuthenticated: (user: UserDto) => void }) {
-  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const onAuthenticated = (user: UserDto) => queryClient.setQueryData(queryKeys.me, user);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState<unknown>(null);
 
@@ -107,8 +68,10 @@ function AuthForm({ onAuthenticated }: { onAuthenticated: (user: UserDto) => voi
   );
 }
 
-function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) => void }) {
+export function WorldList() {
   const { t } = useTranslation();
+  const user = useUser();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const worldsQuery = useWorlds();
   const systemsQuery = useSystems();
@@ -153,7 +116,9 @@ function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) =
                 <strong>{w.name}</strong>
                 <span className="muted">{t(w.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")}</span>
               </span>
-              <button onClick={() => navigate(`/world/${w.id}`)}>{t("worlds.open")}</button>
+              <button type="button" onClick={() => navigate({ to: "/world/$worldId", params: { worldId: w.id } })}>
+                {t("worlds.open")}
+              </button>
             </li>
           ))}
         </ul>
@@ -193,8 +158,10 @@ function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) =
   );
 }
 
-function JoinInvite({ code, user, navigate }: { code: string; user: UserDto; navigate: (to: string) => void }) {
+export function JoinInvite({ code }: { code: string }) {
   const { t } = useTranslation();
+  const user = useUser();
+  const navigate = useNavigate();
   const [error, setError] = useState<unknown>(null);
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
@@ -202,7 +169,7 @@ function JoinInvite({ code, user, navigate }: { code: string; user: UserDto; nav
     const form = new FormData(e.currentTarget);
     try {
       const world = await api.join(code, String(form.get("displayName")), String(form.get("color")));
-      navigate(`/world/${world.id}`);
+      await navigate({ to: "/world/$worldId", params: { worldId: world.id } });
     } catch (err) {
       setError(err);
     }
@@ -222,55 +189,5 @@ function JoinInvite({ code, user, navigate }: { code: string; user: UserDto; nav
       <ErrorMessage error={error} />
       <button type="submit">{t("invite.join")}</button>
     </form>
-  );
-}
-
-export function App() {
-  const { t } = useTranslation();
-  const { path, navigate } = usePath();
-  const queryClient = useQueryClient();
-  const meQuery = useMe();
-  // undefined while loading, null when signed out (also if /api/me is unreachable).
-  const user: UserDto | null | undefined = meQuery.isPending ? undefined : (meQuery.data ?? null);
-
-  useEffect(() => {
-    if (meQuery.data?.locale) setLocale(meQuery.data.locale);
-  }, [meQuery.data]);
-
-  const authenticated = (u: UserDto) => queryClient.setQueryData(queryKeys.me, u);
-
-  const account = (
-    <AccountControls
-      user={user ?? null}
-      onLogout={async () => {
-        await api.logout();
-        // Drop everything the previous user could see, then show the sign-in form.
-        queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== queryKeys.me[0] });
-        queryClient.setQueryData(queryKeys.me, null);
-        navigate("/");
-      }}
-    />
-  );
-
-  // The table is full-bleed: it owns its chrome and shows the account controls in its World panel.
-  if (user && path.startsWith("/world/")) return <Table worldId={path.slice(7)} user={user} navigate={navigate} account={account} />;
-
-  let body;
-  if (user === undefined) body = <p>{t("app.loading")}</p>;
-  else if (user === null) body = <AuthForm onAuthenticated={authenticated} />;
-  else if (path.startsWith("/join/")) body = <JoinInvite code={path.slice(6)} user={user} navigate={navigate} />;
-  else body = <WorldList user={user} navigate={navigate} />;
-
-  return (
-    <main className="app-main">
-      <header className="app-header">
-        <span className="brand">
-          <Logo />
-          {t("app.title")}
-        </span>
-        {account}
-      </header>
-      {body}
-    </main>
   );
 }

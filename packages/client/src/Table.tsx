@@ -1,8 +1,10 @@
 import type { TokenDto, UserDto } from "@openvtt/shared";
+import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Tabs } from "radix-ui";
-import { type CSSProperties, type ReactNode, useCallback, useState } from "react";
+import { type CSSProperties, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AccountControls } from "./components/AccountControls";
 import { Tip, TipProvider } from "./components/ui/tooltip";
 import { Icon, type IconName, Logo } from "./icons";
 import { type MapTool, MapView } from "./MapView";
@@ -20,13 +22,11 @@ const TAB_ICONS: Record<Tab, IconName> = { chat: "chat", tokens: "tokens", sheet
 interface Props {
   worldId: string;
   user: UserDto;
-  navigate: (to: string) => void;
-  /** Language and log-out controls, shown at the bottom of the World panel. */
-  account: ReactNode;
 }
 
-export function Table({ worldId, user, navigate, account }: Props) {
+export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { state, connected, send } = useWorldState(worldId);
   const [tab, setTab] = useState<Tab>("chat");
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -85,7 +85,7 @@ export function Table({ worldId, user, navigate, account }: Props) {
 
           <header className="chrome title-chip">
             <Tip label={t("table.back")}>
-              <button className="back-button" aria-label={t("table.back")} onClick={() => navigate("/")}>
+              <button className="back-button" aria-label={t("table.back")} onClick={() => navigate({ to: "/" })}>
                 <Icon name="back" />
               </button>
             </Tip>
@@ -169,7 +169,7 @@ export function Table({ worldId, user, navigate, account }: Props) {
                             <SettingsPanel state={state} />
                             <div className="account-box">
                               <h3>{t("auth.account")}</h3>
-                              {account}
+                              <AccountControls />
                             </div>
                           </>
                         )}
