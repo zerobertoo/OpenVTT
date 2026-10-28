@@ -1,5 +1,13 @@
 import type { IncomingMessage, Server } from "node:http";
-import { type MessageDto, type ServerMessage, type TokenDto, type WorldRole, type WorldStateDto, WS_PATH } from "@openvtt/shared";
+import {
+  type MessageDto,
+  pathIsBlocked,
+  type ServerMessage,
+  type TokenDto,
+  type WorldRole,
+  type WorldStateDto,
+  WS_PATH,
+} from "@openvtt/shared";
 import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { canReadMessage } from "./chat.ts";
@@ -106,6 +114,14 @@ export class Hub {
     const scene = this.s.scenes.get(token.sceneId)!;
     const x = Math.min(Math.max(msg.x, 0), scene.width);
     const y = Math.min(Math.max(msg.y, 0), scene.height);
+    // Players cannot walk through walls or closed doors; the move is dropped and everyone is told the token stayed.
+    if (conn.viewer.role !== "gm") {
+      const half = (token.size * scene.gridSize) / 2;
+      const blockers = scene.walls.filter((w) => w.kind === "wall" || !w.open);
+      if (pathIsBlocked({ x: token.x + half, y: token.y + half }, { x: x + half, y: y + half }, blockers)) {
+        return this.publishToken(conn.worldId, token, token);
+      }
+    }
     const after = this.s.tokens.update(token.id, conn.worldId, { x, y });
     this.publishToken(conn.worldId, token, after);
   }

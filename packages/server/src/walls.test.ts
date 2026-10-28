@@ -102,3 +102,47 @@ describe("walls, doors and lights", () => {
     expect(scene.bakedLighting).toBe(true);
   });
 });
+
+describe("movement and walls", () => {
+  it("stops players at walls and closed doors, but not the game master or an open door", async () => {
+    const { app, gm, bob, world } = await setup();
+    const scene = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, {
+        name: "Halls",
+        width: 1000,
+        height: 800,
+        gridSize: 70,
+        walls: [
+          { x1: 300, y1: 0, x2: 300, y2: 800 },
+          { x1: 600, y1: 0, x2: 600, y2: 800, kind: "door", open: false },
+        ],
+      })
+    ).json() as SceneDto;
+    await call(app, gm.cookie, "PATCH", `/api/worlds/${world.id}`, { activeSceneId: scene.id });
+    const token = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
+        sceneId: scene.id,
+        name: "Hero",
+        x: 100,
+        y: 100,
+        controllerIds: [bob.user.id],
+      })
+    ).json();
+    const conn = connect(await listen(app), world.id, bob.cookie);
+    await conn.opened;
+    await conn.waitFor((m) => m.type === "world.state");
+    const positionAfter = async (x: number) => {
+      conn.ws.send(JSON.stringify({ type: "token.move", tokenId: token.id, x, y: 100 }));
+      await conn.settle();
+      return (await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, {})).json().x as number;
+    };
+
+    expect(await positionAfter(400)).toBe(100);
+    expect(await positionAfter(200)).toBe(200);
+    await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 400 });
+    expect(await positionAfter(700)).toBe(400);
+    await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/doors/${scene.walls[1]!.id}`, { open: true });
+    expect(await positionAfter(700)).toBe(700);
+    conn.ws.close();
+  });
+});
