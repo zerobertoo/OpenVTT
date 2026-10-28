@@ -1,25 +1,22 @@
 import type { TokenDto, UserDto } from "@openvtt/shared";
-import { useNavigate } from "@tanstack/react-router";
-import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { type CSSProperties, useCallback, useState } from "react";
+import { MotionConfig } from "motion/react";
+import { type CSSProperties, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountControls } from "./components/AccountControls";
 import { TableLoading } from "./components/screens/TableLoading";
-import { TabContent, TabList, Tabs, TabTrigger } from "./components/ui/tabs";
-import { ToolbarChoices } from "./components/ui/toolbar";
-import { Tip, TipProvider } from "./components/ui/tooltip";
-import { Icon, type IconName, Logo } from "./icons";
-import { type MapTool, MapView } from "./MapView";
+import { Drawer } from "./components/table/Drawer";
+import { MapToolbar } from "./components/table/MapToolbar";
+import { OnlineChip } from "./components/table/OnlineChip";
+import { TitleChip } from "./components/table/TitleChip";
+import { TipProvider } from "./components/ui/tooltip";
+import { MapView } from "./MapView";
 import { ChatPanel } from "./panels/ChatPanel";
 import { ScenePanel } from "./panels/ScenePanel";
 import { SettingsPanel } from "./panels/SettingsPanel";
 import { SheetsPanel } from "./panels/SheetsPanel";
 import { TokenPanel } from "./panels/TokenPanel";
+import { type TableTab, useTableUi } from "./tableStore";
 import { useWorldState } from "./useWorldState";
-
-type Tab = "chat" | "tokens" | "sheets" | "scenes" | "settings";
-
-const TAB_ICONS: Record<Tab, IconName> = { chat: "chat", tokens: "tokens", sheets: "sheets", scenes: "scenes", settings: "world" };
 
 interface Props {
   worldId: string;
@@ -28,13 +25,12 @@ interface Props {
 
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const { state, connected, send } = useWorldState(worldId);
-  const [tab, setTab] = useState<Tab>("chat");
-  const [drawerOpen, setDrawerOpen] = useState(true);
-  const [tool, setTool] = useState<MapTool>("select");
-  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
-  const [gmViewSceneId, setGmViewSceneId] = useState<string | null>(null);
+  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId } = useTableUi();
+  const { setTab, toggleDrawer, setTool, selectToken, viewScene, reset } = useTableUi.getState();
+
+  // Each world starts with a clean UI: no selected token, chat tab, panels open.
+  useEffect(() => reset, [worldId, reset]);
 
   const canControl = useCallback(
     (token: TokenDto) => state?.yourRole === "gm" || token.controllerIds.includes(user.id),
@@ -53,11 +49,33 @@ export function Table({ worldId, user }: Props) {
     : state.activeSceneId;
   const scene = state.scenes.find((s) => s.id === viewSceneId) ?? null;
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
-  const onlineMembers = state.members.filter((m) => m.online);
 
-  const tabs: Tab[] = isGm ? ["chat", "tokens", "sheets", "scenes", "settings"] : ["chat", "tokens", "sheets", "settings"];
+  const tabs: TableTab[] = isGm ? ["chat", "tokens", "sheets", "scenes", "settings"] : ["chat", "tokens", "sheets", "settings"];
 
   const stageStyle = { "--drawer-space": drawerOpen ? "calc(var(--drawer-width) + 1.8rem)" : "0px" } as CSSProperties;
+
+  const renderPanel = (id: TableTab) => {
+    switch (id) {
+      case "chat":
+        return <ChatPanel state={state} userId={user.id} locale={i18n.language} />;
+      case "tokens":
+        return <TokenPanel state={state} userId={user.id} viewSceneId={viewSceneId} token={selectedToken} />;
+      case "sheets":
+        return <SheetsPanel state={state} locale={i18n.language} />;
+      case "scenes":
+        return <ScenePanel state={state} viewSceneId={viewSceneId} onView={viewScene} />;
+      case "settings":
+        return (
+          <>
+            <SettingsPanel state={state} />
+            <div className="account-box">
+              <h3>{t("auth.account")}</h3>
+              <AccountControls />
+            </div>
+          </>
+        );
+    }
+  };
 
   return (
     <MotionConfig reducedMotion="user">
@@ -70,7 +88,7 @@ export function Table({ worldId, user }: Props) {
               tool={tool}
               selectedTokenId={selectedTokenId}
               canControl={canControl}
-              onSelect={setSelectedTokenId}
+              onSelect={selectToken}
               onMove={move}
               formatDistance={(cells) =>
                 `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(cells * scene.gridDistance)} ${scene.distanceUnit}`
@@ -80,101 +98,11 @@ export function Table({ worldId, user }: Props) {
             <p className="empty-map">{t(isGm ? "map.emptyGm" : "map.emptyPlayer")}</p>
           )}
 
-          <header className="chrome title-chip">
-            <Tip label={t("table.back")}>
-              <button className="back-button" aria-label={t("table.back")} onClick={() => navigate({ to: "/" })}>
-                <Icon name="back" />
-              </button>
-            </Tip>
-            <Logo />
-            <strong>{state.name}</strong>
-            {!connected && (
-              <span className="status" role="status">
-                {t("table.disconnected")}
-              </span>
-            )}
-          </header>
-
-          <ToolbarChoices
-            className="dock"
-            label={t("map.tools")}
-            value={tool}
-            onValueChange={setTool}
-            choices={(["select", "ruler"] as const).map((id) => ({ value: id, label: t(`map.${id}`), icon: <Icon name={id} /> }))}
-          />
+          <TitleChip worldName={state.name} connected={connected} />
+          <MapToolbar tool={tool} onToolChange={setTool} />
           <p className="map-hint">{t("map.hint")}</p>
-
-          <div className="chrome online-chip">
-            <span className="avatar-stack" aria-hidden="true">
-              {onlineMembers.slice(0, 5).map((m) => (
-                <span key={m.userId} className="avatar" style={{ "--who": m.color } as CSSProperties}>
-                  {Array.from(m.displayName)[0]?.toUpperCase()}
-                </span>
-              ))}
-            </span>
-            {onlineMembers.length} {t("table.online")}
-          </div>
-
-          <Tip label={t(drawerOpen ? "table.hidePanels" : "table.showPanels")}>
-            <button
-              className="drawer-toggle"
-              aria-expanded={drawerOpen}
-              aria-controls="drawer"
-              aria-label={t(drawerOpen ? "table.hidePanels" : "table.showPanels")}
-              onClick={() => setDrawerOpen((open) => !open)}
-            >
-              <Icon name={drawerOpen ? "panelClose" : "panelOpen"} />
-            </button>
-          </Tip>
-
-          <AnimatePresence>
-            {drawerOpen && (
-              <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} orientation="vertical" asChild>
-                <motion.aside
-                  id="drawer"
-                  className="drawer"
-                  aria-label={t("table.panels")}
-                  initial={{ opacity: 0, x: 48 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 48 }}
-                  transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                >
-                  <TabList aria-label={t("table.panels")}>
-                    {tabs.map((id) => (
-                      <TabTrigger key={id} value={id}>
-                        <Icon name={TAB_ICONS[id]} />
-                        {t(`tabs.${id}`)}
-                      </TabTrigger>
-                    ))}
-                  </TabList>
-                  {tabs.map((id) => (
-                    <TabContent key={id} value={id} asChild>
-                      <motion.div
-                        className="drawer-panel"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                      >
-                        {id === "chat" && <ChatPanel state={state} userId={user.id} locale={i18n.language} />}
-                        {id === "tokens" && <TokenPanel state={state} userId={user.id} viewSceneId={viewSceneId} token={selectedToken} />}
-                        {id === "sheets" && <SheetsPanel state={state} locale={i18n.language} />}
-                        {id === "scenes" && <ScenePanel state={state} viewSceneId={viewSceneId} onView={setGmViewSceneId} />}
-                        {id === "settings" && (
-                          <>
-                            <SettingsPanel state={state} />
-                            <div className="account-box">
-                              <h3>{t("auth.account")}</h3>
-                              <AccountControls />
-                            </div>
-                          </>
-                        )}
-                      </motion.div>
-                    </TabContent>
-                  ))}
-                </motion.aside>
-              </Tabs>
-            )}
-          </AnimatePresence>
+          <OnlineChip members={state.members} />
+          <Drawer open={drawerOpen} onToggle={toggleDrawer} tab={tab} onTabChange={setTab} tabs={tabs} renderPanel={renderPanel} />
         </main>
       </TipProvider>
     </MotionConfig>

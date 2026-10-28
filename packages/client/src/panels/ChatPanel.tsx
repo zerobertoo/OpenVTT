@@ -1,9 +1,10 @@
 import type { RollPart, RollResult } from "@openvtt/sdk";
 import type { MessageDto, WorldStateDto } from "@openvtt/shared";
 import { motion, useReducedMotion } from "motion/react";
-import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { Avatar } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { Icon } from "../icons";
 import { ErrorMessage, useAction } from "../ui";
@@ -130,9 +131,7 @@ function Message({ message, locale, color, isNew }: { message: MessageDto; local
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 380, damping: 30 }}
     >
-      <span className="avatar" style={{ "--who": color ?? "var(--accent)" } as CSSProperties} aria-hidden="true">
-        {Array.from(message.senderName)[0]?.toUpperCase()}
-      </span>
+      <Avatar name={message.senderName} color={color} />
       <motion.div
         className="msg-body"
         animate={animateDice && natural === "one" ? { x: [0, -7, 7, -5, 5, 0] } : undefined}

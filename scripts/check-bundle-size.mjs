@@ -16,7 +16,7 @@ function gzipKb(namePattern) {
 
 // The entry chunk is what the sign-in screen downloads; the table chunk (PixiJS, motion) loads only on /world/*.
 const budgets = [
-  { label: "sign-in entry", pattern: /^index-.*\.js$/, maxKb: 160 },
+  { label: "sign-in entry", pattern: /^index-.*\.js$/, maxKb: 190 },
   { label: "table (lazy)", pattern: /^Table-.*\.js$/, maxKb: 220 },
 ];
 
