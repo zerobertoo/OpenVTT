@@ -4,6 +4,7 @@ import { Icon } from "../../icons";
 import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
+import { Field } from "../ui/field";
 import { Input, Select } from "../ui/input";
 
 interface Props {
@@ -41,21 +42,21 @@ export function ChatComposer({ recipients, onSend, error }: Props) {
         </Button>
       </div>
       <div className="chat-options">
-        <label className="flex items-center gap-2">
-          <span className="text-ink-2">{t("chat.to")}</span>
-          <Select value={recipient} onChange={(e) => setRecipient(e.target.value)} className="py-1.5">
-            <option value="">{t("chat.everyone")}</option>
-            {recipients.map((member) => (
-              <option key={member.userId} value={member.userId}>
-                {member.displayName}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label className="flex items-center gap-2">
-          <Checkbox checked={gmOnly} onChange={(e) => setGmOnly(e.target.checked)} />
-          {t("chat.gmOnly")}
-        </label>
+        <Field label={t("chat.to")}>
+          {(control) => (
+            <Select {...control} value={recipient} onChange={(e) => setRecipient(e.target.value)} className="py-1.5">
+              <option value="">{t("chat.everyone")}</option>
+              {recipients.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.displayName}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label={t("chat.gmOnly")} inline>
+          {(control) => <Checkbox {...control} checked={gmOnly} onChange={(e) => setGmOnly(e.target.checked)} />}
+        </Field>
       </div>
       <ErrorMessage error={error} />
     </form>

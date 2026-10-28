@@ -135,7 +135,12 @@
     "create": "Create sheet",
     "owner": "Owner",
     "noOwner": "Nobody",
-    "addRow": "Add row"
+    "addRow": "Add row",
+    "list": "Sheets",
+    "saving": "Saving…",
+    "saved": "All changes saved",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "The sheet and everything on it is removed. Tokens linked to it stay on the map. This cannot be undone."
   },
   "settings": {
     "title": "World settings",

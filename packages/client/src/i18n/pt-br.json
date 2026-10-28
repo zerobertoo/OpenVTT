@@ -135,7 +135,12 @@
     "create": "Criar ficha",
     "owner": "Dono",
     "noOwner": "Ninguém",
-    "addRow": "Adicionar linha"
+    "addRow": "Adicionar linha",
+    "list": "Fichas",
+    "saving": "Salvando…",
+    "saved": "Tudo salvo",
+    "deleteTitle": "Excluir {{name}}?",
+    "deleteBody": "A ficha e tudo o que está nela são removidos. Tokens ligados a ela continuam no mapa. Isso não pode ser desfeito."
   },
   "settings": {
     "title": "Configurações do mundo",
