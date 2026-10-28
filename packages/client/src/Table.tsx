@@ -65,7 +65,7 @@ export function Table({ worldId, user }: Props) {
   return (
     <MotionConfig reducedMotion="user">
       <TipProvider>
-        <div className="table-stage" style={stageStyle}>
+        <main className="table-stage" style={stageStyle}>
           {scene ? (
             <MapView
               scene={scene}
@@ -180,7 +180,7 @@ export function Table({ worldId, user }: Props) {
               </Tabs.Root>
             )}
           </AnimatePresence>
-        </div>
+        </main>
       </TipProvider>
     </MotionConfig>
   );

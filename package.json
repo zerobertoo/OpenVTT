@@ -15,10 +15,13 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "biome check .",
+    "test:e2e": "pnpm build && playwright test",
     "check:i18n": "node scripts/check-i18n.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "^2.6.3",
+    "@playwright/test": "^1.64.1",
     "typescript": "^5.7.0"
   }
 }

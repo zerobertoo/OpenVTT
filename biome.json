@@ -1,7 +1,17 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
   "files": {
-    "includes": ["packages/*/src/**", "scripts/**", "*.json", "!**/pnpm-lock.yaml", "!**/dist", "!**/node_modules", "!**/*.css"]
+    "includes": [
+      "packages/*/src/**",
+      "e2e/**",
+      "playwright.config.ts",
+      "scripts/**",
+      "*.json",
+      "!**/pnpm-lock.yaml",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/*.css"
+    ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 140 },
   "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always", "trailingCommas": "all" } },
