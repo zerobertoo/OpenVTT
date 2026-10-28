@@ -15,6 +15,12 @@
     "welcomeText": "Entre, escolha um mundo e comece a jogar. Sem instalar nada.",
     "account": "Conta"
   },
+  "validation": {
+    "required": "Preencha este campo.",
+    "usernameInvalid": "Use de 3 a 32 letras, números, pontos, hífens ou sublinhados.",
+    "passwordTooShort": "Use pelo menos 8 caracteres.",
+    "passwordHint": "Pelo menos 8 caracteres."
+  },
   "worlds": {
     "title": "Seus mundos",
     "empty": "Você ainda não faz parte de nenhum mundo.",

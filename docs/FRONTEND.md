@@ -166,7 +166,7 @@ Each step is one commit (Conventional Commits, English, no AI mention) and must 
 6. `chore(client): add Storybook component catalog` (a11y addon, light/dark and width controls, story convention, `pnpm catalog`)
 7. `chore: add bundle size budget check` (script and CI step; baseline recorded)
 
-### Phase B: primitives (each with story, test and axe; usages migrated in the same commit)
+### Phase B: primitives (each with story, test and axe). `Button` replaced every raw button at once; form controls and the rest are applied where a panel or screen is redesigned in phases C and E, so each screen is touched once
 
 8. `feat(client): add cn helper and Button` (variants, pending state; replaces raw buttons)
 9. `feat(client): add Field, Input, Textarea, Select, Checkbox and Switch`

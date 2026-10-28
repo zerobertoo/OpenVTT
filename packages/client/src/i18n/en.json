@@ -15,6 +15,12 @@
     "welcomeText": "Log in, pick a world and start playing. Nothing to install.",
     "account": "Account"
   },
+  "validation": {
+    "required": "This field is required.",
+    "usernameInvalid": "Use 3 to 32 letters, numbers, dots, dashes or underscores.",
+    "passwordTooShort": "Use at least 8 characters.",
+    "passwordHint": "At least 8 characters."
+  },
   "worlds": {
     "title": "Your worlds",
     "empty": "You are not part of any world yet.",

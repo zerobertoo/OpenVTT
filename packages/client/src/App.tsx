@@ -1,4 +1,5 @@
-import type { UserDto, WorldSummaryDto } from "@openvtt/shared";
+import { passwordSchema, type UserDto, usernameSchema, type WorldSummaryDto } from "@openvtt/shared";
+import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { createContext, type FormEvent, useContext, useEffect, useState } from "react";
@@ -6,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import { api } from "./api";
 import { AccountControls } from "./components/AccountControls";
 import { Button } from "./components/ui/button";
+import { Field } from "./components/ui/field";
+import { Input } from "./components/ui/input";
 import { setLocale } from "./i18n";
 import { Logo } from "./icons";
 import { queryKeys, useMe, useSystems, useWorlds } from "./queries";
@@ -27,41 +30,93 @@ export function AuthForm() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState<unknown>(null);
 
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const username = String(form.get("username"));
-    const password = String(form.get("password"));
-    try {
-      onAuthenticated(await (mode === "login" ? api.login : api.register)(username, password));
-    } catch (err) {
-      setError(err);
-    }
+  const form = useForm({
+    defaultValues: { username: "", password: "" },
+    onSubmit: async ({ value }) => {
+      setError(null);
+      try {
+        onAuthenticated(await (mode === "login" ? api.login : api.register)(value.username, value.password));
+      } catch (err) {
+        setError(err);
+      }
+    },
+  });
+
+  // Logging in only needs something typed; the server decides. Registering checks the same rules the server enforces.
+  const validateUsername = ({ value }: { value: string }) => {
+    if (!value.trim()) return t("validation.required");
+    return mode === "register" && !usernameSchema.safeParse(value).success ? t("validation.usernameInvalid") : undefined;
+  };
+  const validatePassword = ({ value }: { value: string }) => {
+    if (!value) return t("validation.required");
+    return mode === "register" && !passwordSchema.safeParse(value).success ? t("validation.passwordTooShort") : undefined;
+  };
+
+  const switchMode = () => {
+    setMode(mode === "login" ? "register" : "login");
+    setError(null);
+    form.reset();
   };
 
   return (
     <div className="welcome">
       <h1>{t("auth.welcomeTitle")}</h1>
       <p className="muted">{t("auth.welcomeText")}</p>
-      <form className="card" onSubmit={submit}>
-        <label>
-          {t("auth.username")}
-          <input name="username" autoComplete="username" required />
-        </label>
-        <label>
-          {t("auth.password")}
-          <input
-            name="password"
-            type="password"
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            required
-            minLength={8}
-          />
-        </label>
+      <form
+        noValidate
+        className="card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void form.handleSubmit();
+        }}
+      >
+        <form.Field name="username" validators={{ onBlur: validateUsername, onSubmit: validateUsername }}>
+          {(field) => (
+            <Field label={t("auth.username")} error={field.state.meta.errors[0]}>
+              {(control) => (
+                <Input
+                  {...control}
+                  name={field.name}
+                  autoComplete="username"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+              )}
+            </Field>
+          )}
+        </form.Field>
+        <form.Field name="password" validators={{ onBlur: validatePassword, onSubmit: validatePassword }}>
+          {(field) => (
+            <Field
+              label={t("auth.password")}
+              error={field.state.meta.errors[0]}
+              hint={mode === "register" ? t("validation.passwordHint") : undefined}
+            >
+              {(control) => (
+                <Input
+                  {...control}
+                  name={field.name}
+                  type="password"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+              )}
+            </Field>
+          )}
+        </form.Field>
         <ErrorMessage error={error} />
-        <Button type="submit">{t(mode === "login" ? "auth.login" : "auth.register")}</Button>
+        <form.Subscribe selector={(state) => state.isSubmitting}>
+          {(isSubmitting) => (
+            <Button type="submit" pending={isSubmitting}>
+              {t(mode === "login" ? "auth.login" : "auth.register")}
+            </Button>
+          )}
+        </form.Subscribe>
         {mode === "register" && <p className="muted">{t("auth.firstUserHint")}</p>}
-        <Button type="button" variant="link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+        <Button type="button" variant="link" onClick={switchMode}>
           {t(mode === "login" ? "auth.switchToRegister" : "auth.switchToLogin")}
         </Button>
       </form>

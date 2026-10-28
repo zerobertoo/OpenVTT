@@ -7,6 +7,22 @@ test("sign-in screen has no accessibility violations", async ({ page }) => {
   await expectNoAxeViolations(page);
 });
 
+test("registering validates the fields before calling the server", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "No account yet? Create one" }).click();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("This field is required.")).toHaveCount(2);
+
+  await page.getByLabel("Username").fill("a!");
+  await page.getByLabel("Password").fill("short");
+  await page.getByLabel("Username").blur();
+  await page.getByLabel("Password").blur();
+  await expect(page.getByText("Use 3 to 32 letters, numbers, dots, dashes or underscores.")).toBeVisible();
+  await expect(page.getByText("Use at least 8 characters.", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Username")).toHaveAttribute("aria-invalid", "true");
+  await expectNoAxeViolations(page);
+});
+
 test("signed-out visitors see the sign-in form at the invite URL and land there after signing in", async ({ page }) => {
   await page.goto("/join/some-code");
   await page.getByRole("button", { name: "No account yet? Create one" }).click();
