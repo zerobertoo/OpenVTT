@@ -38,5 +38,17 @@ test("with fog of war a player only gets the tokens their token can see, and a d
 
   await post(`/api/scenes/${scene.id}/doors/${scene.walls[0].id}`, { open: true });
   await expect(list.getByText("Ghoul")).toBeVisible();
+
+  // The game master can preview what Pat sees, then go back to seeing everything.
+  await post(`/api/scenes/${scene.id}/doors/${scene.walls[0].id}`, { open: false });
+  await page.getByRole("tab", { name: "Tokens" }).click();
+  const gmList = page.getByRole("list", { name: "Tokens in this scene" });
+  await expect(gmList.getByText("Ghoul")).toBeVisible();
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByLabel("View as player").selectOption({ label: "Pat" });
+  await expect(gmList.getByText("Ghoul")).toHaveCount(0);
+  await expect(gmList.getByText("Rat")).toBeVisible();
+  await page.getByLabel("View as player").selectOption({ label: "Game master (see everything)" });
+  await expect(gmList.getByText("Ghoul")).toBeVisible();
   await player.close();
 });

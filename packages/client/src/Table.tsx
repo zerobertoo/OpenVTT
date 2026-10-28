@@ -8,6 +8,7 @@ import { TableLoading } from "./components/screens/TableLoading";
 import { DiceOverlay } from "./components/table/DiceOverlay";
 import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
+import { MapLayersMenu } from "./components/table/MapLayersMenu";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
 import { EmptyMap } from "./components/table/TableGuide";
@@ -22,7 +23,7 @@ import { SettingsPanel } from "./panels/SettingsPanel";
 import { SheetsPanel } from "./panels/SheetsPanel";
 import { TokenPanel } from "./panels/TokenPanel";
 import { queryKeys } from "./queries";
-import { type TableTab, useTableUi } from "./tableStore";
+import { PLAYER_LAYERS, type TableTab, useTableUi } from "./tableStore";
 import { useAction } from "./ui";
 import { useCan } from "./useCan";
 import { useFormat } from "./useFormat";
@@ -39,8 +40,8 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId, showMapData, diceTrayOpen } = useTableUi();
-  const { setTab, toggleDrawer, setTool, selectToken, viewScene, reset, setDiceTrayOpen } = useTableUi.getState();
+  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId, layers, viewAsUserId, diceTrayOpen } = useTableUi();
+  const { setTab, toggleDrawer, setTool, selectToken, viewScene, reset, setDiceTrayOpen, setLayer, setViewAs } = useTableUi.getState();
 
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
   useEffect(() => reset, [worldId, reset]);
@@ -69,6 +70,20 @@ export function Table({ worldId, user }: Props) {
     [runRoll, worldId],
   );
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
+
+  // The preview only makes sense for a player who is still in the world.
+  const previewedPlayer =
+    state?.yourRole === "gm" ? state.members.find((m) => m.role === "player" && m.userId === viewAsUserId) : undefined;
+  const viewAs = previewedPlayer?.userId ?? null;
+  // The server forgets the preview when the socket drops, so it is asked for again on every (re)connect.
+  useEffect(() => {
+    if (connected && viewAs) send({ type: "world.viewAs", userId: viewAs });
+  }, [connected, viewAs, send]);
+  const changeViewAs = (userId: string | null) => {
+    setViewAs(userId);
+    // Asking for a preview happens in the effect above; going back is the only message to send here.
+    if (!userId) send({ type: "world.viewAs", userId: null });
+  };
 
   if (!state) return <TableLoading connecting={!connected} />;
 
@@ -127,7 +142,7 @@ export function Table({ worldId, user }: Props) {
               onSelect={selectToken}
               onMove={move}
               vision={state.vision}
-              showMapData={showMapData}
+              layers={viewAs ? PLAYER_LAYERS : layers}
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
               formatDistance={(cells) => format.distance(cells, scene)}
             />
@@ -149,6 +164,18 @@ export function Table({ worldId, user }: Props) {
             onToolChange={setTool}
             diceTrayOpen={diceTrayOpen}
             onToggleDiceTray={() => setDiceTrayOpen(!diceTrayOpen)}
+            layersMenu={
+              isGm && (
+                <MapLayersMenu
+                  scene={scene}
+                  players={state.members.filter((m) => m.role === "player")}
+                  layers={layers}
+                  onLayerChange={setLayer}
+                  viewAsUserId={viewAs}
+                  onViewAsChange={changeViewAs}
+                />
+              )
+            }
           />
           {diceTrayOpen && <DiceTray onRoll={rollFromTray} error={rollError} onClose={() => setDiceTrayOpen(false)} />}
           <p className="map-hint">{t("map.hint")}</p>

@@ -57,7 +57,12 @@ test("a Universal VTT file and its video become a scene with the grid from the f
 
   await dialog.getByRole("button", { name: "Create scene" }).click();
   await expect(page.getByRole("list", { name: "Scenes" }).getByText("Little Crypt")).toBeVisible();
-  await expect(page.getByRole("switch", { name: "Show walls and lights" })).toBeChecked();
+  // The game master chooses what is drawn from the Layers menu on the map.
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await expect(page.getByRole("switch", { name: "Walls" })).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Light range" })).not.toBeChecked();
+  await page.getByRole("switch", { name: "Walls" }).uncheck();
+  await expect(page.getByRole("switch", { name: "Walls" })).not.toBeChecked();
 });
 
 test("a file that is not a map is explained", async ({ page }) => {

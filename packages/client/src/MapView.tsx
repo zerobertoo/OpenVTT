@@ -7,7 +7,7 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { closeVideo, openVideo } from "./lib/media";
-import { useTableUi } from "./tableStore";
+import { type MapLayers, useTableUi } from "./tableStore";
 
 export type MapTool = "select" | "ruler";
 
@@ -22,8 +22,8 @@ interface Props {
   onMove: (tokenId: string, x: number, y: number) => void;
   /** What this player can see; null shows the whole map (the game master, or a scene without vision). */
   vision: VisionDto | null;
-  /** Draw walls, doors and lights (only the game master receives them). */
-  showMapData: boolean;
+  /** Which overlays to draw (walls, doors and lights only exist for the game master). */
+  layers: MapLayers;
   onToggleDoor: (wallId: string, open: boolean) => void;
   /** Formats the ruler label; receives distance in grid cells. */
   formatDistance: (cells: number) => string;
@@ -331,7 +331,8 @@ export function MapView(props: Props) {
         for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
         e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
       }
-      if (props_().showMapData) drawMapData(e, scene);
+      e.grid.visible = props_().layers.grid;
+      drawMapData(e, scene, props_().layers);
       if (e.fitted !== sceneId) {
         // Fit the whole map in view the first time a scene is shown.
         fitToScreen(e.world, e.app.screen, scene);
@@ -340,24 +341,28 @@ export function MapView(props: Props) {
     }
 
     /** Lights as soft discs, walls as red lines, doors as amber (closed) or green (open) lines with a handle to open them. */
-    function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto) {
+    function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto, layers: MapLayers) {
       const lights = new Graphics();
       for (const light of scene.lights) {
-        const radius = light.radius * scene.gridSize;
-        lights.circle(light.x, light.y, radius).fill({ color: hexToNumber(light.color), alpha: 0.12 });
-        lights
-          .circle(light.x, light.y, Math.max(4, scene.gridSize / 8))
-          .fill({ color: hexToNumber(light.color) })
-          .stroke({ width: 2, color: 0x000000 });
+        if (layers.lightRange) {
+          lights.circle(light.x, light.y, light.radius * scene.gridSize).fill({ color: hexToNumber(light.color), alpha: 0.12 });
+        }
+        if (layers.lights) {
+          lights
+            .circle(light.x, light.y, Math.max(4, scene.gridSize / 8))
+            .fill({ color: hexToNumber(light.color) })
+            .stroke({ width: 2, color: 0x000000 });
+        }
       }
       const walls = new Graphics();
       const doors = new Container();
       const line = (g: Graphics, w: SceneDto["walls"][number]) => g.moveTo(w.x1, w.y1).lineTo(w.x2, w.y2);
       for (const wall of scene.walls) {
         if (wall.kind === "wall") {
-          line(walls, wall);
+          if (layers.walls) line(walls, wall);
           continue;
         }
+        if (!layers.doors) continue;
         const door = new Graphics();
         line(door, wall).stroke({ width: wall.open ? 3 : 6, color: wall.open ? 0x3ddc84 : 0xffb000, alpha: wall.open ? 0.7 : 1 });
         // A handle at the middle of the door: a bigger target than the line, also for touch.
@@ -548,7 +553,7 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     syncAll.current();
-  }, [props.scene, props.tokens, props.selectedTokenId, props.showMapData, props.vision]);
+  }, [props.scene, props.tokens, props.selectedTokenId, props.layers, props.vision]);
 
   // Zoom keys arrive through the table store; zooming keeps the middle of the view where it is.
   const viewCommand = useTableUi((ui) => ui.viewCommand);

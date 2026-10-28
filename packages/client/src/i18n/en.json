@@ -168,6 +168,21 @@
     "naturalTwenty": "Natural 20!",
     "naturalOne": "Natural 1"
   },
+  "layers": {
+    "title": "Layers",
+    "viewAs": "View as player",
+    "viewAsNobody": "Game master (see everything)",
+    "viewAsHint": "You see the map, tokens and fog the way this player does. Players never receive walls, doors or lights.",
+    "viewAsNoVision": "This scene has fog of war off, so players see the whole map. Turn it on in the scene settings to preview their sight.",
+    "overlays": "Shown on the map (only you see these)",
+    "walls": "Walls",
+    "doors": "Doors",
+    "lights": "Light points",
+    "lightRange": "Light range",
+    "grid": "Grid",
+    "previewOverrides": "While previewing a player, overlays are hidden.",
+    "baked": "This map already has its lighting drawn in the image, so the light range is off by default."
+  },
   "scene": {
     "title": "Scenes",
     "name": "Name",
@@ -202,8 +217,7 @@
     "visionHint": "Players only see what their own tokens can see, shaped by walls, closed doors and lights. Needs walls on the map.",
     "visionRadius": "Sight range (cells)",
     "floor": "Floor {{n}}",
-    "showMapData": "Show walls and lights",
-    "mapDataSummary": "{{walls}} walls and doors, {{lights}} lights. Only you see them. Click a door's circle on the map to open or close it.",
+    "mapDataSummary": "{{walls}} walls and doors, {{lights}} lights. Only you see them; choose what is drawn with the Layers button on the map. Click a door's circle on the map to open or close it.",
     "imageSizeFromFile": "The scene takes the size of the image.",
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "The scene and its tokens are removed for everyone. This cannot be undone.",

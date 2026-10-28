@@ -199,6 +199,34 @@ describe("vision", () => {
     expect(gmState.vision).toBeNull();
   });
 
+  it("lets the game master preview a player's sight, and refuses everyone else", async () => {
+    const { app, gm, bob, world, scene } = await visionSetup();
+    const port = await listen(app);
+
+    const gmConn = connect(port, world.id, gm.cookie);
+    await gmConn.waitFor((m) => m.type === "world.state");
+    gmConn.ws.send(JSON.stringify({ type: "world.viewAs", userId: bob.user.id }));
+    const preview = await gmConn.waitFor(
+      (m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state" && m.state.vision !== null,
+    );
+    expect(preview.state.tokens.map((t) => t.name).sort()).toEqual(["Hero", "Rat"]);
+    expect(preview.state.vision?.sceneId).toBe(scene.id);
+    // The game master keeps the map data; only tokens and fog follow the player.
+    expect(preview.state.scenes[0]!.walls.length).toBeGreaterThan(0);
+
+    // Back to everything.
+    gmConn.ws.send(JSON.stringify({ type: "world.viewAs", userId: null }));
+    await gmConn.waitFor((m) => m.type === "world.state" && m.state.vision === null && m.state.tokens.length === 3);
+    gmConn.ws.close();
+
+    // A player cannot preview anyone: they are told no and keep their own view.
+    const bobConn = connect(port, world.id, bob.cookie);
+    await bobConn.waitFor((m) => m.type === "world.state");
+    bobConn.ws.send(JSON.stringify({ type: "world.viewAs", userId: bob.user.id }));
+    await bobConn.waitFor((m) => m.type === "error" && m.code === "forbidden");
+    bobConn.ws.close();
+  });
+
   it("reveals what is behind a door once it opens, and hides it again when it closes", async () => {
     const { app, gm, bob, world, scene } = await visionSetup();
     const door = scene.walls[0]!.id;

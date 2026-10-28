@@ -7,11 +7,8 @@ import { type MapImportChoice, MapImportDialog } from "../components/scenes/MapI
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
 import { Button } from "../components/ui/button";
-import { Switch } from "../components/ui/checkbox";
 import { EmptyState } from "../components/ui/empty-state";
-import { Field } from "../components/ui/field";
 import { readMediaSize, UnsupportedMediaError } from "../lib/media";
-import { useTableUi } from "../tableStore";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
@@ -26,8 +23,6 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [adjustingGrid, setAdjustingGrid] = useState(false);
-  const showMapData = useTableUi((s) => s.showMapData);
-  const setShowMapData = useTableUi((s) => s.setShowMapData);
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
 
   const create = (e: FormEvent<HTMLFormElement>) => {
@@ -126,13 +121,9 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
       )}
 
       {current && (current.walls.length > 0 || current.lights.length > 0) && (
-        <Field
-          label={t("scene.showMapData")}
-          hint={t("scene.mapDataSummary", { walls: current.walls.length, lights: current.lights.length })}
-          inline
-        >
-          {(control) => <Switch {...control} checked={showMapData} onChange={(e) => setShowMapData(e.target.checked)} />}
-        </Field>
+        <p className="m-0 text-ink-2 text-sm">
+          {t("scene.mapDataSummary", { walls: current.walls.length, lights: current.lights.length })}
+        </p>
       )}
 
       {current && (

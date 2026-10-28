@@ -3,6 +3,21 @@ import type { MapTool } from "./MapView";
 
 export type TableTab = "chat" | "tokens" | "sheets" | "scenes" | "settings";
 
+/** What the game master draws over the map; only the game master receives walls, doors and lights at all. */
+export interface MapLayers {
+  walls: boolean;
+  doors: boolean;
+  /** The point where each light sits. */
+  lights: boolean;
+  /** The disc each light reaches; off by default because maps with baked lighting already show it. */
+  lightRange: boolean;
+  grid: boolean;
+}
+
+export const DEFAULT_LAYERS: MapLayers = { walls: true, doors: true, lights: true, lightRange: false, grid: true };
+/** What a player sees: the map and the grid, none of the game master's overlays. */
+export const PLAYER_LAYERS: MapLayers = { walls: false, doors: false, lights: false, lightRange: false, grid: true };
+
 interface TableUiState {
   tab: TableTab;
   drawerOpen: boolean;
@@ -10,9 +25,12 @@ interface TableUiState {
   selectedTokenId: string | null;
   /** Scene the game master is looking at; null follows the active scene. */
   gmViewSceneId: string | null;
-  /** Whether the game master sees walls, doors and lights drawn on the map. */
-  showMapData: boolean;
-  setShowMapData: (show: boolean) => void;
+  /** Which overlays the game master sees on the map. */
+  layers: MapLayers;
+  setLayer: (layer: keyof MapLayers, show: boolean) => void;
+  /** Player whose view the game master is previewing; null is the normal game master view. */
+  viewAsUserId: string | null;
+  setViewAs: (userId: string | null) => void;
   /** Latest request to change the map view; `id` makes a repeated press a new request. */
   viewCommand: { kind: "zoomIn" | "zoomOut" | "fit"; id: number } | null;
   changeView: (kind: "zoomIn" | "zoomOut" | "fit") => void;
@@ -34,7 +52,8 @@ const initialState = {
   tool: "select",
   selectedTokenId: null,
   gmViewSceneId: null,
-  showMapData: true,
+  layers: DEFAULT_LAYERS,
+  viewAsUserId: null,
   viewCommand: null,
   diceTrayOpen: false,
 } as const;
@@ -42,7 +61,8 @@ const initialState = {
 /** Local UI state of the table. Server state lives in `useWorldState`, REST data in TanStack Query. */
 export const useTableUi = create<TableUiState>((set) => ({
   ...initialState,
-  setShowMapData: (showMapData) => set({ showMapData }),
+  setLayer: (layer, show) => set((state) => ({ layers: { ...state.layers, [layer]: show } })),
+  setViewAs: (viewAsUserId) => set({ viewAsUserId }),
   changeView: (kind) => set((state) => ({ viewCommand: { kind, id: (state.viewCommand?.id ?? 0) + 1 } })),
   setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
   setTab: (tab) => set({ tab }),

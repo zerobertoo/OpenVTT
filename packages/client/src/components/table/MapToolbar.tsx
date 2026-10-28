@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 import type { MapTool } from "../../MapView";
@@ -10,10 +11,12 @@ interface Props {
   onToolChange: (tool: MapTool) => void;
   diceTrayOpen: boolean;
   onToggleDiceTray: () => void;
+  /** The game master's layers menu; players have none. */
+  layersMenu?: ReactNode;
 }
 
-/** Bottom-centre map tools, and the button that opens the dice tray next to them. */
-export function MapToolbar({ tool, onToolChange, diceTrayOpen, onToggleDiceTray }: Props) {
+/** Bottom-centre map tools, and the buttons that open the dice tray and the layers menu next to them. */
+export function MapToolbar({ tool, onToolChange, diceTrayOpen, onToggleDiceTray, layersMenu }: Props) {
   const { t } = useTranslation();
   return (
     <div className="dock flex items-stretch gap-2">
@@ -32,6 +35,7 @@ export function MapToolbar({ tool, onToolChange, diceTrayOpen, onToggleDiceTray 
         <Icon name="dice" />
         {t("dice.title")}
       </button>
+      {layersMenu}
     </div>
   );
 }

@@ -3,6 +3,12 @@ import type { ReactNode } from "react";
 /** Line icons on a 24px grid, drawn with one stroke weight. Decorative: callers provide the accessible text. */
 const PATHS = {
   back: <path d="M15 6l-6 6 6 6" />,
+  layers: (
+    <>
+      <path d="M12 3l9 5-9 5-9-5z" />
+      <path d="M3 13l9 5 9-5" />
+    </>
+  ),
   chat: <path d="M4 5h16v11H9l-5 4z" />,
   tokens: (
     <>

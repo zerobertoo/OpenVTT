@@ -168,6 +168,21 @@
     "naturalTwenty": "20 natural!",
     "naturalOne": "1 natural"
   },
+  "layers": {
+    "title": "Camadas",
+    "viewAs": "Ver como jogador",
+    "viewAsNobody": "Mestre (ver tudo)",
+    "viewAsHint": "Você vê o mapa, os tokens e a névoa como este jogador vê. Jogadores nunca recebem paredes, portas ou luzes.",
+    "viewAsNoVision": "Esta cena está com névoa de guerra desligada, então os jogadores veem o mapa inteiro. Ligue nas configurações da cena para pré-visualizar a visão deles.",
+    "overlays": "Mostrado no mapa (só você vê)",
+    "walls": "Paredes",
+    "doors": "Portas",
+    "lights": "Pontos de luz",
+    "lightRange": "Alcance das luzes",
+    "grid": "Grade",
+    "previewOverrides": "Ao ver como jogador, as camadas ficam ocultas.",
+    "baked": "Este mapa já traz a iluminação desenhada na imagem, por isso o alcance das luzes vem desligado."
+  },
   "scene": {
     "title": "Cenas",
     "name": "Nome",
@@ -202,8 +217,7 @@
     "visionHint": "Os jogadores só veem o que os próprios tokens enxergam, limitado por paredes, portas fechadas e luzes. Precisa de paredes no mapa.",
     "visionRadius": "Alcance da visão (casas)",
     "floor": "Andar {{n}}",
-    "showMapData": "Mostrar paredes e luzes",
-    "mapDataSummary": "{{walls}} paredes e portas, {{lights}} luzes. Só você vê. Clique no círculo de uma porta no mapa para abrir ou fechar.",
+    "mapDataSummary": "{{walls}} paredes e portas, {{lights}} luzes. Só você vê; escolha o que aparece no botão Camadas do mapa. Clique no círculo de uma porta no mapa para abrir ou fechar.",
     "imageSizeFromFile": "A cena assume o tamanho da imagem.",
     "deleteTitle": "Excluir {{name}}?",
     "deleteBody": "A cena e seus tokens são removidos para todos. Isso não pode ser desfeito.",

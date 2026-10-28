@@ -213,7 +213,11 @@ export type ServerMessage =
   | { type: "error"; code: ErrorCode };
 
 /** Client → server messages. */
-export type ClientMessage = { type: "world.resync" } | { type: "token.move"; tokenId: string; x: number; y: number };
+export type ClientMessage =
+  | { type: "world.resync" }
+  | { type: "token.move"; tokenId: string; x: number; y: number }
+  /** Game master only: see the table the way this player does (their tokens' sight); null goes back to seeing everything. */
+  | { type: "world.viewAs"; userId: string | null };
 
 export const WS_PATH = "/ws";
 
