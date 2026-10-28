@@ -40,6 +40,9 @@ import type { Viewer } from "./tokens.ts";
 
 export const SESSION_COOKIE = "openvtt_session";
 
+/** Upload cap for an installable rule-system package (the unpacked limit is much lower). */
+const MAX_SYSTEM_ZIP_BYTES = 8 * 1024 * 1024;
+
 export interface AppOptions {
   dbPath: string;
   /** Where uploaded assets and installed systems live; defaults to the database's directory. */
@@ -157,8 +160,16 @@ export function buildApp(options: AppOptions) {
 
   app.post("/api/admin/systems", async (req) => {
     if (requireUser(req).role !== "admin") throw new AppError("forbidden");
-    if (!Buffer.isBuffer(req.body)) throw new AppError("import_invalid");
-    return s.systems.installZip(req.body);
+    if (!(req.body instanceof Readable)) throw new AppError("import_invalid");
+    // System packages are a few text files; zip bodies arrive as streams, so collect this small one.
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of req.body) {
+      size += (chunk as Buffer).length;
+      if (size > MAX_SYSTEM_ZIP_BYTES) throw new AppError("asset_too_large");
+      chunks.push(chunk as Buffer);
+    }
+    return s.systems.installZip(Buffer.concat(chunks));
   });
 
   app.get("/api/systems", async (req) => {

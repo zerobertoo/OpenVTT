@@ -1,17 +1,22 @@
 import { randomUUID } from "node:crypto";
+import { createWriteStream, mkdirSync, rmSync, statSync, type WriteStream } from "node:fs";
+import { join } from "node:path";
+import { Readable } from "node:stream";
 import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData } from "@openvtt/sdk";
 import { MAX_UPLOAD_BYTES, type UserDto } from "@openvtt/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { unzipSync, zipSync } from "fflate";
+import { Unzip, UnzipInflate, UnzipPassThrough, Zip, ZipDeflate, ZipPassThrough } from "fflate";
 import { z } from "zod";
+import type { AssetRecord } from "./assets.ts";
 import { transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 import type { Services } from "./services.ts";
 
 const FORMAT = "openvtt-world";
 const FORMAT_VERSION = 1;
-const MAX_IMPORT_BYTES = 256 * 1024 * 1024;
-const MAX_FILE_BYTES = MAX_UPLOAD_BYTES;
+/** Total decompressed size of an imported archive. */
+const MAX_IMPORT_BYTES = 1024 * 1024 * 1024;
+const MAX_WORLD_JSON_BYTES = 16 * 1024 * 1024;
 
 const id = z.string().min(1).max(64);
 const worldFileSchema = z.object({
@@ -94,13 +99,10 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       active_scene_id: string | null;
     };
     const assetRows = s.db.prepare("SELECT id FROM assets WHERE world_id = ?").all(worldId) as { id: string }[];
-    const files: Record<string, Uint8Array> = {};
-    const assets = assetRows.map(({ id: assetId }) => {
-      const record = s.assets.find(assetId)!;
-      const file = `assets/${record.fileName}`;
-      files[file] = new Uint8Array(s.assets.read(record));
-      return { id: assetId, file };
-    });
+    const records = assetRows.map(({ id: assetId }) => s.assets.find(assetId)!);
+    // Fails with a normal error response (before any byte is sent) if a file went missing from disk.
+    for (const record of records) statSync(s.assets.path(record));
+    const assets = records.map((record) => ({ id: record.id, file: `assets/${record.fileName}` }));
     const scenes = s.scenes.list(worldId);
     const sceneIds = new Set(scenes.map((sc) => sc.id));
     const gmView = { userId: "", role: "gm" as const };
@@ -135,7 +137,6 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       tokens,
       messages,
     };
-    files["world.json"] = encode(worldFile);
     const slug =
       world.name
         .replace(/[^A-Za-z0-9]+/g, "-")
@@ -144,27 +145,38 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     return reply
       .header("content-type", "application/zip")
       .header("content-disposition", `attachment; filename="${slug}.openvtt.zip"`)
-      .send(Buffer.from(zipSync(files)));
+      .send(
+        Readable.from(
+          zipChunks(
+            encode(worldFile),
+            records.map((r) => ({ name: `assets/${r.fileName}`, open: () => s.assets.open(r) })),
+          ),
+        ),
+      );
   });
 
-  app.post("/api/worlds/import", { bodyLimit: MAX_IMPORT_BYTES }, async (req) => {
+  app.post("/api/worlds/import", async (req) => {
     const user = guards.requireUser(req);
-    if (!Buffer.isBuffer(req.body)) throw new AppError("import_invalid");
+    if (!(req.body instanceof Readable)) throw new AppError("import_invalid");
 
-    let entries: Record<string, Uint8Array>;
-    let total = 0;
+    const tempDir = join(s.dataDir, `import-${randomUUID()}`);
     try {
-      entries = unzipSync(new Uint8Array(req.body), {
-        filter: (f) => {
-          total += f.originalSize;
-          if (f.originalSize > MAX_FILE_BYTES || total > MAX_IMPORT_BYTES) throw new Error("too large");
-          return true;
-        },
-      });
+      return await importArchive(req.body, tempDir, user);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  /** Reads the archive as a stream (nothing but `world.json` is held in memory) and creates the world. */
+  async function importArchive(body: Readable, tempDir: string, user: UserDto) {
+    const entries = await extractArchive(body, tempDir, Math.max(MAX_UPLOAD_BYTES, s.assets.maxBytesFor("video/mp4")));
+    let worldJson: unknown;
+    try {
+      worldJson = JSON.parse(new TextDecoder().decode(entries.get("world.json")?.bytes ?? new Uint8Array()));
     } catch {
       throw new AppError("import_invalid");
     }
-    const parsed = worldFileSchema.safeParse(JSON.parse(new TextDecoder().decode(entries["world.json"] ?? new Uint8Array())));
+    const parsed = worldFileSchema.safeParse(worldJson);
     if (!parsed.success) throw new AppError("import_invalid");
     const file = parsed.data;
     const system = s.systems.get(file.world.systemId);
@@ -180,15 +192,20 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
         (t) =>
           sceneIds.has(t.sceneId) && (t.assetId === null || assetIds.has(t.assetId)) && (t.actorId === null || actorIds.has(t.actorId)),
       ) &&
-      file.assets.every((a) => entries[a.file] !== undefined);
+      file.assets.every((a) => entries.get(a.file)?.path !== undefined);
     if (!refsOk) throw new AppError("import_invalid");
 
     const idMap = new Map<string, string>();
+    const adopted: AssetRecord[] = [];
     let worldId = "";
     try {
       transaction(s.db, () => {
         worldId = s.worlds.create(user, file.world.name, file.world.systemId).id;
-        for (const a of file.assets) idMap.set(a.id, s.assets.save(worldId, Buffer.from(entries[a.file]!)).id);
+        for (const a of file.assets) {
+          const record = s.assets.adoptFile(worldId, entries.get(a.file)!.path!);
+          adopted.push(record);
+          idMap.set(a.id, record.id);
+        }
         for (const sc of file.scenes) {
           const created = s.scenes.create(worldId, { ...sc, assetId: sc.assetId ? idMap.get(sc.assetId)! : null });
           idMap.set(sc.id, created.id);
@@ -232,11 +249,143 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
           );
       });
     } catch (error) {
+      // The rolled-back rows are gone; the files already moved into the asset directory must go too.
+      for (const record of adopted) rmSync(s.assets.path(record), { force: true });
       throw error instanceof AppError ? error : new AppError("import_invalid");
     }
     guards.broadcastState(worldId);
     return { id: worldId, name: file.world.name, role: "gm" };
-  });
+  }
 
-  app.addContentTypeParser("application/zip", { parseAs: "buffer", bodyLimit: MAX_IMPORT_BYTES }, (_req, body, done) => done(null, body));
+  // Zip bodies reach the routes as raw streams; routes that want the bytes in memory collect them themselves.
+  app.addContentTypeParser("application/zip", (_req, payload, done) => done(null, payload));
+
+  /** What was found in an archive: `world.json` in memory, everything else as a temp file. */
+  interface ArchiveEntry {
+    bytes?: Uint8Array;
+    path?: string;
+  }
+
+  /**
+   * Streams a zip into `tempDir`. Sizes are counted on the bytes actually produced, never on what the
+   * archive declares, so a zip bomb stops at the limits. Entry names only pick the entry's role;
+   * temp files are named by us, so a hostile path can never leave `tempDir`.
+   */
+  async function extractArchive(body: Readable, tempDir: string, maxAssetBytes: number): Promise<Map<string, ArchiveEntry>> {
+    mkdirSync(tempDir, { recursive: true });
+    const found = new Map<string, ArchiveEntry>();
+    const writers: WriteStream[] = [];
+    let total = 0;
+    let failure = null as Error | null;
+    let waitForDrain: Promise<unknown> | null = null;
+    const fail = (error: Error) => {
+      failure ??= error;
+    };
+
+    const unzip = new Unzip((entry) => {
+      if (entry.name.endsWith("/")) return;
+      const isWorld = entry.name === "world.json";
+      const isAsset = /^assets\/[A-Za-z0-9_.-]+$/.test(entry.name);
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      let writer: WriteStream | null = null;
+      if (isAsset) {
+        const path = join(tempDir, randomUUID());
+        writer = createWriteStream(path);
+        writer.on("error", fail);
+        writers.push(writer);
+        found.set(entry.name, {});
+        entry.ondata = (error, data, final) => {
+          if (error) return fail(error);
+          size += data.length;
+          total += data.length;
+          if (size > maxAssetBytes || total > MAX_IMPORT_BYTES) return fail(new AppError("asset_too_large"));
+          // A writer that ends right after a full write never emits "drain", so "close" also releases the wait.
+          if (!writer!.write(data))
+            waitForDrain = new Promise((resolve) => {
+              writer!.once("drain", () => resolve(null));
+              writer!.once("close", () => resolve(null));
+            });
+          if (final) {
+            writer!.end();
+            found.get(entry.name)!.path = path;
+          }
+        };
+      } else {
+        entry.ondata = (error, data, final) => {
+          if (error) return fail(error);
+          size += data.length;
+          total += data.length;
+          if (size > MAX_WORLD_JSON_BYTES || total > MAX_IMPORT_BYTES) return fail(new AppError("asset_too_large"));
+          if (isWorld) chunks.push(data);
+          if (final && isWorld) found.set(entry.name, { bytes: concatBytes(chunks) });
+        };
+      }
+      entry.start();
+    });
+    unzip.register(UnzipInflate);
+    unzip.register(UnzipPassThrough);
+
+    try {
+      for await (const chunk of body) {
+        unzip.push(chunk as Uint8Array);
+        if (failure) break;
+        if (waitForDrain) await waitForDrain;
+        waitForDrain = null;
+      }
+      if (!failure) unzip.push(new Uint8Array(0), true);
+    } catch (error) {
+      fail(error as Error);
+    }
+    // Make sure every file is flushed (or abandoned) before the caller reads or deletes them.
+    await Promise.all(writers.map((w) => new Promise<void>((resolve) => (w.closed ? resolve() : w.end(() => resolve())))));
+    if (failure) throw failure instanceof AppError ? failure : new AppError("import_invalid");
+    return found;
+  }
+}
+
+function concatBytes(chunks: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.length;
+  }
+  return out;
+}
+
+/**
+ * Builds the export zip lazily: `world.json` deflated first, then every asset stored as-is (they are
+ * already compressed) read in chunks, so memory use does not depend on the size of the world.
+ */
+async function* zipChunks(
+  worldJson: Uint8Array,
+  assets: { name: string; open: () => AsyncIterable<Uint8Array> }[],
+): AsyncGenerator<Uint8Array> {
+  const pending: Uint8Array[] = [];
+  let failure: Error | null = null;
+  const zip = new Zip((error, chunk) => {
+    if (error) failure = error;
+    else pending.push(chunk);
+  });
+  function* flush() {
+    if (failure) throw failure;
+    while (pending.length) yield pending.shift()!;
+  }
+  const json = new ZipDeflate("world.json", { level: 6 });
+  zip.add(json);
+  json.push(worldJson, true);
+  yield* flush();
+  for (const asset of assets) {
+    const entry = new ZipPassThrough(asset.name);
+    zip.add(entry);
+    for await (const chunk of asset.open()) {
+      entry.push(chunk, false);
+      yield* flush();
+    }
+    entry.push(new Uint8Array(0), true);
+    yield* flush();
+  }
+  zip.end();
+  yield* flush();
 }
