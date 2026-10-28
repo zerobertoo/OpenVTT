@@ -55,6 +55,8 @@ const worldFileSchema = z.object({
         bakedLighting: z.boolean().default(false),
         floorGroup: z.string().uuid().nullable().default(null),
         floor: z.number().int().min(-20).max(50).default(0),
+        visionEnabled: z.boolean().default(false),
+        visionRadius: z.number().finite().min(1).max(200).default(12),
       }),
     )
     .max(500),

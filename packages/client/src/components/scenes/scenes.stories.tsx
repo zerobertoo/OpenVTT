@@ -20,6 +20,8 @@ const tavern: SceneDto = {
   bakedLighting: false,
   floorGroup: null,
   floor: 0,
+  visionEnabled: false,
+  visionRadius: 12,
 };
 const cave: SceneDto = { ...tavern, id: "s2", name: "Goblin cave" };
 

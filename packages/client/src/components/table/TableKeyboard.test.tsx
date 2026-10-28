@@ -23,6 +23,8 @@ const scene: SceneDto = {
   bakedLighting: false,
   floorGroup: null,
   floor: 0,
+  visionEnabled: false,
+  visionRadius: 12,
 };
 const token: TokenDto = {
   id: "t1",

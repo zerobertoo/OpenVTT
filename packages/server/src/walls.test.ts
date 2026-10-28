@@ -30,8 +30,10 @@ async function setup() {
   return { app, gm, bob, world, scene };
 }
 
+const ports = new WeakMap<object, number>();
 const stateOf = async (app: Parameters<typeof listen>[0], worldId: string, cookie: string) => {
-  const conn = connect(await listen(app), worldId, cookie);
+  if (!ports.has(app)) ports.set(app, await listen(app));
+  const conn = connect(ports.get(app)!, worldId, cookie);
   const msg = await conn.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
   conn.ws.close();
   return msg.state;
@@ -160,5 +162,69 @@ describe("scene export as Universal VTT", () => {
     expect(file.portals).toHaveLength(1);
     expect(file.lights[0].color).toBe("ffffe5bf");
     expect(file.environment.baked_lighting).toBe(true);
+  });
+});
+
+describe("vision", () => {
+  async function visionSetup() {
+    const { app, gm, bob, world } = await setup();
+    const scene = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, {
+        name: "Fogged",
+        width: 1400,
+        height: 800,
+        gridSize: 70,
+        visionEnabled: true,
+        visionRadius: 12,
+        walls: [{ x1: 600, y1: 0, x2: 600, y2: 800, kind: "door", open: false }],
+      })
+    ).json() as SceneDto;
+    await call(app, gm.cookie, "PATCH", `/api/worlds/${world.id}`, { activeSceneId: scene.id });
+    const token = async (name: string, x: number, extra: object = {}) =>
+      (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: scene.id, name, x, y: 100, ...extra })).json();
+    const hero = await token("Hero", 100, { controllerIds: [bob.user.id] });
+    const rat = await token("Rat", 300);
+    const ghoul = await token("Ghoul", 800);
+    return { app, gm, bob, world, scene, hero, rat, ghoul, token };
+  }
+
+  it("tells a player only about tokens their own tokens can see, and sends polygons instead of walls", async () => {
+    const { app, gm, bob, world } = await visionSetup();
+    const bobState = await stateOf(app, world.id, bob.cookie);
+    expect(bobState.tokens.map((t) => t.name).sort()).toEqual(["Hero", "Rat"]);
+    expect(bobState.vision?.polygons.length).toBeGreaterThan(0);
+    expect(bobState.scenes[0]!.walls).toEqual([]);
+    const gmState = await stateOf(app, world.id, gm.cookie);
+    expect(gmState.tokens).toHaveLength(3);
+    expect(gmState.vision).toBeNull();
+  });
+
+  it("reveals what is behind a door once it opens, and hides it again when it closes", async () => {
+    const { app, gm, bob, world, scene } = await visionSetup();
+    const door = scene.walls[0]!.id;
+    await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/doors/${door}`, { open: true });
+    expect((await stateOf(app, world.id, bob.cookie)).tokens.map((t) => t.name)).toContain("Ghoul");
+    await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/doors/${door}`, { open: false });
+    expect((await stateOf(app, world.id, bob.cookie)).tokens.map((t) => t.name)).not.toContain("Ghoul");
+  });
+
+  it("pushes tokens in and out of view as they move, and never leaks a hidden one", async () => {
+    const { app, gm, bob, world, rat, ghoul, token } = await visionSetup();
+    const conn = connect(await listen(app), world.id, bob.cookie);
+    await conn.waitFor((m) => m.type === "world.state");
+
+    // The rat walks behind the closed door: Bob is told it is gone.
+    await call(app, gm.cookie, "PATCH", `/api/tokens/${rat.id}`, { x: 900 });
+    await conn.waitFor((m) => m.type === "token.remove" && m.tokenId === rat.id);
+    // The ghoul steps into view.
+    await call(app, gm.cookie, "PATCH", `/api/tokens/${ghoul.id}`, { x: 400 });
+    await conn.waitFor((m) => m.type === "token.upsert" && m.token.id === ghoul.id);
+    expect(conn.seen.some((m) => m.type === "vision.update")).toBe(true);
+
+    // A token the GM hides stays out of sight even in the open.
+    const lurker = await token("Lurker", 200, { hidden: true });
+    await conn.settle();
+    expect(conn.seen.some((m) => m.type === "token.upsert" && m.token.id === lurker.id)).toBe(false);
+    conn.ws.close();
   });
 });

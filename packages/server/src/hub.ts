@@ -4,6 +4,7 @@ import {
   pathIsBlocked,
   type ServerMessage,
   type TokenDto,
+  type VisionDto,
   type WorldRole,
   type WorldStateDto,
   WS_PATH,
@@ -15,11 +16,14 @@ import { AppError } from "./errors.ts";
 import { withoutHiddenMapData } from "./scenes.ts";
 import type { Services } from "./services.ts";
 import type { Viewer } from "./tokens.ts";
+import { flattenPolygons, visionRegion } from "./vision.ts";
 
 interface Connection {
   socket: WebSocket;
   viewer: Viewer;
   worldId: string;
+  /** Tokens this connection was last told about while its scene uses vision. */
+  seenTokenIds: Set<string>;
 }
 
 const MAX_WS_PAYLOAD = 16 * 1024;
@@ -85,7 +89,7 @@ export class Hub {
   }
 
   private open(socket: WebSocket, viewer: Viewer, worldId: string) {
-    const conn: Connection = { socket, viewer, worldId };
+    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set() };
     this.connections.add(conn);
     this.broadcastState(worldId);
     socket.on("message", (raw) => {
@@ -137,10 +141,40 @@ export class Hub {
   }
 
   /** Builds the complete state a viewer is allowed to see. */
+  /**
+   * What a player sees through their tokens when the active scene uses vision; null means no restriction (the game
+   * master, or a scene without vision). `tokens` are the ones this viewer may be told about.
+   */
+  private sightOf(worldId: string, viewer: Viewer): { vision: VisionDto; tokens: TokenDto[] } | null {
+    if (viewer.role === "gm") return null;
+    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    const scene = activeSceneId ? this.s.scenes.get(activeSceneId) : null;
+    if (!scene?.visionEnabled) return null;
+    const everything = this.s.tokens.visibleTo(worldId, { userId: "", role: "gm" }, scene.id);
+    const own = everything.filter((t) => t.controllerIds.includes(viewer.userId));
+    const region = visionRegion(scene, own);
+    const tokens = this.s.tokens.visibleTo(worldId, viewer, scene.id).filter((t) => {
+      const half = (t.size * scene.gridSize) / 2;
+      return t.controllerIds.includes(viewer.userId) || region.contains({ x: t.x + half, y: t.y + half });
+    });
+    return { vision: { sceneId: scene.id, polygons: flattenPolygons(region.polygons) }, tokens };
+  }
+
+  /** Brings one player's view in line with what their tokens see now: newly seen tokens appear, others vanish. */
+  private refreshSight(conn: Connection, sight: { vision: VisionDto; tokens: TokenDto[] }, changedTokenId: string | null) {
+    const next = new Set(sight.tokens.map((t) => t.id));
+    for (const token of sight.tokens)
+      if (!conn.seenTokenIds.has(token.id) || token.id === changedTokenId) this.send(conn, { type: "token.upsert", token });
+    for (const id of conn.seenTokenIds) if (!next.has(id)) this.send(conn, { type: "token.remove", tokenId: id });
+    conn.seenTokenIds = next;
+    this.send(conn, { type: "vision.update", vision: sight.vision });
+  }
+
   buildState(worldId: string, viewer: Viewer, online: ReadonlySet<string>): WorldStateDto {
     const world = this.s.worlds.info(worldId);
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
     const allScenes = this.s.scenes.list(worldId);
+    const sight = this.sightOf(worldId, viewer);
     return {
       id: world.id,
       name: world.name,
@@ -149,9 +183,10 @@ export class Hub {
       activeSceneId,
       members: this.s.worlds.members(worldId, online),
       scenes: viewer.role === "gm" ? allScenes : allScenes.filter((sc) => sc.id === activeSceneId).map(withoutHiddenMapData),
-      tokens: this.s.tokens.visibleTo(worldId, viewer, activeSceneId),
+      tokens: sight ? sight.tokens : this.s.tokens.visibleTo(worldId, viewer, activeSceneId),
       actors: this.s.actors.visibleTo(worldId, viewer),
       messages: this.s.chat.historyFor(worldId, viewer),
+      vision: sight?.vision ?? null,
     };
   }
 
@@ -160,7 +195,9 @@ export class Hub {
     const role: WorldRole | null = this.s.worlds.roleOf(conn.worldId, conn.viewer.userId);
     if (!role) return conn.socket.close();
     conn.viewer.role = role;
-    this.send(conn, { type: "world.state", state: this.buildState(conn.worldId, conn.viewer, this.onlineIn(conn.worldId)) });
+    const state = this.buildState(conn.worldId, conn.viewer, this.onlineIn(conn.worldId));
+    conn.seenTokenIds = new Set(state.tokens.map((t) => t.id));
+    this.send(conn, { type: "world.state", state });
   }
 
   broadcastState(worldId: string) {
@@ -172,6 +209,11 @@ export class Hub {
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
+      const sight = this.sightOf(worldId, c.viewer);
+      if (sight) {
+        this.refreshSight(c, sight, after.id);
+        continue;
+      }
       if (this.s.tokens.canSee(after, c.viewer, activeSceneId)) this.send(c, { type: "token.upsert", token: after });
       else if (before && this.s.tokens.canSee(before, c.viewer, activeSceneId)) this.send(c, { type: "token.remove", tokenId: after.id });
     }
@@ -179,9 +221,12 @@ export class Hub {
 
   publishTokenRemoved(worldId: string, token: TokenDto) {
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
-    for (const c of this.connections)
-      if (c.worldId === worldId && this.s.tokens.canSee(token, c.viewer, activeSceneId))
-        this.send(c, { type: "token.remove", tokenId: token.id });
+    for (const c of this.connections) {
+      if (c.worldId !== worldId) continue;
+      const sight = this.sightOf(worldId, c.viewer);
+      if (sight) this.refreshSight(c, sight, null);
+      else if (this.s.tokens.canSee(token, c.viewer, activeSceneId)) this.send(c, { type: "token.remove", tokenId: token.id });
+    }
   }
 
   publishMessage(worldId: string, message: MessageDto) {

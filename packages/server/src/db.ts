@@ -132,6 +132,10 @@ CREATE TABLE lights (
 );
 CREATE INDEX lights_scene ON lights (scene_id);
 `,
+  `
+ALTER TABLE scenes ADD COLUMN vision_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE scenes ADD COLUMN vision_radius REAL NOT NULL DEFAULT 12;
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

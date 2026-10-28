@@ -22,6 +22,8 @@ const scene: SceneDto = {
   bakedLighting: false,
   floorGroup: null,
   floor: 0,
+  visionEnabled: false,
+  visionRadius: 12,
 };
 
 const setup = (overrides: Partial<Parameters<typeof SceneCard>[0]> = {}) => {

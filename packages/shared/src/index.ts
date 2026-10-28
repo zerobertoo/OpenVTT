@@ -119,6 +119,10 @@ export interface SceneDto {
   /** Scenes imported together as floors of one map share a group; `floor` orders them (0 = ground). */
   floorGroup: string | null;
   floor: number;
+  /** When on, players only see what their own tokens can see (walls, closed doors and light shape it). */
+  visionEnabled: boolean;
+  /** How far a token sees, in grid cells, before light or walls are considered. */
+  visionRadius: number;
 }
 
 export interface TokenDto {
@@ -162,6 +166,12 @@ export interface ActorDto {
 }
 
 /** Table state sent to a client, already filtered by role on the server. */
+/** The area a player can see, as polygons of flat `[x1, y1, x2, y2, ...]` map-pixel coordinates. Walls are never sent. */
+export interface VisionDto {
+  sceneId: string;
+  polygons: number[][];
+}
+
 export interface WorldStateDto {
   id: string;
   name: string;
@@ -175,6 +185,8 @@ export interface WorldStateDto {
   actors: ActorDto[];
   /** Most recent messages the recipient is allowed to read. */
   messages: MessageDto[];
+  /** What the recipient can see when the active scene uses vision; null for the game master and for scenes without it. */
+  vision: VisionDto | null;
 }
 
 /** Server → client messages. */
@@ -183,6 +195,7 @@ export type ServerMessage =
   | { type: "token.upsert"; token: TokenDto }
   | { type: "token.remove"; tokenId: string }
   | { type: "chat.message"; message: MessageDto }
+  | { type: "vision.update"; vision: VisionDto | null }
   | { type: "error"; code: ErrorCode };
 
 /** Client → server messages. */
@@ -235,6 +248,8 @@ export const createSceneSchema = z.object({
   bakedLighting: z.boolean().default(false),
   floorGroup: z.string().uuid().nullable().default(null),
   floor: z.number().int().min(-20).max(50).default(0),
+  visionEnabled: z.boolean().default(false),
+  visionRadius: z.number().finite().min(1).max(200).default(12),
 });
 export const updateSceneSchema = createSceneSchema.partial();
 
@@ -300,3 +315,4 @@ export interface SystemInfoDto {
 export * from "./foundry.ts";
 export * from "./geometry.ts";
 export * from "./uvtt.ts";
+export * from "./vision.ts";

@@ -20,6 +20,8 @@ interface SceneRow {
   baked_lighting: number;
   floor_group: string | null;
   floor: number;
+  vision_enabled: number;
+  vision_radius: number;
 }
 
 interface WallRow {
@@ -73,6 +75,8 @@ const toDto = (r: SceneRow, walls: WallDto[], lights: LightDto[]): SceneDto => (
   bakedLighting: r.baked_lighting === 1,
   floorGroup: r.floor_group,
   floor: r.floor,
+  visionEnabled: r.vision_enabled === 1,
+  visionRadius: r.vision_radius,
 });
 
 /** What a player may see of a scene: walls and lights stay with the game master until per-player vision exists. */
@@ -129,8 +133,8 @@ export class SceneService {
       this.db
         .prepare(
           `INSERT INTO scenes (id, world_id, name, asset_id, width, height, grid_type, grid_size, grid_distance, distance_unit,
-             baked_lighting, floor_group, floor, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             baked_lighting, floor_group, floor, vision_enabled, vision_radius, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -146,6 +150,8 @@ export class SceneService {
           input.bakedLighting ? 1 : 0,
           input.floorGroup,
           input.floor,
+          input.visionEnabled ? 1 : 0,
+          input.visionRadius,
           Date.now(),
         );
       this.replaceMap(id, input);
@@ -164,7 +170,7 @@ export class SceneService {
       this.db
         .prepare(
           `UPDATE scenes SET name = ?, asset_id = ?, width = ?, height = ?, grid_type = ?, grid_size = ?,
-           grid_distance = ?, distance_unit = ?, baked_lighting = ?, floor_group = ?, floor = ? WHERE id = ?`,
+           grid_distance = ?, distance_unit = ?, baked_lighting = ?, floor_group = ?, floor = ?, vision_enabled = ?, vision_radius = ? WHERE id = ?`,
         )
         .run(
           next.name,
@@ -178,6 +184,8 @@ export class SceneService {
           next.bakedLighting ? 1 : 0,
           next.floorGroup,
           next.floor,
+          next.visionEnabled ? 1 : 0,
+          next.visionRadius,
           sceneId,
         );
       if (input.walls || input.lights) {
