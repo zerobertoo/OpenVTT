@@ -39,6 +39,8 @@ export function TableKeyboard({ scene, movableToken, onMove, helpOpen, onHelpOpe
           return onHelpOpenChange(true);
         case "deselect":
           return ui.selectToken(null);
+        case "diceTray":
+          return ui.setDiceTrayOpen(!ui.diceTrayOpen);
         case "view":
           return ui.changeView(action.kind);
         case "move": {

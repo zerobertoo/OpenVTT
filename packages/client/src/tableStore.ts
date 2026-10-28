@@ -16,6 +16,9 @@ interface TableUiState {
   /** Latest request to change the map view; `id` makes a repeated press a new request. */
   viewCommand: { kind: "zoomIn" | "zoomOut" | "fit"; id: number } | null;
   changeView: (kind: "zoomIn" | "zoomOut" | "fit") => void;
+  /** Whether the dice tray is open over the map. */
+  diceTrayOpen: boolean;
+  setDiceTrayOpen: (open: boolean) => void;
   setTab: (tab: TableTab) => void;
   toggleDrawer: () => void;
   setTool: (tool: MapTool) => void;
@@ -33,6 +36,7 @@ const initialState = {
   gmViewSceneId: null,
   showMapData: true,
   viewCommand: null,
+  diceTrayOpen: false,
 } as const;
 
 /** Local UI state of the table. Server state lives in `useWorldState`, REST data in TanStack Query. */
@@ -40,6 +44,7 @@ export const useTableUi = create<TableUiState>((set) => ({
   ...initialState,
   setShowMapData: (showMapData) => set({ showMapData }),
   changeView: (kind) => set((state) => ({ viewCommand: { kind, id: (state.viewCommand?.id ?? 0) + 1 } })),
+  setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
   setTool: (tool) => set({ tool }),

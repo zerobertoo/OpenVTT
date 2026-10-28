@@ -9,6 +9,7 @@ const SHORTCUTS = [
   { keys: ["+", "-"], label: "shortcuts.zoom" },
   { keys: ["0"], label: "shortcuts.fit" },
   { keys: ["P"], label: "shortcuts.panels" },
+  { keys: ["D"], label: "shortcuts.dice" },
   { keys: ["?"], label: "shortcuts.help" },
 ] as const;
 

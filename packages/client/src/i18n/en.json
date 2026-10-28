@@ -16,6 +16,7 @@
     "ruler": "Ruler tool",
     "move": "Move the selected token one cell",
     "deselect": "Deselect the token",
+    "dice": "Open or close the dice tray",
     "zoom": "Zoom in or out",
     "fit": "Fit the whole map in view",
     "panels": "Show or hide the panels",
@@ -243,6 +244,19 @@
         "unsupported_file": "Use a .dd2vtt or .uvtt file, or a PNG, JPG, WebP, WebM or MP4 map."
       }
     }
+  },
+  "dice": {
+    "title": "Dice",
+    "close": "Close",
+    "pick": "Pick dice",
+    "add": "Add a d{{sides}} ({{count}} in hand)",
+    "inHand": "Dice in hand",
+    "remove": "{{count}}d{{sides}}, take one out of the hand",
+    "clear": "Clear",
+    "empty": "Pick the dice you want to throw.",
+    "dragHint": "Drag onto the table and let go to throw",
+    "modifier": "Modifier",
+    "roll": "Roll"
   },
   "initiative": {
     "title": "Initiative",

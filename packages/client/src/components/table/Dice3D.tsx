@@ -13,51 +13,56 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import type { ThrownDie } from "../../lib/dice3dSupport";
-import { dieFaces, dieGeometry } from "../../lib/dieFaces";
+import { faceLabel, type ThrownDie } from "../../lib/dice3dSupport";
+import { diceFaces, diceGeometry } from "../../lib/diceFaces";
+import { type Launch, planThrow, STEP_SECONDS } from "../../lib/diceThrow";
 
-/** How long the dice tumble before they rest on the server's numbers. */
-export const THROW_MS = 1300;
-
-const SPACING = 2.4;
-const HEIGHT_PX = 150;
+/** Time between one die leaving the hand and the next, so a handful does not move as one block. */
+const STAGGER_MS = 60;
+const FOV = 30;
 const Z = new Vector3(0, 0, 1);
+/** The solids are about 1 unit across; this is their radius in those units. */
+const SOLID_RADIUS = 1.1;
 
-/** Draws a number on a transparent square, dark on the lighter die so it stays readable. */
-function numberTexture(value: number, color: string) {
+/** Draws a label on a transparent square, dark on the lighter die so it stays readable. */
+function labelTexture(text: string) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 128;
   const context = canvas.getContext("2d");
   if (context) {
-    context.fillStyle = color;
-    context.font = "700 80px system-ui, sans-serif";
+    context.fillStyle = "#1b1d22";
+    context.font = `700 ${text.length > 1 ? 62 : 80}px system-ui, sans-serif`;
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(String(value), 64, 70);
+    context.fillText(text, 64, 70);
     // A dot after 6 and 9 tells them apart when the die rests at an angle.
-    if (value === 6 || value === 9) context.fillText(".", 104, 70);
+    if (text === "6" || text === "9") context.fillText(".", 104, 70);
   }
   return new CanvasTexture(canvas);
 }
 
 interface Props {
   dice: ThrownDie[];
+  /** How the dice were thrown, or a launch from the side for a roll somebody else made. */
+  launch: Launch;
   /** Called when WebGL is not available, so the caller can show the flat dice instead. */
   onUnavailable: () => void;
 }
 
 /**
- * Throws the dice in a transparent WebGL canvas. The server already decided the numbers; each die tumbles about a
- * random axis, slowing down until the face with its number points at the camera, upright. Loaded on demand so the
- * 3D library only downloads for people who see a roll.
+ * Throws the dice across the whole screen in a transparent WebGL canvas that lets pointer events through. The server
+ * already decided the numbers: the path is planned ahead (`planThrow`), each die tumbles slower and slower, and it
+ * stops with the face it rolled toward the camera, upright. Loaded on demand so the 3D library only downloads for
+ * people who see a roll.
  */
-export default function Dice3D({ dice, onUnavailable }: Props) {
+export default function Dice3D({ dice, launch, onUnavailable }: Props) {
   const host = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const element = host.current;
     if (!element) return;
-    const width = Math.max(140, Math.min(dice.length * 64 + 40, 480));
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     let renderer: WebGLRenderer;
     try {
       renderer = new WebGLRenderer({ alpha: true, antialias: true });
@@ -66,77 +71,97 @@ export default function Dice3D({ dice, onUnavailable }: Props) {
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(width, HEIGHT_PX);
+    renderer.setSize(width, height);
     element.appendChild(renderer.domElement);
 
+    // Camera placed so that the z = 0 plane is one world unit per screen pixel; dice positions are then plain pixels.
+    const camera = new PerspectiveCamera(FOV, width / height, 1, 5000);
+    camera.position.z = height / 2 / Math.tan((FOV / 2) * (Math.PI / 180));
     const scene = new Scene();
-    const camera = new PerspectiveCamera(30, width / HEIGHT_PX, 0.1, 100);
-    const rowWidth = (dice.length - 1) * SPACING + 2.4;
-    // Far enough that the whole row fits horizontally and a die fits vertically.
-    camera.position.z = Math.max(rowWidth / (2 * Math.tan((15 * Math.PI) / 180) * (width / HEIGHT_PX)), 6.5);
     scene.add(new AmbientLight(0xffffff, 1.6));
     const sun = new DirectionalLight(0xffffff, 2.2);
-    sun.position.set(2, 4, 6);
+    sun.position.set(-width / 3, height / 2, 700);
     scene.add(sun);
 
+    const radius = Math.min(40, Math.max(22, Math.min(width, height) / 16));
+    const scale = radius / SOLID_RADIUS;
+    const frames = planThrow(dice.length, launch, { width, height }, radius);
+
     const disposables: { dispose: () => void }[] = [];
+    const labelGeometry = new PlaneGeometry(0.62, 0.62);
+    disposables.push(labelGeometry);
+    const textures = new Map<string, CanvasTexture>();
+    const labelMaterial = (text: string) => {
+      let texture = textures.get(text);
+      if (!texture) {
+        texture = labelTexture(text);
+        textures.set(text, texture);
+        disposables.push(texture);
+      }
+      const material = new MeshStandardMaterial({ map: texture, transparent: true, roughness: 1 });
+      disposables.push(material);
+      return material;
+    };
+
     const throwing = dice.map((die, index) => {
-      const geometry = dieGeometry(die.sides);
-      const faces = dieFaces(geometry);
+      const geometry = diceGeometry(die.shape);
+      const faces = diceFaces(geometry);
       // A dropped die (advantage/disadvantage) rests dim, so the kept one stands out.
-      const body = new MeshStandardMaterial({ color: die.kept ? 0xf2b84b : 0x8a8f99, roughness: 0.45, flatShading: true });
+      const color = die.kind === "tens" ? 0xe8924a : die.kept ? 0xf2b84b : 0x8a8f99;
+      const body = new MeshStandardMaterial({ color, roughness: 0.45, flatShading: true });
+      disposables.push(geometry, body);
       const group = new Group();
       group.add(new Mesh(geometry, body));
-      disposables.push(geometry, body);
 
-      const labelGeometry = new PlaneGeometry(0.62, 0.62);
-      disposables.push(labelGeometry);
-      let restingFace = faces[0]!;
+      let resting = faces[0]!;
       for (const face of faces) {
-        const texture = numberTexture(face.value, "#1b1d22");
-        const material = new MeshStandardMaterial({ map: texture, transparent: true, roughness: 1 });
-        disposables.push(texture, material);
-        const label = new Mesh(labelGeometry, material);
+        const label = new Mesh(labelGeometry, labelMaterial(faceLabel(die, face.index)));
         label.position.copy(face.center).addScaledVector(face.normal, 0.01);
         label.quaternion.setFromUnitVectors(Z, face.normal);
         group.add(label);
-        if (face.value === ((die.value - 1) % faces.length) + 1) restingFace = face;
+        if (face.index === die.face) resting = face;
       }
 
-      // Final pose: the rolled face toward the camera, with its number turned upright.
-      const align = new Quaternion().setFromUnitVectors(restingFace.normal, Z);
-      const labelUp = new Vector3(0, 1, 0)
-        .applyQuaternion(new Quaternion().setFromUnitVectors(Z, restingFace.normal))
-        .applyQuaternion(align);
-      const spin = new Quaternion().setFromAxisAngle(Z, Math.PI / 2 - Math.atan2(labelUp.y, labelUp.x));
-      const rest = spin.multiply(align);
+      // Final pose: the rolled face toward the camera, with its label turned upright.
+      const align = new Quaternion().setFromUnitVectors(resting.normal, Z);
+      const labelUp = new Vector3(0, 1, 0).applyQuaternion(new Quaternion().setFromUnitVectors(Z, resting.normal)).applyQuaternion(align);
+      const rest = new Quaternion().setFromAxisAngle(Z, Math.PI / 2 - Math.atan2(labelUp.y, labelUp.x)).multiply(align);
 
-      group.position.x = (index - (dice.length - 1) / 2) * SPACING;
+      // It rolls the way it travels: the axis is the direction of travel turned a quarter, with a little wobble.
+      const first = frames[0]![index]!;
+      const later = frames[Math.min(6, frames.length - 1)]![index]!;
+      const axis = new Vector3(-(first.y - later.y), -(later.x - first.x), (Math.random() - 0.5) * 20).normalize();
+      group.scale.setScalar(scale);
+      group.visible = false;
       scene.add(group);
-      const axis = new Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-      return { group, rest, axis, turns: 3 + Math.random() * 2, delay: index * 90 };
+      return { group, rest, axis, turns: 2.5 + Math.random() * 2 };
     });
 
     const turn = new Quaternion();
-    const pose = (elapsed: number) => {
-      for (const die of throwing) {
-        const progress = Math.min(1, Math.max(0, (elapsed - die.delay) / THROW_MS));
-        const slow = (1 - progress) ** 2;
-        turn.setFromAxisAngle(die.axis, slow * die.turns * Math.PI * 2);
+    const stepMs = STEP_SECONDS * 1000;
+    const draw = (elapsedMs: number) => {
+      for (const [index, die] of throwing.entries()) {
+        const step = Math.floor((elapsedMs - index * STAGGER_MS) / stepMs);
+        die.group.visible = step >= 0;
+        if (step < 0) continue;
+        const where = frames[Math.min(step, frames.length - 1)]![index]!;
+        const progress = Math.min(1, step / (frames.length - 1));
+        turn.setFromAxisAngle(die.axis, (1 - progress) ** 2 * die.turns * Math.PI * 2);
         die.group.quaternion.copy(turn).multiply(die.rest);
-        // A hop that dies out as the die settles.
-        die.group.position.y = Math.abs(Math.sin(progress * Math.PI * 3)) * (1 - progress) * 1.2;
-        die.group.scale.setScalar(0.5 + 0.5 * Math.min(1, progress * 4));
+        // A hop that dies out as the die settles; z points at the camera, so it also swells a little.
+        const hop = Math.abs(Math.sin(progress * Math.PI * 3)) * (1 - progress) * radius * 2;
+        die.group.position.set(where.x - width / 2, height / 2 - where.y, hop);
       }
       renderer.render(scene, camera);
     };
 
     const started = performance.now();
+    const endMs = (frames.length - 1) * stepMs + dice.length * STAGGER_MS;
     let frame = 0;
     const tick = () => {
       const elapsed = performance.now() - started;
-      pose(elapsed);
-      if (elapsed < THROW_MS + dice.length * 90) frame = requestAnimationFrame(tick);
+      draw(elapsed);
+      if (elapsed < endMs) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
 
@@ -146,7 +171,7 @@ export default function Dice3D({ dice, onUnavailable }: Props) {
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [dice, onUnavailable]);
+  }, [dice, launch, onUnavailable]);
 
-  return <div ref={host} aria-hidden="true" className="flex justify-center" />;
+  return <div ref={host} aria-hidden="true" className="pointer-events-none fixed inset-0 z-40" />;
 }

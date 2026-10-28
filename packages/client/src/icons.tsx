@@ -35,6 +35,12 @@ const PATHS = {
       <path d="M8 11l2 2M11 8l2 2M14 5l2 2" />
     </>
   ),
+  dice: (
+    <>
+      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+      <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
+    </>
+  ),
   play: <path d="M8 5l11 7-11 7z" />,
   pause: <path d="M8 5v14M16 5v14" />,
   send: <path d="M4 12l16-8-6 16-3-7z" />,

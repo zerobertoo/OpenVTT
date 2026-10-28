@@ -16,6 +16,7 @@
     "ruler": "Ferramenta de régua",
     "move": "Mover o token selecionado uma casa",
     "deselect": "Desmarcar o token",
+    "dice": "Abrir ou fechar a bandeja de dados",
     "zoom": "Aumentar ou diminuir o zoom",
     "fit": "Enquadrar o mapa inteiro",
     "panels": "Mostrar ou ocultar os painéis",
@@ -243,6 +244,19 @@
         "unsupported_file": "Use um arquivo .dd2vtt ou .uvtt, ou um mapa PNG, JPG, WebP, WebM ou MP4."
       }
     }
+  },
+  "dice": {
+    "title": "Dados",
+    "close": "Fechar",
+    "pick": "Escolher dados",
+    "add": "Adicionar um d{{sides}} ({{count}} na mão)",
+    "inHand": "Dados na mão",
+    "remove": "{{count}}d{{sides}}, tirar um da mão",
+    "clear": "Limpar",
+    "empty": "Escolha os dados que quer jogar.",
+    "dragHint": "Arraste para a mesa e solte para jogar",
+    "modifier": "Modificador",
+    "roll": "Rolar"
   },
   "initiative": {
     "title": "Iniciativa",

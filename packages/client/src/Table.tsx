@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "./api";
 import { TableLoading } from "./components/screens/TableLoading";
 import { DiceOverlay } from "./components/table/DiceOverlay";
+import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
@@ -22,6 +23,7 @@ import { SheetsPanel } from "./panels/SheetsPanel";
 import { TokenPanel } from "./panels/TokenPanel";
 import { queryKeys } from "./queries";
 import { type TableTab, useTableUi } from "./tableStore";
+import { useAction } from "./ui";
 import { useCan } from "./useCan";
 import { useFormat } from "./useFormat";
 import { useWorldState } from "./useWorldState";
@@ -37,8 +39,8 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId, showMapData } = useTableUi();
-  const { setTab, toggleDrawer, setTool, selectToken, viewScene, reset } = useTableUi.getState();
+  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId, showMapData, diceTrayOpen } = useTableUi();
+  const { setTab, toggleDrawer, setTool, selectToken, viewScene, reset, setDiceTrayOpen } = useTableUi.getState();
 
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
   useEffect(() => reset, [worldId, reset]);
@@ -59,6 +61,13 @@ export function Table({ worldId, user }: Props) {
   const can = useCan(state?.yourRole, user.id);
   const canControl = can.canControlToken;
   const format = useFormat();
+  // The tray only picks the dice and how they are thrown; the server rolls them like any other /r message.
+  const { run: runRoll, error: rollError } = useAction();
+  const rollFromTray = useCallback(
+    async (notation: string, gmOnly: boolean) =>
+      Boolean(await runRoll(() => api.sendMessage(worldId, { content: `/r ${notation}`, toUserId: null, gmOnly }))),
+    [runRoll, worldId],
+  );
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
 
   if (!state) return <TableLoading connecting={!connected} />;
@@ -126,7 +135,7 @@ export function Table({ worldId, user }: Props) {
             <EmptyMap isGm={isGm} />
           )}
 
-          <DiceOverlay messages={state.messages} />
+          <DiceOverlay messages={state.messages} userId={user.id} />
           <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
           <TableKeyboard
             scene={scene}
@@ -135,7 +144,13 @@ export function Table({ worldId, user }: Props) {
             helpOpen={helpOpen}
             onHelpOpenChange={setHelpOpen}
           />
-          <MapToolbar tool={tool} onToolChange={setTool} />
+          <MapToolbar
+            tool={tool}
+            onToolChange={setTool}
+            diceTrayOpen={diceTrayOpen}
+            onToggleDiceTray={() => setDiceTrayOpen(!diceTrayOpen)}
+          />
+          {diceTrayOpen && <DiceTray onRoll={rollFromTray} error={rollError} onClose={() => setDiceTrayOpen(false)} />}
           <p className="map-hint">{t("map.hint")}</p>
           <OnlineChip members={state.members} />
           <Drawer

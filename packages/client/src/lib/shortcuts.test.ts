@@ -9,6 +9,7 @@ describe("actionForKey", () => {
     expect(press("v")).toEqual({ type: "tool", tool: "select" });
     expect(press("R")).toEqual({ type: "tool", tool: "ruler" });
     expect(press("p")).toEqual({ type: "togglePanels" });
+    expect(press("D")).toEqual({ type: "diceTray" });
     expect(press("?")).toEqual({ type: "help" });
     expect(press("Escape")).toEqual({ type: "deselect" });
   });
