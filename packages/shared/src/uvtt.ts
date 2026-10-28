@@ -188,3 +188,61 @@ export function parseUvtt(text: string): ImportedUvtt {
     warnings: [...new Set(warnings)],
   };
 }
+
+const toCells = (pixels: number, gridSize: number) => Math.round((pixels / gridSize) * 1e4) / 1e4;
+const uvttColor = (hex: string) => `ff${hex.replace(/^#/, "")}`;
+
+/** The scene fields `buildUvtt` needs; a `SceneDto` satisfies it. */
+export interface UvttSource {
+  width: number;
+  height: number;
+  gridSize: number;
+  bakedLighting: boolean;
+  walls: readonly { x1: number; y1: number; x2: number; y2: number; kind: "wall" | "door"; open: boolean }[];
+  lights: readonly { x: number; y: number; radius: number; intensity: number; color: string; shadows: boolean }[];
+}
+
+/**
+ * Builds a Universal VTT document from a scene so the map can leave as easily as it arrived. Distances are
+ * written in grid cells as the format asks. `image` is the base64 picture, or an empty string for videos
+ * (Dungeon Alchemist does the same: the video travels as a sibling file).
+ */
+export function buildUvtt(scene: UvttSource, image: string) {
+  const cell = (px: number) => toCells(px, scene.gridSize);
+  return {
+    format: 0.3,
+    software: "OpenVTT",
+    resolution: {
+      map_origin: { x: 0, y: 0 },
+      map_size: { x: cell(scene.width), y: cell(scene.height) },
+      pixels_per_grid: scene.gridSize,
+    },
+    line_of_sight: scene.walls
+      .filter((w) => w.kind === "wall")
+      .map((w) => [
+        { x: cell(w.x1), y: cell(w.y1) },
+        { x: cell(w.x2), y: cell(w.y2) },
+      ]),
+    portals: scene.walls
+      .filter((w) => w.kind === "door")
+      .map((w) => ({
+        position: { x: cell((w.x1 + w.x2) / 2), y: cell((w.y1 + w.y2) / 2) },
+        bounds: [
+          { x: cell(w.x1), y: cell(w.y1) },
+          { x: cell(w.x2), y: cell(w.y2) },
+        ],
+        rotation: Math.atan2(w.y2 - w.y1, w.x2 - w.x1),
+        closed: !w.open,
+        freestanding: false,
+      })),
+    lights: scene.lights.map((l) => ({
+      position: { x: cell(l.x), y: cell(l.y) },
+      range: l.radius,
+      intensity: l.intensity,
+      color: uvttColor(l.color),
+      shadows: l.shadows,
+    })),
+    environment: { baked_lighting: scene.bakedLighting, ambient_light: "ffffffff" },
+    image,
+  };
+}

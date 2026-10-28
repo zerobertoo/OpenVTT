@@ -182,6 +182,7 @@
     "none": "Nenhuma cena ainda.",
     "noneHint": "Crie a primeira abaixo. Os jogadores veem a cena que você escolher mostrar.",
     "moreActions": "Mais ações para {{name}}",
+    "exportUvtt": "Exportar como Universal VTT",
     "showMapData": "Mostrar paredes e luzes",
     "mapDataSummary": "{{walls}} paredes e portas, {{lights}} luzes. Só você vê. Clique no círculo de uma porta no mapa para abrir ou fechar.",
     "imageSizeFromFile": "A cena assume o tamanho da imagem.",

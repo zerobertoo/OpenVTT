@@ -1,9 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { createWriteStream, mkdirSync, rmSync, statSync, type WriteStream } from "node:fs";
+import { createWriteStream, mkdirSync, readFileSync, rmSync, statSync, type WriteStream } from "node:fs";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData } from "@openvtt/sdk";
-import { lightInputSchema, MAX_SCENE_LIGHTS, MAX_SCENE_WALLS, MAX_UPLOAD_BYTES, type UserDto, wallInputSchema } from "@openvtt/shared";
+import {
+  buildUvtt,
+  lightInputSchema,
+  MAX_SCENE_LIGHTS,
+  MAX_SCENE_WALLS,
+  MAX_UPLOAD_BYTES,
+  type UserDto,
+  wallInputSchema,
+} from "@openvtt/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { Unzip, UnzipInflate, UnzipPassThrough, Zip, ZipDeflate, ZipPassThrough } from "fflate";
 import { z } from "zod";
@@ -159,6 +167,25 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
           ),
         ),
       );
+  });
+
+  // A scene as a Universal VTT file. Videos cannot be embedded, so `image` stays empty and the video is downloaded separately.
+  app.get<{ Params: { id: string } }>("/api/scenes/:id/export.dd2vtt", async (req, reply) => {
+    const worldId = s.scenes.worldIdOf(req.params.id);
+    if (!worldId) throw new AppError("not_found");
+    guards.requireGm(req, worldId);
+    const scene = s.scenes.get(req.params.id)!;
+    const asset = scene.assetId && scene.assetKind === "image" ? s.assets.find(scene.assetId) : null;
+    const image = asset ? readFileSync(s.assets.path(asset)).toString("base64") : "";
+    const slug =
+      scene.name
+        .replace(/[^A-Za-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .toLowerCase() || "scene";
+    return reply
+      .header("content-type", "application/json")
+      .header("content-disposition", `attachment; filename="${slug}.dd2vtt"`)
+      .send(JSON.stringify(buildUvtt(scene, image)));
   });
 
   app.post("/api/worlds/import", async (req) => {

@@ -1,4 +1,4 @@
-import { parseUvtt, parseUvttColor, UvttError } from "@openvtt/shared";
+import { buildUvtt, parseUvtt, parseUvttColor, UvttError } from "@openvtt/shared";
 import { describe, expect, it } from "vitest";
 
 const PNG_BASE64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).toString("base64");
@@ -73,5 +73,27 @@ describe("parseUvtt", () => {
     expect(parseUvttColor("ffFFE5BF")).toBe("#ffe5bf");
     expect(parseUvttColor("#FFE5BF")).toBe("#ffe5bf");
     expect(parseUvttColor("zz")).toBe("#ffffff");
+  });
+});
+
+describe("buildUvtt", () => {
+  it("writes a file that parseUvtt reads back to the same scene data", () => {
+    const scene = {
+      width: 1484,
+      height: 2014,
+      gridSize: 53,
+      bakedLighting: true,
+      walls: [
+        { x1: 53, y1: 53, x2: 159, y2: 53, kind: "wall" as const, open: false },
+        { x1: 159, y1: 106, x2: 159, y2: 212, kind: "door" as const, open: true },
+      ],
+      lights: [{ x: 106, y: 212, radius: 5, intensity: 2.5, color: "#ffe5bf", shadows: true }],
+    };
+    const back = parseUvtt(JSON.stringify(buildUvtt(scene, PNG_BASE64)));
+    expect(back).toMatchObject({ gridSize: 53, width: 1484, height: 2014, bakedLighting: true });
+    expect(back.walls).toEqual([{ x1: 53, y1: 53, x2: 159, y2: 53 }]);
+    expect(back.doors).toEqual([{ x1: 159, y1: 106, x2: 159, y2: 212, closed: false }]);
+    expect(back.lights[0]).toMatchObject({ x: 106, y: 212, radius: 5, color: "#ffe5bf" });
+    expect(back.image?.mime).toBe("image/png");
   });
 });

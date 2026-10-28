@@ -53,6 +53,8 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
         }
         items={[
           { id: "show", label: t("scene.activate"), onSelect: onShowToPlayers, disabled: shown },
+          // A plain navigation: the browser downloads the attachment with the session cookie.
+          { id: "export", label: t("scene.exportUvtt"), onSelect: () => window.location.assign(`/api/scenes/${scene.id}/export.dd2vtt`) },
           { id: "delete", label: t("common.delete"), tone: "danger", onSelect: () => setConfirmingDelete(true) },
         ]}
       />

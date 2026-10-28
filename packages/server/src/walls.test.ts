@@ -146,3 +146,19 @@ describe("movement and walls", () => {
     conn.ws.close();
   });
 });
+
+describe("scene export as Universal VTT", () => {
+  it("lets only the game master download a scene that reads back with its walls and lights", async () => {
+    const { app, gm, bob, scene } = await setup();
+    const url = `/api/scenes/${scene.id}/export.dd2vtt`;
+    expect((await call(app, bob.cookie, "GET", url)).statusCode).toBe(403);
+    const res = await call(app, gm.cookie, "GET", url);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-disposition"]).toContain("crypt.dd2vtt");
+    const file = res.json();
+    expect(file.line_of_sight).toHaveLength(1);
+    expect(file.portals).toHaveLength(1);
+    expect(file.lights[0].color).toBe("ffffe5bf");
+    expect(file.environment.baked_lighting).toBe(true);
+  });
+});
