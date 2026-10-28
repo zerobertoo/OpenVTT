@@ -76,7 +76,8 @@
     "back": "Back to worlds",
     "panels": "Table panels",
     "hidePanels": "Hide panels",
-    "showPanels": "Show panels"
+    "showPanels": "Show panels",
+    "reconnected": "Back at the table"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Sheets", "scenes": "Scenes", "settings": "World" },
   "map": {

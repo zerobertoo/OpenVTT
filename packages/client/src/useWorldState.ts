@@ -1,7 +1,9 @@
 import { type ClientMessage, type ServerMessage, type WorldStateDto, WS_PATH } from "@openvtt/shared";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "./components/ui/toast";
+import { reconnectDelay } from "./lib/backoff";
 
-const RECONNECT_DELAY_MS = 1500;
 const MAX_CLIENT_MESSAGES = 300;
 
 function reducer(state: WorldStateDto | null, msg: ServerMessage): WorldStateDto | null {
@@ -33,26 +35,50 @@ export function useWorldState(worldId: string) {
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
 
+  const { t } = useTranslation();
+  const translate = useRef(t);
+  translate.current = t;
+
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let disposed = false;
+    let attempt = 0;
+    let lostConnection = false;
 
     const connect = () => {
+      clearTimeout(timer);
       const scheme = location.protocol === "https:" ? "wss" : "ws";
       const socket = new WebSocket(`${scheme}://${location.host}${WS_PATH}?world=${encodeURIComponent(worldId)}`);
       socketRef.current = socket;
-      socket.onopen = () => setConnected(true);
+      socket.onopen = () => {
+        attempt = 0;
+        setConnected(true);
+        if (lostConnection) {
+          lostConnection = false;
+          toast({ title: translate.current("table.reconnected"), tone: "success" });
+        }
+      };
       socket.onmessage = (event) => dispatch(JSON.parse(event.data) as ServerMessage);
       socket.onclose = () => {
         setConnected(false);
-        if (!disposed) timer = setTimeout(connect, RECONNECT_DELAY_MS);
+        lostConnection = true;
+        if (!disposed) timer = setTimeout(connect, reconnectDelay(attempt++));
       };
     };
     connect();
 
+    // Coming back online is a better signal than waiting out the timer.
+    const retryNow = () => {
+      if (socketRef.current?.readyState === WebSocket.OPEN || socketRef.current?.readyState === WebSocket.CONNECTING) return;
+      attempt = 0;
+      connect();
+    };
+    window.addEventListener("online", retryNow);
+
     return () => {
       disposed = true;
       clearTimeout(timer);
+      window.removeEventListener("online", retryNow);
       socketRef.current?.close();
     };
   }, [worldId]);

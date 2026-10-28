@@ -76,6 +76,13 @@ export function Table({ worldId, user }: Props) {
     }
   };
 
+  // A disabled fieldset turns off every control inside it, so nothing can be sent into a dead connection.
+  const renderPanelWhenOnline = (id: TableTab) => (
+    <fieldset disabled={!connected} className="contents">
+      {renderPanel(id)}
+    </fieldset>
+  );
+
   return (
     <MotionConfig reducedMotion="user">
       <TipProvider>
@@ -108,7 +115,14 @@ export function Table({ worldId, user }: Props) {
           <MapToolbar tool={tool} onToolChange={setTool} />
           <p className="map-hint">{t("map.hint")}</p>
           <OnlineChip members={state.members} />
-          <Drawer open={drawerOpen} onToggle={toggleDrawer} tab={tab} onTabChange={setTab} tabs={tabs} renderPanel={renderPanel} />
+          <Drawer
+            open={drawerOpen}
+            onToggle={toggleDrawer}
+            tab={tab}
+            onTabChange={setTab}
+            tabs={tabs}
+            renderPanel={renderPanelWhenOnline}
+          />
         </main>
       </TipProvider>
     </MotionConfig>

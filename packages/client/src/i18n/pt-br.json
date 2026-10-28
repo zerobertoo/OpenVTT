@@ -76,7 +76,8 @@
     "back": "Voltar aos mundos",
     "panels": "Painéis da mesa",
     "hidePanels": "Ocultar painéis",
-    "showPanels": "Mostrar painéis"
+    "showPanels": "Mostrar painéis",
+    "reconnected": "De volta à mesa"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Fichas", "scenes": "Cenas", "settings": "Mundo" },
   "map": {
