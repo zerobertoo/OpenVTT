@@ -15,6 +15,11 @@ const tavern: SceneDto = {
   gridSize: 70,
   gridDistance: 5,
   distanceUnit: "ft",
+  walls: [],
+  lights: [],
+  bakedLighting: false,
+  floorGroup: null,
+  floor: 0,
 };
 const cave: SceneDto = { ...tavern, id: "s2", name: "Goblin cave" };
 

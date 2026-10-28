@@ -277,6 +277,16 @@ export function buildApp(options: AppOptions) {
     return scene;
   });
 
+  app.post<{ Params: { id: string; wallId: string } }>("/api/scenes/:id/doors/:wallId", async (req) => {
+    const worldId = s.scenes.worldIdOf(req.params.id);
+    if (!worldId) throw new AppError("not_found");
+    requireGm(req, worldId);
+    const { open } = z.object({ open: z.boolean() }).parse(req.body);
+    if (!s.scenes.setDoorOpen(req.params.id, req.params.wallId, open)) throw new AppError("not_found");
+    hub.broadcastState(worldId);
+    return { ok: true };
+  });
+
   app.delete<{ Params: { id: string } }>("/api/scenes/:id", async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");

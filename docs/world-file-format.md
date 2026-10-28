@@ -9,6 +9,8 @@ assets/<uuid>.<png|jpg|webp>
 
 `world.json` has `format: "openvtt-world"` and `version: 1`, plus the world settings (name, system id, sheet template overrides, active scene), `assets`, `scenes`, `actors`, `tokens` and `messages`. Ids inside the file only link records to each other; importing assigns fresh ids.
 
+Each scene may carry `walls` (segments `x1,y1,x2,y2` in map pixels, `kind` `wall` or `door`, `open` for doors), `lights` (`x`, `y` in pixels, `radius` in grid cells, `intensity`, `color` as `#rrggbb`, `shadows`), `bakedLighting`, and `floorGroup` / `floor` for maps imported as several floors. All are optional: files written before they existed still import, with empty lists. Importers ignore unknown fields.
+
 What is **not** exported, on purpose:
 
 - user accounts and memberships: the importer becomes the game master of the new world, so token controllers and sheet owners are cleared;

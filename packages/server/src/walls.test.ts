@@ -1,0 +1,104 @@
+import type { SceneDto, ServerMessage } from "@openvtt/shared";
+import { afterEach, describe, expect, it } from "vitest";
+import { call, closeApps, connect, listen, newApp, signUp } from "./test-utils.ts";
+
+afterEach(closeApps);
+
+const WALLS = [
+  { x1: 0, y1: 0, x2: 500, y2: 0 },
+  { x1: 500, y1: 0, x2: 500, y2: 300, kind: "door", open: false },
+];
+const LIGHTS = [{ x: 100, y: 100, radius: 4, intensity: 2, color: "#ffe5bf" }];
+
+async function setup() {
+  const app = newApp();
+  const gm = await signUp(app, "alice");
+  const bob = await signUp(app, "bob");
+  const world = (await call(app, gm.cookie, "POST", "/api/worlds", { name: "Table" })).json();
+  const { code } = (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/invites`)).json();
+  await call(app, bob.cookie, "POST", `/api/invites/${code}/join`, { displayName: "Bob", color: "#112233" });
+  const scene = (
+    await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, {
+      name: "Crypt",
+      width: 1000,
+      height: 800,
+      walls: WALLS,
+      lights: LIGHTS,
+      bakedLighting: true,
+    })
+  ).json() as SceneDto;
+  return { app, gm, bob, world, scene };
+}
+
+const stateOf = async (app: Parameters<typeof listen>[0], worldId: string, cookie: string) => {
+  const conn = connect(await listen(app), worldId, cookie);
+  const msg = await conn.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
+  conn.ws.close();
+  return msg.state;
+};
+
+describe("walls, doors and lights", () => {
+  it("stores them with the scene and lets the game master read them back", async () => {
+    const { app, gm, world, scene } = await setup();
+    expect(scene.walls).toHaveLength(2);
+    expect(scene.walls[1]).toMatchObject({ kind: "door", open: false });
+    expect(scene.lights[0]).toMatchObject({ radius: 4, color: "#ffe5bf", shadows: true });
+    expect(scene.bakedLighting).toBe(true);
+    const state = await stateOf(app, world.id, gm.cookie);
+    expect(state.scenes[0]!.walls).toHaveLength(2);
+  });
+
+  it("never sends walls, doors or lights to players", async () => {
+    const { app, bob, world } = await setup();
+    const state = await stateOf(app, world.id, bob.cookie);
+    expect(state.scenes).toHaveLength(1);
+    expect(state.scenes[0]!.walls).toEqual([]);
+    expect(state.scenes[0]!.lights).toEqual([]);
+    expect(JSON.stringify(state)).not.toContain("ffe5bf");
+  });
+
+  it("keeps the map data when an update does not mention it, and replaces it when it does", async () => {
+    const { app, gm, scene } = await setup();
+    const renamed = (await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { name: "Crypt 2" })).json();
+    expect(renamed.walls).toHaveLength(2);
+    const replaced = (await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { walls: [WALLS[0]] })).json();
+    expect(replaced.walls).toHaveLength(1);
+    expect(replaced.lights).toHaveLength(1);
+  });
+
+  it("opens a door for the game master only, and only doors", async () => {
+    const { app, gm, bob, world, scene } = await setup();
+    const [wall, door] = scene.walls;
+    const url = (id: string) => `/api/scenes/${scene.id}/doors/${id}`;
+    expect((await call(app, bob.cookie, "POST", url(door!.id), { open: true })).statusCode).toBe(403);
+    expect((await call(app, gm.cookie, "POST", url(wall!.id), { open: true })).statusCode).toBe(404);
+    expect((await call(app, gm.cookie, "POST", url(door!.id), { open: true })).statusCode).toBe(200);
+    expect((await stateOf(app, world.id, gm.cookie)).scenes[0]!.walls[1]!.open).toBe(true);
+  });
+
+  it("rejects coordinates outside the map limits and too many walls", async () => {
+    const { app, gm, world } = await setup();
+    const bad = (walls: unknown[]) =>
+      call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "x", width: 10, height: 10, walls });
+    expect((await bad([{ x1: -5, y1: 0, x2: 1, y2: 1 }])).statusCode).toBe(400);
+    expect((await bad([{ x1: 0, y1: 0, x2: 1e9, y2: 1 }])).statusCode).toBe(400);
+    expect((await bad(Array.from({ length: 20001 }, () => WALLS[0]))).statusCode).toBe(400);
+  });
+
+  it("survives export and import, and old files without map data still import", async () => {
+    const { app, gm, world } = await setup();
+    const exported = await call(app, gm.cookie, "GET", `/api/worlds/${world.id}/export`);
+    const importer = await signUp(app, "dave");
+    const imported = await app.inject({
+      method: "POST",
+      url: "/api/worlds/import",
+      payload: exported.rawPayload,
+      headers: { cookie: importer.cookie, "content-type": "application/zip" },
+    });
+    expect(imported.statusCode).toBe(200);
+    const scene = (await stateOf(app, imported.json().id, importer.cookie)).scenes[0]!;
+    expect(scene.walls.map((w) => w.kind)).toEqual(["wall", "door"]);
+    expect(scene.lights).toHaveLength(1);
+    expect(scene.bakedLighting).toBe(true);
+  });
+});

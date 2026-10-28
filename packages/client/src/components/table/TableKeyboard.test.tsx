@@ -18,6 +18,11 @@ const scene: SceneDto = {
   gridSize: 70,
   gridDistance: 5,
   distanceUnit: "ft",
+  walls: [],
+  lights: [],
+  bakedLighting: false,
+  floorGroup: null,
+  floor: 0,
 };
 const token: TokenDto = {
   id: "t1",

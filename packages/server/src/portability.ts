@@ -3,7 +3,7 @@ import { createWriteStream, mkdirSync, rmSync, statSync, type WriteStream } from
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData } from "@openvtt/sdk";
-import { MAX_UPLOAD_BYTES, type UserDto } from "@openvtt/shared";
+import { lightInputSchema, MAX_SCENE_LIGHTS, MAX_SCENE_WALLS, MAX_UPLOAD_BYTES, type UserDto, wallInputSchema } from "@openvtt/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { Unzip, UnzipInflate, UnzipPassThrough, Zip, ZipDeflate, ZipPassThrough } from "fflate";
 import { z } from "zod";
@@ -41,6 +41,12 @@ const worldFileSchema = z.object({
         gridSize: z.number().int().min(10).max(500),
         gridDistance: z.number().positive().max(1000),
         distanceUnit: z.string().max(10),
+        // Absent in files written before walls and lights existed.
+        walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS).default([]),
+        lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS).default([]),
+        bakedLighting: z.boolean().default(false),
+        floorGroup: z.string().uuid().nullable().default(null),
+        floor: z.number().int().min(-20).max(50).default(0),
       }),
     )
     .max(500),

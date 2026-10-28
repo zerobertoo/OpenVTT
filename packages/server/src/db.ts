@@ -105,6 +105,33 @@ CREATE TABLE messages (
 );
 CREATE INDEX messages_world ON messages (world_id, created_at);
 `,
+  `
+ALTER TABLE scenes ADD COLUMN baked_lighting INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE scenes ADD COLUMN floor_group TEXT;
+ALTER TABLE scenes ADD COLUMN floor INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE walls (
+  id TEXT PRIMARY KEY,
+  scene_id TEXT NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
+  x1 REAL NOT NULL,
+  y1 REAL NOT NULL,
+  x2 REAL NOT NULL,
+  y2 REAL NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('wall', 'door')),
+  open INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX walls_scene ON walls (scene_id);
+CREATE TABLE lights (
+  id TEXT PRIMARY KEY,
+  scene_id TEXT NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  radius REAL NOT NULL,
+  intensity REAL NOT NULL,
+  color TEXT NOT NULL,
+  shadows INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX lights_scene ON lights (scene_id);
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

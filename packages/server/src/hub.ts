@@ -4,6 +4,7 @@ import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { canReadMessage } from "./chat.ts";
 import { AppError } from "./errors.ts";
+import { withoutHiddenMapData } from "./scenes.ts";
 import type { Services } from "./services.ts";
 import type { Viewer } from "./tokens.ts";
 
@@ -131,7 +132,7 @@ export class Hub {
       yourRole: viewer.role,
       activeSceneId,
       members: this.s.worlds.members(worldId, online),
-      scenes: viewer.role === "gm" ? allScenes : allScenes.filter((sc) => sc.id === activeSceneId),
+      scenes: viewer.role === "gm" ? allScenes : allScenes.filter((sc) => sc.id === activeSceneId).map(withoutHiddenMapData),
       tokens: this.s.tokens.visibleTo(worldId, viewer, activeSceneId),
       actors: this.s.actors.visibleTo(worldId, viewer),
       messages: this.s.chat.historyFor(worldId, viewer),

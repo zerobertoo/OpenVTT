@@ -70,6 +70,32 @@ export interface MemberDto {
 
 export type GridType = "square" | "none";
 
+export type WallKind = "wall" | "door";
+
+/** A line segment that blocks movement and sight; a door can be opened. Coordinates are map pixels. */
+export interface WallDto {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  kind: WallKind;
+  /** Only meaningful for doors. */
+  open: boolean;
+}
+
+export interface LightDto {
+  id: string;
+  x: number;
+  y: number;
+  /** Radius in grid cells. */
+  radius: number;
+  intensity: number;
+  /** `#rrggbb`. */
+  color: string;
+  shadows: boolean;
+}
+
 export interface SceneDto {
   id: string;
   name: string;
@@ -85,6 +111,14 @@ export interface SceneDto {
   /** Real-world distance of one cell, used by the ruler. */
   gridDistance: number;
   distanceUnit: string;
+  /** Walls, doors and lights are game master only until per-player vision exists; players get empty lists. */
+  walls: WallDto[];
+  lights: LightDto[];
+  /** True when the picture already has its lighting drawn in (imported "render lights in image"). */
+  bakedLighting: boolean;
+  /** Scenes imported together as floors of one map share a group; `floor` orders them (0 = ground). */
+  floorGroup: string | null;
+  floor: number;
 }
 
 export interface TokenDto {
@@ -163,6 +197,29 @@ export const ALLOWED_VIDEO_TYPES = ["video/webm", "video/mp4"] as const;
 /** Default cap for animated map videos; the server reads `OPENVTT_MAX_VIDEO_BYTES` to override it. */
 export const DEFAULT_MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
+const mapCoordinate = z.number().finite().min(0).max(MAX_MAP_DIMENSION);
+export const wallInputSchema = z.object({
+  x1: mapCoordinate,
+  y1: mapCoordinate,
+  x2: mapCoordinate,
+  y2: mapCoordinate,
+  kind: z.enum(["wall", "door"]).default("wall"),
+  open: z.boolean().default(false),
+});
+export const lightInputSchema = z.object({
+  x: mapCoordinate,
+  y: mapCoordinate,
+  radius: z.number().finite().min(0).max(200),
+  intensity: z.number().finite().min(0).max(10).default(1),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .default("#ffffff"),
+  shadows: z.boolean().default(true),
+});
+export const MAX_SCENE_WALLS = 20000;
+export const MAX_SCENE_LIGHTS = 1000;
+
 export const createSceneSchema = z.object({
   name: z.string().trim().min(1).max(80),
   assetId: z.string().uuid().nullable().default(null),
@@ -172,6 +229,12 @@ export const createSceneSchema = z.object({
   gridSize: z.number().int().min(10).max(500).default(70),
   gridDistance: z.number().positive().max(1000).default(5),
   distanceUnit: z.string().trim().max(10).default("ft"),
+  /** Replacing the lists is all-or-nothing; leave them out on update to keep what is stored. */
+  walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS).default([]),
+  lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS).default([]),
+  bakedLighting: z.boolean().default(false),
+  floorGroup: z.string().uuid().nullable().default(null),
+  floor: z.number().int().min(-20).max(50).default(0),
 });
 export const updateSceneSchema = createSceneSchema.partial();
 
