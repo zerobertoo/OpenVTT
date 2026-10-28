@@ -240,6 +240,21 @@
       }
     }
   },
+  "initiative": {
+    "title": "Iniciativa",
+    "list": "Ordem de iniciativa",
+    "round": "Rodada {{round}}",
+    "turn": "Vez",
+    "score": "Valor de iniciativa",
+    "scoreFor": "Iniciativa de {{name}}",
+    "add": "Adicionar à ordem",
+    "update": "Atualizar valor",
+    "selectHint": "Selecione um token para colocá-lo na ordem.",
+    "next": "Próximo turno",
+    "end": "Encerrar combate",
+    "remove": "Remover {{name}} da ordem",
+    "removeShort": "Remover"
+  },
   "token": {
     "title": "Tokens",
     "name": "Nome",

@@ -136,6 +136,18 @@ CREATE INDEX lights_scene ON lights (scene_id);
 ALTER TABLE scenes ADD COLUMN vision_enabled INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE scenes ADD COLUMN vision_radius REAL NOT NULL DEFAULT 12;
 `,
+  `
+CREATE TABLE IF NOT EXISTS combats (
+  world_id TEXT PRIMARY KEY REFERENCES worlds(id) ON DELETE CASCADE,
+  round INTEGER NOT NULL DEFAULT 1,
+  turn_token_id TEXT REFERENCES tokens(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS combatants (
+  token_id TEXT PRIMARY KEY REFERENCES tokens(id) ON DELETE CASCADE,
+  world_id TEXT NOT NULL REFERENCES worlds(id) ON DELETE CASCADE,
+  score REAL NOT NULL
+);
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

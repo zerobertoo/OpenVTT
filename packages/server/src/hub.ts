@@ -187,6 +187,7 @@ export class Hub {
       actors: this.s.actors.visibleTo(worldId, viewer),
       messages: this.s.chat.historyFor(worldId, viewer),
       vision: sight?.vision ?? null,
+      combat: this.s.combat.stateFor(worldId, viewer),
     };
   }
 
@@ -227,6 +228,12 @@ export class Hub {
       if (sight) this.refreshSight(c, sight, null);
       else if (this.s.tokens.canSee(token, c.viewer, activeSceneId)) this.send(c, { type: "token.remove", tokenId: token.id });
     }
+  }
+
+  /** Sends each person the initiative order they may see. */
+  publishCombat(worldId: string) {
+    for (const c of this.connections)
+      if (c.worldId === worldId) this.send(c, { type: "combat.update", combat: this.s.combat.stateFor(worldId, c.viewer) });
   }
 
   publishMessage(worldId: string, message: MessageDto) {

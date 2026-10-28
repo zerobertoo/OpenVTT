@@ -240,6 +240,21 @@
       }
     }
   },
+  "initiative": {
+    "title": "Initiative",
+    "list": "Initiative order",
+    "round": "Round {{round}}",
+    "turn": "Turn",
+    "score": "Initiative score",
+    "scoreFor": "Initiative of {{name}}",
+    "add": "Add to order",
+    "update": "Update score",
+    "selectHint": "Select a token to add it to the order.",
+    "next": "Next turn",
+    "end": "End combat",
+    "remove": "Remove {{name}} from the order",
+    "removeShort": "Remove"
+  },
   "token": {
     "title": "Tokens",
     "name": "Name",

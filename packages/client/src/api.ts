@@ -28,6 +28,7 @@ async function request<T>(method: string, url: string, body?: unknown, contentTy
 const get = <T>(url: string) => request<T>("GET", url);
 const post = <T>(url: string, body?: unknown) => request<T>("POST", url, body ?? {});
 const patch = <T>(url: string, body: unknown) => request<T>("PATCH", url, body);
+const put = <T>(url: string, body: unknown) => request<T>("PUT", url, body);
 const del = <T = unknown>(url: string) => request<T>("DELETE", url);
 
 export const assetUrl = (assetId: string) => `/api/assets/${assetId}`;
@@ -59,6 +60,11 @@ export const api = {
   createToken: (worldId: string, body: object) => post<TokenDto>(`/api/worlds/${worldId}/tokens`, body),
   updateToken: (tokenId: string, body: object) => patch<TokenDto>(`/api/tokens/${tokenId}`, body),
   deleteToken: (tokenId: string) => del(`/api/tokens/${tokenId}`),
+
+  setCombatant: (worldId: string, tokenId: string, score: number) => put(`/api/worlds/${worldId}/combat/combatants`, { tokenId, score }),
+  removeCombatant: (worldId: string, tokenId: string) => del(`/api/worlds/${worldId}/combat/combatants/${tokenId}`),
+  nextTurn: (worldId: string) => post(`/api/worlds/${worldId}/combat/next`),
+  endCombat: (worldId: string) => del(`/api/worlds/${worldId}/combat`),
 
   sendMessage: (worldId: string, body: { content: string; toUserId: string | null; gmOnly: boolean }) =>
     post<MessageDto>(`/api/worlds/${worldId}/messages`, body),

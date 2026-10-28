@@ -8,6 +8,7 @@ An open source, self-hosted virtual tabletop for tabletop RPGs, written from scr
 - Worlds with invite links; roles: administrator (installation), game master and player (per world).
 - Scenes with an uploaded map (PNG/JPG/WebP or an animated video), square grid or no grid, smooth pan/zoom (PixiJS) and a distance ruler in imperial, metric or squares.
 - Map import from Dungeon Alchemist and others (Universal VTT, Foundry-style exports, plain images), with walls, doors and lights, multi-floor maps and a visual grid adjuster; scenes export back as Universal VTT.
+- Initiative order: the game master sets scores and moves the turn and round; players see the order without hidden tokens.
 - Optional fog of war: players only see what their tokens see, shaped by walls, closed doors and lights, and walls stay on the server.
 - Tokens: create, move (snapped to the grid), resize, rotate, hide from players, assign controllers, link to a sheet.
 - Chat with whispers, `/r 2d6+3` and `/r 1d20 adv` dice rolls (rolled on the server), GM-only rolls and persisted history.

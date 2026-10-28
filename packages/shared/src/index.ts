@@ -172,6 +172,17 @@ export interface VisionDto {
   polygons: number[][];
 }
 
+/** Initiative order of a world. Hidden tokens are left out for players, and so is a turn that belongs to one of them. */
+export interface CombatDto {
+  round: number;
+  /** Token whose turn it is; null before the first turn starts. */
+  turnTokenId: string | null;
+  /** Highest score first; ties keep the order they were added in. */
+  combatants: { tokenId: string; name: string; score: number }[];
+}
+
+export const setCombatantSchema = z.object({ tokenId: z.string().min(1), score: z.number().finite().min(-1000).max(1000) });
+
 export interface WorldStateDto {
   id: string;
   name: string;
@@ -187,6 +198,8 @@ export interface WorldStateDto {
   messages: MessageDto[];
   /** What the recipient can see when the active scene uses vision; null for the game master and for scenes without it. */
   vision: VisionDto | null;
+  /** Null while no combat is running. */
+  combat: CombatDto | null;
 }
 
 /** Server → client messages. */
@@ -196,6 +209,7 @@ export type ServerMessage =
   | { type: "token.remove"; tokenId: string }
   | { type: "chat.message"; message: MessageDto }
   | { type: "vision.update"; vision: VisionDto | null }
+  | { type: "combat.update"; combat: CombatDto | null }
   | { type: "error"; code: ErrorCode };
 
 /** Client → server messages. */

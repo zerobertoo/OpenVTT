@@ -2,6 +2,7 @@ import type { TokenDto, WorldStateDto } from "@openvtt/shared";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { Initiative } from "../components/tokens/Initiative";
 import { TokenEditor } from "../components/tokens/TokenEditor";
 import { TokenList } from "../components/tokens/TokenList";
 import { Button } from "../components/ui/button";
@@ -83,6 +84,15 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
         />
       )}
       {sceneTokens.length > 0 && !token && <p className="muted">{t("token.noneSelected")}</p>}
+      <Initiative
+        combat={state.combat}
+        isGm={isGm}
+        selectedToken={token}
+        onSetScore={(tokenId, score) => void run(() => api.setCombatant(state.id, tokenId, score))}
+        onRemove={(tokenId) => void run(() => api.removeCombatant(state.id, tokenId))}
+        onNextTurn={() => void run(() => api.nextTurn(state.id))}
+        onEnd={() => void run(() => api.endCombat(state.id))}
+      />
       <ErrorMessage error={error} />
     </section>
   );

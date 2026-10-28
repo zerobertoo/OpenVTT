@@ -23,6 +23,7 @@ import {
   updateActorSchema,
   updateProfileSchema,
   updateSceneSchema,
+  setCombatantSchema,
   updateTokenSchema,
   updateWorldSchema,
   usernameSchema,
@@ -316,6 +317,8 @@ export function buildApp(options: AppOptions) {
       throw new AppError("forbidden");
     const after = s.tokens.update(found.token.id, found.worldId, patch);
     hub.publishToken(found.worldId, found.token, after);
+    // A name or visibility change alters what the initiative list may show; other tokens must not cause traffic.
+    if (s.combat.isCombatant(found.token.id)) hub.publishCombat(found.worldId);
     return after;
   });
 
@@ -323,8 +326,41 @@ export function buildApp(options: AppOptions) {
     const found = s.tokens.find(req.params.id);
     if (!found) throw new AppError("not_found");
     requireGm(req, found.worldId);
+    const wasCombatant = s.combat.isCombatant(found.token.id);
     s.tokens.remove(found.token.id);
     hub.publishTokenRemoved(found.worldId, found.token);
+    if (wasCombatant) hub.publishCombat(found.worldId);
+    return { ok: true };
+  });
+
+  // ---- initiative ---------------------------------------------------------------------------
+
+  app.put<{ Params: { id: string } }>("/api/worlds/:id/combat/combatants", async (req) => {
+    requireGm(req, req.params.id);
+    const { tokenId, score } = setCombatantSchema.parse(req.body);
+    s.combat.setCombatant(req.params.id, tokenId, score);
+    hub.publishCombat(req.params.id);
+    return { ok: true };
+  });
+
+  app.delete<{ Params: { id: string; tokenId: string } }>("/api/worlds/:id/combat/combatants/:tokenId", async (req) => {
+    requireGm(req, req.params.id);
+    s.combat.removeCombatant(req.params.id, req.params.tokenId);
+    hub.publishCombat(req.params.id);
+    return { ok: true };
+  });
+
+  app.post<{ Params: { id: string } }>("/api/worlds/:id/combat/next", async (req) => {
+    requireGm(req, req.params.id);
+    s.combat.nextTurn(req.params.id);
+    hub.publishCombat(req.params.id);
+    return { ok: true };
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/worlds/:id/combat", async (req) => {
+    requireGm(req, req.params.id);
+    s.combat.end(req.params.id);
+    hub.publishCombat(req.params.id);
     return { ok: true };
   });
 

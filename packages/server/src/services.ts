@@ -3,6 +3,7 @@ import { ActorService } from "./actors.ts";
 import { type AssetLimits, AssetService } from "./assets.ts";
 import { AuthService } from "./auth.ts";
 import { ChatService } from "./chat.ts";
+import { CombatService } from "./combat.ts";
 import type { Db } from "./db.ts";
 import { SceneService } from "./scenes.ts";
 import { SystemRegistry } from "./systems.ts";
@@ -19,6 +20,7 @@ export interface Services {
   tokens: TokenService;
   actors: ActorService;
   chat: ChatService;
+  combat: CombatService;
   systems: SystemRegistry;
 }
 
@@ -35,6 +37,7 @@ export function createServices(db: Db, dataDir: string, builtInSystemsDir: strin
     tokens: new TokenService(db, assets),
     actors: new ActorService(db, systems),
     chat: new ChatService(db),
+    combat: new CombatService(db),
     systems,
   };
 }

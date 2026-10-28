@@ -23,7 +23,7 @@ export async function signUp(app: App, username: string, password = "correct hor
   return { res, cookie, user: res.json() };
 }
 
-export const call = (app: App, cookie: string, method: "GET" | "POST" | "PATCH" | "DELETE", url: string, payload?: object) =>
+export const call = (app: App, cookie: string, method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", url: string, payload?: object) =>
   app.inject({ method, url, payload, headers: { cookie } });
 
 export const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
