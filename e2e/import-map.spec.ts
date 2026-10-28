@@ -16,8 +16,24 @@ const UVTT = {
     JSON.stringify({
       format: 0.2,
       resolution: { map_origin: { x: 0, y: 0 }, map_size: { x: 4, y: 3 }, pixels_per_grid: 32 },
-      line_of_sight: [],
-      portals: [],
+      line_of_sight: [
+        [
+          { x: 0, y: 1 },
+          { x: 2, y: 1 },
+        ],
+      ],
+      portals: [
+        {
+          position: { x: 3, y: 1 },
+          bounds: [
+            { x: 2, y: 1 },
+            { x: 4, y: 1 },
+          ],
+          rotation: 0,
+          closed: true,
+          freestanding: false,
+        },
+      ],
       lights: [{ position: { x: 1, y: 1 }, range: 5, intensity: 2, color: "ffFFE5BF", shadows: true }],
       environment: { baked_lighting: true, ambient_light: "ffffffff" },
       image: "",
@@ -34,12 +50,14 @@ test("a Universal VTT file and its video become a scene with the grid from the f
   const dialog = page.getByRole("dialog", { name: "Import a map" });
   await dialog.getByLabel("Map files").setInputFiles([UVTT, VIDEO]);
   await expect(dialog.getByText(/128×96 px, 1 lights/)).toBeVisible();
-  await expect(dialog.getByText(/no walls or doors/)).toBeVisible();
+  await expect(dialog.getByText(/2 walls and doors/)).toBeVisible();
+  await expect(dialog.getByText(/no walls or doors/)).toHaveCount(0);
   await expect(dialog.getByLabel(/Cell size/)).toHaveValue("32");
   await expectNoAxeViolations(page);
 
   await dialog.getByRole("button", { name: "Create scene" }).click();
   await expect(page.getByRole("list", { name: "Scenes" }).getByText("Little Crypt")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Show walls and lights" })).toBeChecked();
 });
 
 test("a file that is not a map is explained", async ({ page }) => {

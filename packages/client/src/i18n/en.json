@@ -173,6 +173,8 @@
     "none": "No scenes yet.",
     "noneHint": "Create the first one below. Players see the scene you choose to show them.",
     "moreActions": "More actions for {{name}}",
+    "showMapData": "Show walls and lights",
+    "mapDataSummary": "{{walls}} walls and doors, {{lights}} lights. Only you see them. Click a door's circle on the map to open or close it.",
     "imageSizeFromFile": "The scene takes the size of the image.",
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "The scene and its tokens are removed for everyone. This cannot be undone.",

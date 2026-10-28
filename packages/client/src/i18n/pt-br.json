@@ -173,6 +173,8 @@
     "none": "Nenhuma cena ainda.",
     "noneHint": "Crie a primeira abaixo. Os jogadores veem a cena que você escolher mostrar.",
     "moreActions": "Mais ações para {{name}}",
+    "showMapData": "Mostrar paredes e luzes",
+    "mapDataSummary": "{{walls}} paredes e portas, {{lights}} luzes. Só você vê. Clique no círculo de uma porta no mapa para abrir ou fechar.",
     "imageSizeFromFile": "A cena assume o tamanho da imagem.",
     "deleteTitle": "Excluir {{name}}?",
     "deleteBody": "A cena e seus tokens são removidos para todos. Isso não pode ser desfeito.",

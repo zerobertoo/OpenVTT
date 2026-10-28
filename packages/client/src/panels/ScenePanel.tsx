@@ -6,8 +6,11 @@ import { type MapImportChoice, MapImportDialog } from "../components/scenes/MapI
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
 import { Button } from "../components/ui/button";
+import { Switch } from "../components/ui/checkbox";
 import { EmptyState } from "../components/ui/empty-state";
+import { Field } from "../components/ui/field";
 import { readMediaSize, UnsupportedMediaError } from "../lib/media";
+import { useTableUi } from "../tableStore";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
@@ -21,6 +24,8 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
   const { run, error, pending } = useAction();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const showMapData = useTableUi((s) => s.showMapData);
+  const setShowMapData = useTableUi((s) => s.setShowMapData);
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
 
   const create = (e: FormEvent<HTMLFormElement>) => {
@@ -60,6 +65,12 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
         gridSize: choice.gridSize,
         gridDistance: choice.gridDistance,
         distanceUnit: choice.distanceUnit,
+        walls: [
+          ...(choice.uvtt?.walls ?? []).map((w) => ({ ...w, kind: "wall" })),
+          ...(choice.uvtt?.doors ?? []).map(({ closed, ...w }) => ({ ...w, kind: "door", open: !closed })),
+        ],
+        lights: choice.uvtt?.lights ?? [],
+        bakedLighting: choice.uvtt?.bakedLighting ?? false,
       });
       setImporting(false);
       onView(scene.id);
@@ -99,6 +110,16 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
             />
           ))}
         </ul>
+      )}
+
+      {current && (current.walls.length > 0 || current.lights.length > 0) && (
+        <Field
+          label={t("scene.showMapData")}
+          hint={t("scene.mapDataSummary", { walls: current.walls.length, lights: current.lights.length })}
+          inline
+        >
+          {(control) => <Switch {...control} checked={showMapData} onChange={(e) => setShowMapData(e.target.checked)} />}
+        </Field>
       )}
 
       {current && (

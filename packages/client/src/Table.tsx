@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { api } from "./api";
 import { TableLoading } from "./components/screens/TableLoading";
 import { Drawer } from "./components/table/Drawer";
 import { MapToolbar } from "./components/table/MapToolbar";
@@ -35,7 +36,7 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId } = useTableUi();
+  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId, showMapData } = useTableUi();
   const { setTab, toggleDrawer, setTool, selectToken, viewScene, reset } = useTableUi.getState();
 
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
@@ -115,6 +116,8 @@ export function Table({ worldId, user }: Props) {
               canControl={canControl}
               onSelect={selectToken}
               onMove={move}
+              showMapData={showMapData}
+              onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
               formatDistance={(cells) => format.distance(cells, scene)}
             />
           ) : (

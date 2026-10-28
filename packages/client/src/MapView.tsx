@@ -19,6 +19,9 @@ interface Props {
   onSelect: (tokenId: string | null) => void;
   /** Called while dragging (throttled) and once on drop with the snapped position. */
   onMove: (tokenId: string, x: number, y: number) => void;
+  /** Draw walls, doors and lights (only the game master receives them). */
+  showMapData: boolean;
+  onToggleDoor: (wallId: string, open: boolean) => void;
   /** Formats the ruler label; receives distance in grid cells. */
   formatDistance: (cells: number) => string;
 }
@@ -94,6 +97,7 @@ export function MapView(props: Props) {
     world: Container;
     background: Container;
     grid: Graphics;
+    mapData: Container;
     tokenLayer: Container;
     ruler: Graphics;
     rulerLabel: Text;
@@ -118,14 +122,27 @@ export function MapView(props: Props) {
         const world = new Container();
         const background = new Container();
         const grid = new Graphics();
+        const mapData = new Container();
         const tokenLayer = new Container();
         const ruler = new Graphics();
         const rulerLabel = new Text({ text: "", style: { fill: 0xffffff, fontSize: 16, stroke: { color: 0x000000, width: 4 } } });
-        world.addChild(background, grid, tokenLayer, ruler, rulerLabel);
+        world.addChild(background, grid, mapData, tokenLayer, ruler, rulerLabel);
         app.stage.addChild(world);
         app.stage.eventMode = "static";
         app.stage.hitArea = app.screen;
-        engine.current = { app, world, background, grid, tokenLayer, ruler, rulerLabel, tokenViews: new Map(), fitted: null, video: null };
+        engine.current = {
+          app,
+          world,
+          background,
+          grid,
+          mapData,
+          tokenLayer,
+          ruler,
+          rulerLabel,
+          tokenViews: new Map(),
+          fitted: null,
+          video: null,
+        };
         bindInteractions(app, world, ruler, rulerLabel);
         syncAll.current();
       });
@@ -251,6 +268,7 @@ export function MapView(props: Props) {
       if (!e) return;
       e.background.removeChildren().forEach((c) => c.destroy());
       e.grid.clear();
+      e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
       e.ruler.clear();
       e.rulerLabel.text = "";
       if (!scene) return void disposeVideo(e);
@@ -291,6 +309,7 @@ export function MapView(props: Props) {
         for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
         e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
       }
+      if (props_().showMapData) drawMapData(e, scene);
       if (e.fitted !== sceneId) {
         // Fit the whole map in view the first time a scene is shown.
         const scale = Math.min(e.app.screen.width / scene.width, e.app.screen.height / scene.height, 1);
@@ -298,6 +317,45 @@ export function MapView(props: Props) {
         e.world.position.set((e.app.screen.width - scene.width * scale) / 2, (e.app.screen.height - scene.height * scale) / 2);
         e.fitted = sceneId;
       }
+    }
+
+    /** Lights as soft discs, walls as red lines, doors as amber (closed) or green (open) lines with a handle to open them. */
+    function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto) {
+      const lights = new Graphics();
+      for (const light of scene.lights) {
+        const radius = light.radius * scene.gridSize;
+        lights.circle(light.x, light.y, radius).fill({ color: hexToNumber(light.color), alpha: 0.12 });
+        lights
+          .circle(light.x, light.y, Math.max(4, scene.gridSize / 8))
+          .fill({ color: hexToNumber(light.color) })
+          .stroke({ width: 2, color: 0x000000 });
+      }
+      const walls = new Graphics();
+      const doors = new Container();
+      const line = (g: Graphics, w: SceneDto["walls"][number]) => g.moveTo(w.x1, w.y1).lineTo(w.x2, w.y2);
+      for (const wall of scene.walls) {
+        if (wall.kind === "wall") {
+          line(walls, wall);
+          continue;
+        }
+        const door = new Graphics();
+        line(door, wall).stroke({ width: wall.open ? 3 : 6, color: wall.open ? 0x3ddc84 : 0xffb000, alpha: wall.open ? 0.7 : 1 });
+        // A handle at the middle of the door: a bigger target than the line, also for touch.
+        const handle = new Graphics()
+          .circle((wall.x1 + wall.x2) / 2, (wall.y1 + wall.y2) / 2, Math.max(12, scene.gridSize / 4))
+          .fill({ color: wall.open ? 0x3ddc84 : 0xffb000, alpha: 0.35 });
+        handle.eventMode = "static";
+        handle.cursor = "pointer";
+        handle.on("pointerdown", (event) => {
+          if (props_().tool !== "select" || event.button !== 0) return;
+          event.stopPropagation();
+          props_().onToggleDoor(wall.id, !wall.open);
+        });
+        door.addChild(handle);
+        doors.addChild(door);
+      }
+      walls.stroke({ width: 5, color: 0xff4d4d });
+      e.mapData.addChild(lights, walls, doors);
     }
 
     /** Starts loading an animated background; it plays at once unless the person prefers reduced motion. */
@@ -458,7 +516,7 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     syncAll.current();
-  }, [props.scene, props.tokens, props.selectedTokenId]);
+  }, [props.scene, props.tokens, props.selectedTokenId, props.showMapData]);
 
   useEffect(() => {
     engine.current?.ruler.clear();

@@ -10,6 +10,9 @@ interface TableUiState {
   selectedTokenId: string | null;
   /** Scene the game master is looking at; null follows the active scene. */
   gmViewSceneId: string | null;
+  /** Whether the game master sees walls, doors and lights drawn on the map. */
+  showMapData: boolean;
+  setShowMapData: (show: boolean) => void;
   setTab: (tab: TableTab) => void;
   toggleDrawer: () => void;
   setTool: (tool: MapTool) => void;
@@ -19,11 +22,19 @@ interface TableUiState {
   reset: () => void;
 }
 
-const initialState = { tab: "chat", drawerOpen: true, tool: "select", selectedTokenId: null, gmViewSceneId: null } as const;
+const initialState = {
+  tab: "chat",
+  drawerOpen: true,
+  tool: "select",
+  selectedTokenId: null,
+  gmViewSceneId: null,
+  showMapData: true,
+} as const;
 
 /** Local UI state of the table. Server state lives in `useWorldState`, REST data in TanStack Query. */
 export const useTableUi = create<TableUiState>((set) => ({
   ...initialState,
+  setShowMapData: (showMapData) => set({ showMapData }),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
   setTool: (tool) => set({ tool }),
