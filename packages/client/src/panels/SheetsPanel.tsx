@@ -1,8 +1,10 @@
 import { computeSheet, resolveLabel, type SheetField, type SheetTemplate, type SheetValue } from "@openvtt/sdk";
 import type { ActorDto, SystemInfoDto, WorldStateDto } from "@openvtt/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
 type Row = Record<string, string | number | boolean>;
@@ -162,14 +164,16 @@ function SheetForm({
 export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: string }) {
   const { t } = useTranslation();
   const { run, error } = useAction();
-  const [system, setSystem] = useState<SystemInfoDto | null>(null);
+  const queryClient = useQueryClient();
+  const { data: system } = useWorldSystem(state.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const isGm = state.yourRole === "gm";
 
   // The server rebuilds `state.actors` on every change, including template edits by the GM.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `state.actors` is the trigger, not a value read inside
   useEffect(() => {
-    void api.worldSystem(state.id).then(setSystem, () => setSystem(null));
-  }, [state.id, state.actors]);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.worldSystem(state.id) });
+  }, [queryClient, state.id, state.actors]);
 
   const selected = state.actors.find((a) => a.id === (selectedId ?? state.actors[0]?.id)) ?? null;
   const template = selected && system?.templates[selected.type];

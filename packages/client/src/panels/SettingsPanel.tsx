@@ -1,20 +1,22 @@
 import type { ActorType } from "@openvtt/sdk";
-import type { SystemInfoDto, WorldStateDto } from "@openvtt/shared";
+import type { WorldStateDto } from "@openvtt/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
+import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
 function TemplateEditor({ worldId }: { worldId: string }) {
   const { t } = useTranslation();
   const { run, error } = useAction();
-  const [system, setSystem] = useState<SystemInfoDto | null>(null);
+  const queryClient = useQueryClient();
+  const { data: system } = useWorldSystem(worldId);
   const [type, setType] = useState<ActorType>("character");
   const [text, setText] = useState("");
   const [jsonError, setJsonError] = useState(false);
 
-  const load = () => api.worldSystem(worldId).then(setSystem);
-  useEffect(() => void load(), [worldId]);
+  const load = () => queryClient.invalidateQueries({ queryKey: queryKeys.worldSystem(worldId) });
   useEffect(() => {
     if (system) setText(JSON.stringify(system.templates[type] ?? { sections: [] }, null, 2));
   }, [system, type]);
@@ -83,12 +85,8 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [system, setSystem] = useState<SystemInfoDto | null>(null);
+  const { data: system } = useWorldSystem(state.id);
   const isGm = state.yourRole === "gm";
-
-  useEffect(() => {
-    void api.worldSystem(state.id).then(setSystem, () => setSystem(null));
-  }, [state.id]);
 
   return (
     <section aria-label={t("settings.title")}>

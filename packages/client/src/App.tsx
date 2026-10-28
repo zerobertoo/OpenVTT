@@ -1,12 +1,13 @@
-import type { SystemManifest } from "@openvtt/sdk";
 import { SUPPORTED_LOCALES, type UserDto, type WorldSummaryDto } from "@openvtt/shared";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "./api";
 import { normalizeLocale, setLocale } from "./i18n";
 import { Logo } from "./icons";
+import { queryKeys, useMe, useSystems, useWorlds } from "./queries";
 import { Table } from "./Table";
-import { ErrorMessage, useAction } from "./ui";
+import { ErrorMessage } from "./ui";
 
 function usePath() {
   const [path, setPath] = useState(location.pathname);
@@ -108,44 +109,34 @@ function AuthForm({ onAuthenticated }: { onAuthenticated: (user: UserDto) => voi
 
 function WorldList({ user, navigate }: { user: UserDto; navigate: (to: string) => void }) {
   const { t } = useTranslation();
-  const [worlds, setWorlds] = useState<WorldSummaryDto[]>([]);
-  const [systems, setSystems] = useState<SystemManifest[]>([]);
-  const { run, error } = useAction();
+  const queryClient = useQueryClient();
+  const worldsQuery = useWorlds();
+  const systemsQuery = useSystems();
+  const worlds = worldsQuery.data ?? [];
+  const systems = systemsQuery.data ?? [];
 
-  const loadSystems = () => api.systems().then(setSystems);
-  useEffect(() => {
-    void run(async () => {
-      setWorlds(await api.worlds());
-      await loadSystems();
-    });
-  }, [run]);
+  const addWorld = (world: WorldSummaryDto) =>
+    queryClient.setQueryData<WorldSummaryDto[]>(queryKeys.worlds, (prev) => [...(prev ?? []), world]);
+  const createWorld = useMutation({
+    mutationFn: ({ name, systemId }: { name: string; systemId: string }) => api.createWorld(name, systemId),
+    onSuccess: addWorld,
+  });
+  const importWorldMutation = useMutation({ mutationFn: api.importWorld, onSuccess: addWorld });
+  const installSystemMutation = useMutation({
+    mutationFn: api.installSystem,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.systems }),
+  });
+  const error = worldsQuery.error ?? systemsQuery.error ?? createWorld.error ?? importWorldMutation.error ?? installSystemMutation.error;
 
   const create = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const f = new FormData(form);
-    void run(async () => {
-      const world = await api.createWorld(String(f.get("name")), String(f.get("systemId")));
-      setWorlds((prev) => [...prev, world]);
-      form.reset();
-    });
+    createWorld.mutate({ name: String(f.get("name")), systemId: String(f.get("systemId")) }, { onSuccess: () => form.reset() });
   };
 
-  const importWorld = (file: File | undefined) => {
-    if (file)
-      void run(async () => {
-        const world = await api.importWorld(file);
-        setWorlds((prev) => [...prev, world]);
-      });
-  };
-
-  const installSystem = (file: File | undefined) => {
-    if (file)
-      void run(async () => {
-        await api.installSystem(file);
-        await loadSystems();
-      });
-  };
+  const importWorld = (file: File | undefined) => file && importWorldMutation.mutate(file);
+  const installSystem = (file: File | undefined) => file && installSystemMutation.mutate(file);
 
   return (
     <section>
@@ -237,29 +228,25 @@ function JoinInvite({ code, user, navigate }: { code: string; user: UserDto; nav
 export function App() {
   const { t } = useTranslation();
   const { path, navigate } = usePath();
-  const [user, setUser] = useState<UserDto | null | undefined>(undefined);
+  const queryClient = useQueryClient();
+  const meQuery = useMe();
+  // undefined while loading, null when signed out (also if /api/me is unreachable).
+  const user: UserDto | null | undefined = meQuery.isPending ? undefined : (meQuery.data ?? null);
 
   useEffect(() => {
-    api.me().then(
-      (u) => {
-        setUser(u);
-        if (u.locale) setLocale(u.locale);
-      },
-      () => setUser(null),
-    );
-  }, []);
+    if (meQuery.data?.locale) setLocale(meQuery.data.locale);
+  }, [meQuery.data]);
 
-  const authenticated = (u: UserDto) => {
-    setUser(u);
-    if (u.locale) setLocale(u.locale);
-  };
+  const authenticated = (u: UserDto) => queryClient.setQueryData(queryKeys.me, u);
 
   const account = (
     <AccountControls
       user={user ?? null}
       onLogout={async () => {
         await api.logout();
-        setUser(null);
+        // Drop everything the previous user could see, then show the sign-in form.
+        queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== queryKeys.me[0] });
+        queryClient.setQueryData(queryKeys.me, null);
         navigate("/");
       }}
     />

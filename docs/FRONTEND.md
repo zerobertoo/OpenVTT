@@ -160,7 +160,7 @@ Each step is one commit (Conventional Commits, English, no AI mention) and must 
 
 1. `chore: add Biome for linting and formatting` (config, `pnpm lint`, CI step; formatting applied in the same commit)
 2. `test(client): add Vitest, Testing Library and axe` (first tests: `ErrorMessage`, `useAction`; CI runs them)
-3. `feat(client): add TanStack Query and move REST data to it` (provider, `me`, worlds, systems, mutations; retire `useAction`). Zustand arrives with the Table refactor (step 16) and TanStack Form with the first real form (step 9).
+3. `feat(client): add TanStack Query and move REST data to it` (provider, `me`, worlds, systems, world system info; world-list mutations. `useAction` stays for panel actions whose result arrives over the WebSocket). Zustand arrives with the Table refactor (step 16) and TanStack Form with the first real form (step 9).
 4. `feat(client): add TanStack Router with a lazy table route` (replaces `usePath`; typed `/`, `/join/$code`, `/world/$worldId`; `redirect` to sign-in keeps the target)
 5. `test(e2e): add Playwright smoke tests` (register, create world, open table, send a chat roll; desktop and phone; axe on each screen; CI job)
 6. `chore(client): add Storybook component catalog` (a11y addon, light/dark and width controls, story convention, `pnpm catalog`)
@@ -204,7 +204,21 @@ Each step is one commit (Conventional Commits, English, no AI mention) and must 
 
 After step 31, update `DESIGN.md` (components, catalog, test commands) and move finished items out of `docs/ROADMAP.md`. Later items from section 4 get their own plan when scheduled.
 
-## 6. Definition of done for a component
+## 6. UX rules for loading, empty and error states
+
+Applied from the first screen that touches them, reviewed with the `impeccable` skill (critique and harden passes) at the end of phases B and E.
+
+- **Content-shaped waits get a skeleton** (lists, cards, sheets, chat history): same layout as the real content so nothing jumps when it arrives. Delay showing it by ~150 ms to avoid a flash on fast loads.
+- **Short actions get inline pending state** on the control that triggered them (button spinner, `aria-busy`), never a full-page spinner.
+- **Refetching keeps the old data visible**; show a subtle indicator, not a blank state.
+- **Every empty list explains itself and offers the next step** (`EmptyState`).
+- **Every failed load says what happened in plain words and offers a retry** (`ErrorState`); mutation errors appear next to the control that caused them.
+- **Disconnected means read-only with a reason**, not silently broken.
+- Skeletons and spinners respect `prefers-reduced-motion` (static placeholder).
+
+Until the `Skeleton` primitive lands (step 11), screens still show plain "Loading…" text; step 11 replaces every one of them.
+
+## 7. Definition of done for a component
 
 - Props typed, no `any`; variants through `cva`; tokens only (no raw colors).
 - Story covering every variant and state, visible in light and dark.
