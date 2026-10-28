@@ -43,6 +43,13 @@ const PATHS = {
     </>
   ),
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.2" />
+      <circle cx="12" cy="12" r="1.2" />
+      <circle cx="19" cy="12" r="1.2" />
+    </>
+  ),
   panelOpen: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

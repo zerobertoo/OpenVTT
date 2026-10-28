@@ -101,7 +101,15 @@
     "image": "Imagem do mapa (PNG, JPG, WebP)",
     "width": "Largura (px, sem imagem)",
     "height": "Altura (px, sem imagem)",
-    "create": "Criar cena"
+    "create": "Criar cena",
+    "list": "Cenas",
+    "settings": "Configurações da cena",
+    "none": "Nenhuma cena ainda.",
+    "noneHint": "Crie a primeira abaixo. Os jogadores veem a cena que você escolher mostrar.",
+    "moreActions": "Mais ações para {{name}}",
+    "imageSizeFromFile": "A cena assume o tamanho da imagem.",
+    "deleteTitle": "Excluir {{name}}?",
+    "deleteBody": "A cena e seus tokens são removidos para todos. Isso não pode ser desfeito."
   },
   "token": {
     "title": "Tokens",
