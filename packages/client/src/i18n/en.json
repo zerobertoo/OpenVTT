@@ -20,6 +20,42 @@
     "help": "Show this list",
     "moved": "{{name}} moved to column {{column}}, row {{row}}"
   },
+  "guide": {
+    "title": "How a table works",
+    "gmTitle": "Your table is ready for its first scene",
+    "gmIntro": "Three steps and your friends can start playing.",
+    "playerTitle": "Waiting for the game master",
+    "playerIntro": "The game master has not shown a scene yet. Here is what you can do meanwhile.",
+    "gmScene": {
+      "title": "Create a scene",
+      "text": "A scene is the map everyone sees. Upload an image or start with a blank grid.",
+      "action": "Open Scenes"
+    },
+    "gmToken": {
+      "title": "Add tokens",
+      "text": "Tokens are the characters and monsters on the map. Drag them to move them.",
+      "action": "Open Tokens"
+    },
+    "gmInvite": {
+      "title": "Invite your players",
+      "text": "Share an invite link. Friends join from their browser, nothing to install.",
+      "action": "Open World"
+    },
+    "playerChat": {
+      "title": "Say hello in the chat",
+      "text": "Type a message, or /r 1d20 to roll dice for everyone to see.",
+      "action": "Open Chat"
+    },
+    "playerMove": {
+      "title": "Move your token",
+      "text": "Drag it on the map, or select it and use the arrow keys."
+    },
+    "playerSheet": {
+      "title": "Open your sheet",
+      "text": "Your character sheet lives in the Sheets tab.",
+      "action": "Open Sheets"
+    }
+  },
   "states": {
     "loadFailed": "We could not load this.",
     "notFoundTitle": "There is nothing at this address",
@@ -97,8 +133,6 @@
     "tools": "Map tools",
     "select": "Select",
     "ruler": "Ruler",
-    "emptyGm": "No scene yet. Create one in the Scenes tab.",
-    "emptyPlayer": "The game master has not shown a scene yet.",
     "label": "Map",
     "hint": "Drag the background or use the right mouse button to pan, scroll to zoom."
   },

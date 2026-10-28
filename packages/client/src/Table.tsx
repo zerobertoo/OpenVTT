@@ -7,6 +7,7 @@ import { TableLoading } from "./components/screens/TableLoading";
 import { Drawer } from "./components/table/Drawer";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
+import { EmptyMap } from "./components/table/TableGuide";
 import { TableKeyboard } from "./components/table/TableKeyboard";
 import { TitleChip } from "./components/table/TitleChip";
 import { TipProvider } from "./components/ui/tooltip";
@@ -117,10 +118,10 @@ export function Table({ worldId, user }: Props) {
               formatDistance={(cells) => format.distance(cells, scene)}
             />
           ) : (
-            <p className="empty-map">{t(isGm ? "map.emptyGm" : "map.emptyPlayer")}</p>
+            <EmptyMap isGm={isGm} />
           )}
 
-          <TitleChip worldName={state.name} connected={connected} onShowShortcuts={() => setHelpOpen(true)} />
+          <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
           <TableKeyboard
             scene={scene}
             movableToken={selectedToken && canControl(selectedToken) ? selectedToken : null}

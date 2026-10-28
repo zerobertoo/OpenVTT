@@ -20,6 +20,42 @@
     "help": "Mostrar esta lista",
     "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}"
   },
+  "guide": {
+    "title": "Como funciona uma mesa",
+    "gmTitle": "Sua mesa está pronta para a primeira cena",
+    "gmIntro": "Três passos e seus amigos já podem jogar.",
+    "playerTitle": "Esperando o mestre",
+    "playerIntro": "O mestre ainda não mostrou uma cena. Veja o que você pode fazer enquanto isso.",
+    "gmScene": {
+      "title": "Crie uma cena",
+      "text": "A cena é o mapa que todos veem. Envie uma imagem ou comece com uma grade vazia.",
+      "action": "Abrir Cenas"
+    },
+    "gmToken": {
+      "title": "Adicione tokens",
+      "text": "Tokens são os personagens e monstros no mapa. Arraste para movê-los.",
+      "action": "Abrir Tokens"
+    },
+    "gmInvite": {
+      "title": "Convide os jogadores",
+      "text": "Compartilhe um link de convite. Os amigos entram pelo navegador, sem instalar nada.",
+      "action": "Abrir Mundo"
+    },
+    "playerChat": {
+      "title": "Diga oi no chat",
+      "text": "Escreva uma mensagem, ou /r 1d20 para rolar dados que todos veem.",
+      "action": "Abrir Chat"
+    },
+    "playerMove": {
+      "title": "Mova seu token",
+      "text": "Arraste no mapa, ou selecione e use as setas do teclado."
+    },
+    "playerSheet": {
+      "title": "Abra sua ficha",
+      "text": "Sua ficha de personagem fica na aba Fichas.",
+      "action": "Abrir Fichas"
+    }
+  },
   "states": {
     "loadFailed": "Não foi possível carregar isto.",
     "notFoundTitle": "Não há nada neste endereço",
@@ -97,8 +133,6 @@
     "tools": "Ferramentas do mapa",
     "select": "Selecionar",
     "ruler": "Régua",
-    "emptyGm": "Nenhuma cena ainda. Crie uma na aba Cenas.",
-    "emptyPlayer": "O mestre ainda não mostrou uma cena.",
     "label": "Mapa",
     "hint": "Arraste o fundo ou use o botão direito para mover o mapa, role para dar zoom."
   },

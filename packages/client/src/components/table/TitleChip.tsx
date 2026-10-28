@@ -3,15 +3,17 @@ import { useTranslation } from "react-i18next";
 import { Icon, Logo } from "../../icons";
 import { Button } from "../ui/button";
 import { Tip } from "../ui/tooltip";
+import { GuideButton } from "./GuideButton";
 
 interface Props {
   worldName: string;
   connected: boolean;
   onShowShortcuts: () => void;
+  isGm: boolean;
 }
 
 /** Top-left chip: way back to the world list, the world name and the connection state. */
-export function TitleChip({ worldName, connected, onShowShortcuts }: Props) {
+export function TitleChip({ worldName, connected, onShowShortcuts, isGm }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   return (
@@ -34,6 +36,7 @@ export function TitleChip({ worldName, connected, onShowShortcuts }: Props) {
           {t("table.disconnected")}
         </span>
       )}
+      <GuideButton isGm={isGm} />
       {/* Phones have no keyboard, so the shortcut help stays out of the way there. */}
       <Tip label={t("shortcuts.title")}>
         <Button

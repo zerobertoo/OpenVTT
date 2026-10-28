@@ -40,6 +40,11 @@ test("register, create a world, open the table and roll dice in the chat", async
   await createAndOpenWorld(page, "Smoke test world");
   await expect(page).toHaveURL(/\/world\/[\w-]+$/);
   await expect(page.locator("header").getByText("Smoke test world")).toBeVisible();
+  // A fresh table has no scene yet: the game master is guided through the first steps.
+  await expect(page.getByRole("heading", { name: "Your table is ready for its first scene" })).toBeVisible();
+  await page.getByRole("button", { name: "How a table works" }).click();
+  await expect(page.getByRole("button", { name: "Open Tokens" }).last()).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.getByLabel("Message, or /r 2d6+3 to roll").fill("/r 1d20");
   await page.getByRole("button", { name: "Send" }).click();
