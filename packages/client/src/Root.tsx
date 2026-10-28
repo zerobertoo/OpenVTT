@@ -1,8 +1,9 @@
 import { Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { AuthForm, UserContext } from "./App";
+import { UserContext } from "./App";
 import { AccountControls } from "./components/AccountControls";
+import { SignInScreen } from "./components/screens/SignInScreen";
 import { Card } from "./components/ui/card";
 import { Loading, Skeleton } from "./components/ui/skeleton";
 import { setLocale } from "./i18n";
@@ -55,7 +56,7 @@ export function Root() {
   if (!user)
     return (
       <Shell>
-        <AuthForm />
+        <SignInScreen />
       </Shell>
     );
   return (
