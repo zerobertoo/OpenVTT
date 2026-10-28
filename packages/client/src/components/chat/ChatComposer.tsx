@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 import { ErrorMessage } from "../../ui";
@@ -20,11 +20,27 @@ export function ChatComposer({ recipients, onSend, error }: Props) {
   const [draft, setDraft] = useState("");
   const [recipient, setRecipient] = useState("");
   const [gmOnly, setGmOnly] = useState(false);
+  // What was sent before, newest last; the arrow keys walk through it like a terminal.
+  const history = useRef<string[]>([]);
+  const cursor = useRef(0);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!draft.trim()) return;
-    if (await onSend({ content: draft, toUserId: recipient || null, gmOnly })) setDraft("");
+    if (await onSend({ content: draft, toUserId: recipient || null, gmOnly })) {
+      history.current.push(draft);
+      cursor.current = history.current.length;
+      setDraft("");
+    }
+  };
+
+  const walkHistory = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    const next = cursor.current + (event.key === "ArrowUp" ? -1 : 1);
+    if (next < 0 || next > history.current.length) return;
+    event.preventDefault();
+    cursor.current = next;
+    setDraft(history.current[next] ?? "");
   };
 
   return (
@@ -33,6 +49,7 @@ export function ChatComposer({ recipients, onSend, error }: Props) {
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={walkHistory}
           placeholder={t("chat.placeholder")}
           aria-label={t("chat.placeholder")}
           maxLength={2000}

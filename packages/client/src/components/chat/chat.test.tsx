@@ -75,6 +75,19 @@ describe("ChatComposer", () => {
     await waitFor(() => expect(screen.getByLabelText(/Message, or/)).toHaveValue(""));
   });
 
+  it("brings back earlier messages with the arrow keys", async () => {
+    render(<ChatComposer recipients={[]} onSend={vi.fn().mockResolvedValue(true)} error={null} />);
+    const box = screen.getByLabelText(/Message, or/);
+    await userEvent.type(box, "/r 1d20{Enter}");
+    await userEvent.type(box, "hello{Enter}");
+    await userEvent.type(box, "{ArrowUp}");
+    await waitFor(() => expect(box).toHaveValue("hello"));
+    await userEvent.type(box, "{ArrowUp}");
+    await waitFor(() => expect(box).toHaveValue("/r 1d20"));
+    await userEvent.type(box, "{ArrowDown}{ArrowDown}");
+    await waitFor(() => expect(box).toHaveValue(""));
+  });
+
   it("keeps the draft when sending fails and ignores empty drafts", async () => {
     const onSend = vi.fn().mockResolvedValue(false);
     render(<ChatComposer recipients={[]} onSend={onSend} error={null} />);
