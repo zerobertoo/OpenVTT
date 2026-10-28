@@ -6,6 +6,8 @@ const SHORTCUTS = [
   { keys: ["R"], label: "shortcuts.ruler" },
   { keys: ["←", "↑", "→", "↓"], label: "shortcuts.move" },
   { keys: ["Esc"], label: "shortcuts.deselect" },
+  { keys: ["+", "-"], label: "shortcuts.zoom" },
+  { keys: ["0"], label: "shortcuts.fit" },
   { keys: ["P"], label: "shortcuts.panels" },
   { keys: ["?"], label: "shortcuts.help" },
 ] as const;

@@ -16,6 +16,8 @@
     "ruler": "Ferramenta de régua",
     "move": "Mover o token selecionado uma casa",
     "deselect": "Desmarcar o token",
+    "zoom": "Aumentar ou diminuir o zoom",
+    "fit": "Enquadrar o mapa inteiro",
     "panels": "Mostrar ou ocultar os painéis",
     "help": "Mostrar esta lista",
     "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}"

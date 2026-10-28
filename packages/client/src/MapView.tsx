@@ -7,6 +7,7 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { closeVideo, openVideo } from "./lib/media";
+import { useTableUi } from "./tableStore";
 
 export type MapTool = "select" | "ruler";
 
@@ -30,6 +31,15 @@ interface Props {
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 8;
+/** How much one press of the zoom keys scales the view. */
+const ZOOM_STEP = 1.25;
+
+/** Shows the whole map centered in the view, never enlarged past its real size. */
+function fitToScreen(world: Container, screen: { width: number; height: number }, scene: { width: number; height: number }) {
+  const scale = Math.min(screen.width / scene.width, screen.height / scene.height, 1);
+  world.scale.set(scale);
+  world.position.set((screen.width - scene.width * scale) / 2, (screen.height - scene.height * scale) / 2);
+}
 const DRAG_SEND_INTERVAL_MS = 80;
 const textureCache = new Map<string, Promise<Texture>>();
 
@@ -324,9 +334,7 @@ export function MapView(props: Props) {
       if (props_().showMapData) drawMapData(e, scene);
       if (e.fitted !== sceneId) {
         // Fit the whole map in view the first time a scene is shown.
-        const scale = Math.min(e.app.screen.width / scene.width, e.app.screen.height / scene.height, 1);
-        e.world.scale.set(scale);
-        e.world.position.set((e.app.screen.width - scene.width * scale) / 2, (e.app.screen.height - scene.height * scale) / 2);
+        fitToScreen(e.world, e.app.screen, scene);
         e.fitted = sceneId;
       }
     }
@@ -541,6 +549,22 @@ export function MapView(props: Props) {
   useEffect(() => {
     syncAll.current();
   }, [props.scene, props.tokens, props.selectedTokenId, props.showMapData, props.vision]);
+
+  // Zoom keys arrive through the table store; zooming keeps the middle of the view where it is.
+  const viewCommand = useTableUi((ui) => ui.viewCommand);
+  useEffect(() => {
+    const e = engine.current;
+    if (!e || !viewCommand) return;
+    if (viewCommand.kind === "fit") {
+      if (latest.current.scene) fitToScreen(e.world, e.app.screen, latest.current.scene);
+      return;
+    }
+    const center = { x: e.app.screen.width / 2, y: e.app.screen.height / 2 };
+    const before = e.world.toLocal(center);
+    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, e.world.scale.x * (viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP)));
+    e.world.scale.set(next);
+    e.world.position.set(center.x - before.x * next, center.y - before.y * next);
+  }, [viewCommand, latest]);
 
   useEffect(() => {
     engine.current?.ruler.clear();

@@ -13,6 +13,13 @@ describe("actionForKey", () => {
     expect(press("Escape")).toEqual({ type: "deselect" });
   });
 
+  it("maps the zoom keys, with and without shift", () => {
+    expect(press("+")).toEqual({ type: "view", kind: "zoomIn" });
+    expect(press("=")).toEqual({ type: "view", kind: "zoomIn" });
+    expect(press("-")).toEqual({ type: "view", kind: "zoomOut" });
+    expect(press("0")).toEqual({ type: "view", kind: "fit" });
+  });
+
   it("turns arrow keys into one-cell moves", () => {
     expect(press("ArrowLeft")).toEqual({ type: "move", dx: -1, dy: 0 });
     expect(press("ArrowDown")).toEqual({ type: "move", dx: 0, dy: 1 });

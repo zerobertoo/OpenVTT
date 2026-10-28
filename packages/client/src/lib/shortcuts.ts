@@ -5,6 +5,7 @@ export type ShortcutAction =
   | { type: "togglePanels" }
   | { type: "help" }
   | { type: "deselect" }
+  | { type: "view"; kind: "zoomIn" | "zoomOut" | "fit" }
   /** Move the selected token by whole cells; each axis is -1, 0 or 1. */
   | { type: "move"; dx: number; dy: number };
 
@@ -32,6 +33,13 @@ export function actionForKey(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "met
   const arrow = ARROWS[event.key];
   if (arrow) return { type: "move", ...arrow };
   switch (event.key.toLowerCase()) {
+    case "+":
+    case "=":
+      return { type: "view", kind: "zoomIn" };
+    case "-":
+      return { type: "view", kind: "zoomOut" };
+    case "0":
+      return { type: "view", kind: "fit" };
     case "v":
       return { type: "tool", tool: "select" };
     case "r":

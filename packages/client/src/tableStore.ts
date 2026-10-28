@@ -13,6 +13,9 @@ interface TableUiState {
   /** Whether the game master sees walls, doors and lights drawn on the map. */
   showMapData: boolean;
   setShowMapData: (show: boolean) => void;
+  /** Latest request to change the map view; `id` makes a repeated press a new request. */
+  viewCommand: { kind: "zoomIn" | "zoomOut" | "fit"; id: number } | null;
+  changeView: (kind: "zoomIn" | "zoomOut" | "fit") => void;
   setTab: (tab: TableTab) => void;
   toggleDrawer: () => void;
   setTool: (tool: MapTool) => void;
@@ -29,12 +32,14 @@ const initialState = {
   selectedTokenId: null,
   gmViewSceneId: null,
   showMapData: true,
+  viewCommand: null,
 } as const;
 
 /** Local UI state of the table. Server state lives in `useWorldState`, REST data in TanStack Query. */
 export const useTableUi = create<TableUiState>((set) => ({
   ...initialState,
   setShowMapData: (showMapData) => set({ showMapData }),
+  changeView: (kind) => set((state) => ({ viewCommand: { kind, id: (state.viewCommand?.id ?? 0) + 1 } })),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
   setTool: (tool) => set({ tool }),
