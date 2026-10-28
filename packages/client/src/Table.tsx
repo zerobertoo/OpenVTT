@@ -2,13 +2,13 @@ import type { TokenDto, UserDto } from "@openvtt/shared";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { AccountControls } from "./components/AccountControls";
 import { TableLoading } from "./components/screens/TableLoading";
 import { Drawer } from "./components/table/Drawer";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
 import { TitleChip } from "./components/table/TitleChip";
 import { TipProvider } from "./components/ui/tooltip";
+import { AccountBox } from "./components/world/AccountBox";
 import { MapView } from "./MapView";
 import { ChatPanel } from "./panels/ChatPanel";
 import { ScenePanel } from "./panels/ScenePanel";
@@ -68,10 +68,7 @@ export function Table({ worldId, user }: Props) {
         return (
           <>
             <SettingsPanel state={state} />
-            <div className="account-box">
-              <h3>{t("auth.account")}</h3>
-              <AccountControls />
-            </div>
+            <AccountBox />
           </>
         );
     }

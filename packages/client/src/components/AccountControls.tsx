@@ -6,27 +6,31 @@ import { api } from "../api";
 import { normalizeLocale, setLocale } from "../i18n";
 import { queryKeys, useMe } from "../queries";
 import { Button } from "./ui/button";
+import { Field } from "./ui/field";
+import { Select } from "./ui/input";
 
 function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
   const { t, i18n } = useTranslation();
   return (
-    <label>
-      <span className="muted">{t("language.label")}</span>
-      <select
-        value={normalizeLocale(i18n.language) ?? "en"}
-        onChange={(e) => {
-          const locale = normalizeLocale(e.target.value)!;
-          setLocale(locale);
-          if (signedIn) void api.setLocale(locale);
-        }}
-      >
-        {SUPPORTED_LOCALES.map((l) => (
-          <option key={l} value={l}>
-            {t(`language.${l}`)}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Field label={t("language.label")} className="grid-flow-col items-center gap-2">
+      {(control) => (
+        <Select
+          {...control}
+          value={normalizeLocale(i18n.language) ?? "en"}
+          onChange={(e) => {
+            const locale = normalizeLocale(e.target.value)!;
+            setLocale(locale);
+            if (signedIn) void api.setLocale(locale);
+          }}
+        >
+          {SUPPORTED_LOCALES.map((l) => (
+            <option key={l} value={l}>
+              {t(`language.${l}`)}
+            </option>
+          ))}
+        </Select>
+      )}
+    </Field>
   );
 }
 

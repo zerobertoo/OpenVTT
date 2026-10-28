@@ -50,7 +50,11 @@
     "color": "Cor",
     "join": "Entrar",
     "create": "Criar link de convite",
-    "linkLabel": "Link de convite"
+    "linkLabel": "Link de convite",
+    "copy": "Copiar link",
+    "copied": "Link de convite copiado",
+    "copyFailed": "Não foi possível copiar o link",
+    "copyFailedHint": "Selecione o link e copie à mão."
   },
   "table": {
     "members": "Membros",

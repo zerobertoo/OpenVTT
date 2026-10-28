@@ -3,14 +3,18 @@ import type { WorldStateDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiError, api } from "../api";
+import { api } from "../api";
 import { Button } from "../components/ui/button";
+import { Field } from "../components/ui/field";
+import { Select, Textarea } from "../components/ui/input";
+import { InviteLink } from "../components/world/InviteLink";
+import { MemberList } from "../components/world/MemberList";
 import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
 function TemplateEditor({ worldId }: { worldId: string }) {
   const { t } = useTranslation();
-  const { run, error } = useAction();
+  const { run, error, pending } = useAction();
   const queryClient = useQueryClient();
   const { data: system } = useWorldSystem(worldId);
   const [type, setType] = useState<ActorType>("character");
@@ -43,35 +47,36 @@ function TemplateEditor({ worldId }: { worldId: string }) {
 
   if (!system) return null;
   return (
-    <section>
+    <section aria-label={t("settings.template")} className="grid gap-3">
       <h3>{t("settings.template")}</h3>
-      <p className="muted">{t("settings.templateHelp")}</p>
-      <label>
-        {t("sheet.type")}
-        <select value={type} onChange={(e) => setType(e.target.value as ActorType)}>
-          {(Object.keys(system.manifest.actorTypes) as ActorType[]).map((k) => (
-            <option key={k} value={k}>
-              {t(k === "npc" ? "sheet.npc" : "sheet.character")}
-            </option>
-          ))}
-        </select>
-      </label>
-      <textarea
-        className="code"
-        rows={14}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        spellCheck={false}
-        aria-label={t("settings.template")}
-      />
-      {jsonError && (
-        <p role="alert" className="error">
-          {t("settings.invalidJson")}
-        </p>
-      )}
-      <ErrorMessage error={error instanceof ApiError ? error : error} />
-      <div className="row">
-        <Button onClick={save}>{t("common.save")}</Button>
+      <Field label={t("sheet.type")}>
+        {(control) => (
+          <Select {...control} value={type} onChange={(e) => setType(e.target.value as ActorType)}>
+            {(Object.keys(system.manifest.actorTypes) as ActorType[]).map((k) => (
+              <option key={k} value={k}>
+                {t(k === "npc" ? "sheet.npc" : "sheet.character")}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Field>
+      <Field label={t("settings.template")} hint={t("settings.templateHelp")} error={jsonError ? t("settings.invalidJson") : undefined}>
+        {(control) => (
+          <Textarea
+            {...control}
+            className="font-mono text-[0.85rem]"
+            rows={14}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            spellCheck={false}
+          />
+        )}
+      </Field>
+      <ErrorMessage error={error} />
+      <div className="flex flex-wrap gap-2">
+        <Button pending={pending} onClick={save}>
+          {t("common.save")}
+        </Button>
         {system.overridden.includes(type) && (
           <Button variant="secondary" onClick={reset}>
             {t("settings.resetTemplate")}
@@ -84,27 +89,17 @@ function TemplateEditor({ worldId }: { worldId: string }) {
 
 export function SettingsPanel({ state }: { state: WorldStateDto }) {
   const { t } = useTranslation();
-  const { run, error } = useAction();
+  const { run, error, pending } = useAction();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const { data: system } = useWorldSystem(state.id);
   const isGm = state.yourRole === "gm";
 
   return (
-    <section aria-label={t("settings.title")}>
+    <section aria-label={t("settings.title")} className="grid content-start gap-3">
       <h3>{t("table.members")}</h3>
-      <ul className="plain">
-        {state.members.map((m) => (
-          <li key={m.userId}>
-            <span className="dot" style={{ background: m.color }} />
-            {m.displayName}
-            <span className="muted">
-              {t(m.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")} · {t(m.online ? "table.online" : "table.offline")}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <MemberList members={state.members} />
       {system && (
-        <p className="muted">
+        <p className="m-0 text-ink-2 text-sm">
           {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
           {system.manifest.attribution && (
             <>
@@ -116,19 +111,18 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
       )}
       {isGm && (
         <>
-          <Button onClick={() => run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id)).code}`))}>
-            {t("invite.create")}
-          </Button>
-          {inviteLink && (
-            <p>
-              {t("invite.linkLabel")}: <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} size={40} />
-            </p>
-          )}
-          <p>
-            <a href={api.exportUrl(state.id)} download>
-              {t("settings.export")}
-            </a>
-          </p>
+          <InviteLink
+            link={inviteLink}
+            creating={pending}
+            onCreate={() => run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id)).code}`))}
+          />
+          <a
+            className="justify-self-start font-semibold text-accent-text underline underline-offset-[3px]"
+            href={api.exportUrl(state.id)}
+            download
+          >
+            {t("settings.export")}
+          </a>
           <ErrorMessage error={error} />
           <TemplateEditor worldId={state.id} />
         </>

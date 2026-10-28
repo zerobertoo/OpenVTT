@@ -127,7 +127,6 @@ input:not([type="checkbox"], [type="range"], [type="color"], [type="file"]), sel
 }
 input[type="color"] { width: 3rem; height: 2.3rem; padding: 0.15rem; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
 input[type="file"] { font-size: 0.85rem; max-width: 100%; }
-textarea.code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; }
 button {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
   padding: 0.55rem 1.1rem;
@@ -153,9 +152,6 @@ form { display: grid; gap: 0.8rem; }
 form.compact, div.compact { display: grid; gap: 0.6rem; margin-block: 0.4rem; }
 form.row, .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; }
 output { font-weight: 800; font-size: 1.1rem; }
-ul.plain { margin: 0.5rem 0; padding: 0; list-style: none; display: grid; gap: 0.45rem; }
-ul.plain li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.55rem 0.8rem; background: var(--surface-2); border-radius: var(--radius); }
-.dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; flex: none; }
 
 }
 
@@ -169,7 +165,6 @@ ul.plain li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; 
 .app-main { max-width: 40rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 .app-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; margin-bottom: 1.5rem; }
 .app-header .account { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
-.account label { display: flex; align-items: center; gap: 0.4rem; }
 .account select { width: auto; padding: 0.35rem 0.7rem; }
 .card { padding: 1.25rem; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
 .card + .card { margin-top: 1rem; }
@@ -206,7 +201,6 @@ ul.plain li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; 
 .drawer-panel > section { display: flex; flex-direction: column; gap: 0.7rem; flex: 1 0 auto; }
 .drawer-panel > section.chat { flex: 1 1 0; min-height: 0; }
 .drawer-panel h3 { margin-top: 0; }
-.account-box { display: grid; gap: 0.6rem; margin-top: 0.5rem; padding-top: 0.8rem; border-top: 1.5px solid var(--line); }
 
 /* --- chat --- */
 .chat { height: 100%; }

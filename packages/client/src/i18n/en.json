@@ -50,7 +50,11 @@
     "color": "Color",
     "join": "Join",
     "create": "Create invite link",
-    "linkLabel": "Invite link"
+    "linkLabel": "Invite link",
+    "copy": "Copy link",
+    "copied": "Invite link copied",
+    "copyFailed": "Could not copy the link",
+    "copyFailedHint": "Select the link and copy it by hand."
   },
   "table": {
     "members": "Members",
