@@ -6,7 +6,9 @@ An open source, self-hosted virtual tabletop for tabletop RPGs, written from scr
 
 - Local accounts (username + password, argon2). The first account becomes the installation administrator.
 - Worlds with invite links; roles: administrator (installation), game master and player (per world).
-- Scenes with an uploaded map (PNG/JPG/WebP), square grid or no grid, smooth pan/zoom (PixiJS) and a distance ruler.
+- Scenes with an uploaded map (PNG/JPG/WebP or an animated video), square grid or no grid, smooth pan/zoom (PixiJS) and a distance ruler in imperial, metric or squares.
+- Map import from Dungeon Alchemist and others (Universal VTT, Foundry-style exports, plain images), with walls, doors and lights, multi-floor maps and a visual grid adjuster; scenes export back as Universal VTT.
+- Optional fog of war: players only see what their tokens see, shaped by walls, closed doors and lights, and walls stay on the server.
 - Tokens: create, move (snapped to the grid), resize, rotate, hide from players, assign controllers, link to a sheet.
 - Chat with whispers, `/r 2d6+3` and `/r 1d20 adv` dice rolls (rolled on the server), GM-only rolls and persisted history.
 - Character and NPC sheets defined by JSON templates with computed fields, editable by the GM without code.
@@ -50,6 +52,12 @@ A scene background can be a `.webm` or `.mp4` video. It plays muted and in a loo
 Codecs depend on the browser that plays the map, not on the server. WebM with VP9 works in most browsers; MP4 with H.264 is the most compatible choice. HEVC and AV1 only play on some devices. If a browser cannot decode the file, the scene shows a notice and the map is drawn without the video.
 
 Behind a reverse proxy, allow bodies at least as large as the video limit and long upload timeouts (nginx: `client_max_body_size 110m;` and `proxy_request_buffering off;`).
+
+### Importing maps
+
+In the Scenes tab, **Import map** reads a Universal VTT file (`.dd2vtt`, `.uvtt`) or the `.json` of a Foundry-style export together with the picture or video it came with, or just a picture or video (a name like `map_28x38.png` sets the grid). Files named `Name_0`, `Name_1` become the floors of one map. The dialog explains which Dungeon Alchemist options to pick. Walls, doors and lights are visible to the game master only; with fog of war on, players receive just the area their tokens can see.
+
+Limits (no new server settings): the map data file is read in the browser up to 100 MiB, a scene keeps up to 20,000 wall segments and 1,000 lights, an embedded picture follows the 15 MiB image limit and a video follows `OPENVTT_MAX_VIDEO_BYTES`. The map picture itself is not hidden by fog: it is darkened on screen, so keep secrets out of the image if players are not to see them.
 
 A forgotten password is reset by the administrator through `POST /api/admin/reset-password` (no email server involved).
 
