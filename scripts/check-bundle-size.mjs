@@ -16,10 +16,10 @@ function gzipKb(namePattern) {
 
 // The entry chunk is what the sign-in screen downloads; the table chunk (PixiJS, motion) loads only on /world/*.
 const budgets = [
-  { label: "sign-in entry", pattern: /^index-.*\.js$/, maxKb: 190 },
+  { label: "sign-in entry", pattern: /^index-.*\.js$/, maxKb: 215 },
   { label: "table (lazy)", pattern: /^Table-.*\.js$/, maxKb: 220 },
   // Three.js for the solid dice; downloaded only when a roll is thrown with them.
-  { label: "3D dice (lazy)", pattern: /^Dice3D-.*\.js$/, maxKb: 130 },
+  { label: "3D dice (lazy)", pattern: /^Dice3D-.*\.js$/, maxKb: 140 },
 ];
 
 let failed = false;

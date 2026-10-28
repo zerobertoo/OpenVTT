@@ -2,7 +2,7 @@ import { z } from "zod";
 import { evaluateFormula, FormulaError, formulaReferences, parseFormula } from "./formula.ts";
 
 /** A label is either a translation key of the system's locale files or inline per-locale text. */
-export const labelSchema = z.union([z.string().max(200), z.record(z.string().max(200))]);
+export const labelSchema = z.union([z.string().max(200), z.record(z.string(), z.string().max(200))]);
 export type Label = z.infer<typeof labelSchema>;
 
 const fieldId = z
@@ -192,7 +192,7 @@ export const systemManifestSchema = z.object({
   /** Required for systems whose license demands credit (e.g. CC-BY). Shown in the UI. */
   attribution: z.string().max(1000).optional(),
   minOpenVTT: z.string().max(20),
-  actorTypes: z.record(actorTypeSchema, z.object({ template: z.string().max(120) })),
+  actorTypes: z.partialRecord(actorTypeSchema, z.object({ template: z.string().max(120) })),
   locales: z.array(z.string().max(10)).min(1),
 });
 export type SystemManifest = z.infer<typeof systemManifestSchema>;

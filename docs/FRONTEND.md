@@ -91,7 +91,7 @@ Each row is final unless a later step proves it wrong; changing it means updatin
 
 | Area | Decision | Why | Not using |
 |---|---|---|---|
-| UI framework | React 18, Vite | Exists; no SSR needed (self-hosted SPA behind Fastify) | Next.js, Remix, TanStack Start |
+| UI framework | React 19, Vite | Exists; no SSR needed (self-hosted SPA behind Fastify) | Next.js, Remix, TanStack Start |
 | Routing | **TanStack Router**, code-based route tree, lazy table route | Typed params and search; the table chunk (Pixi, motion) stays out of the sign-in bundle. Five routes do not need the file-based plugin | React Router, file-based routing plugin |
 | Server data | **TanStack Query** for `me`, worlds, systems, system info, mutations with invalidation | Replaces ad-hoc `useEffect` fetches and `useAction`; caching, retry, pending states for free | SWR, hand-rolled hooks |
 | Live table state | Existing `useWorldState` over WebSocket | Server-pushed state does not fit request/response caching | Putting the socket into Query |

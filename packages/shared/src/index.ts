@@ -247,25 +247,41 @@ export const lightInputSchema = z.object({
 export const MAX_SCENE_WALLS = 20000;
 export const MAX_SCENE_LIGHTS = 1000;
 
-export const createSceneSchema = z.object({
+const sceneFields = {
   name: z.string().trim().min(1).max(80),
-  assetId: z.string().uuid().nullable().default(null),
+  assetId: z.string().uuid().nullable(),
   width: z.number().int().min(1).max(MAX_MAP_DIMENSION),
   height: z.number().int().min(1).max(MAX_MAP_DIMENSION),
-  gridType: z.enum(["square", "none"]).default("square"),
-  gridSize: z.number().int().min(10).max(500).default(70),
-  gridDistance: z.number().positive().max(1000).default(5),
-  distanceUnit: z.string().trim().max(10).default("ft"),
+  gridType: z.enum(["square", "none"]),
+  gridSize: z.number().int().min(10).max(500),
+  gridDistance: z.number().positive().max(1000),
+  distanceUnit: z.string().trim().max(10),
   /** Replacing the lists is all-or-nothing; leave them out on update to keep what is stored. */
-  walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS).default([]),
-  lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS).default([]),
-  bakedLighting: z.boolean().default(false),
-  floorGroup: z.string().uuid().nullable().default(null),
-  floor: z.number().int().min(-20).max(50).default(0),
-  visionEnabled: z.boolean().default(false),
-  visionRadius: z.number().finite().min(1).max(200).default(12),
+  walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS),
+  lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS),
+  bakedLighting: z.boolean(),
+  floorGroup: z.string().uuid().nullable(),
+  floor: z.number().int().min(-20).max(50),
+  visionEnabled: z.boolean(),
+  visionRadius: z.number().finite().min(1).max(200),
+};
+// Defaults live only on creation: Zod 4 would also apply them to a partial update and wipe what is stored.
+export const createSceneSchema = z.object({
+  ...sceneFields,
+  assetId: sceneFields.assetId.default(null),
+  gridType: sceneFields.gridType.default("square"),
+  gridSize: sceneFields.gridSize.default(70),
+  gridDistance: sceneFields.gridDistance.default(5),
+  distanceUnit: sceneFields.distanceUnit.default("ft"),
+  walls: sceneFields.walls.default([]),
+  lights: sceneFields.lights.default([]),
+  bakedLighting: sceneFields.bakedLighting.default(false),
+  floorGroup: sceneFields.floorGroup.default(null),
+  floor: sceneFields.floor.default(0),
+  visionEnabled: sceneFields.visionEnabled.default(false),
+  visionRadius: sceneFields.visionRadius.default(12),
 });
-export const updateSceneSchema = createSceneSchema.partial();
+export const updateSceneSchema = z.object(sceneFields).partial();
 
 const tokenFields = {
   name: z.string().trim().min(1).max(60),
@@ -308,14 +324,14 @@ export const createActorSchema = z.object({
 export const updateActorSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   ownerId: z.string().uuid().nullable().optional(),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const updateWorldSchema = z.object({
   activeSceneId: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(1).max(80).optional(),
   /** Per actor type, a replacement sheet template written by the GM. */
-  templateOverrides: z.record(actorTypeSchema, z.unknown()).optional(),
+  templateOverrides: z.partialRecord(actorTypeSchema, z.unknown()).optional(),
 });
 
 /** What the client needs to render sheets of a world: manifest, templates and label strings. */

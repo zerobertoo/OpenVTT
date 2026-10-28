@@ -33,7 +33,7 @@ const worldFileSchema = z.object({
   world: z.object({
     name: z.string().min(1).max(80),
     systemId: z.string().max(40),
-    templateOverrides: z.record(actorTypeSchema, sheetTemplateSchema).default({}),
+    templateOverrides: z.partialRecord(actorTypeSchema, sheetTemplateSchema).default({}),
     activeSceneId: id.nullable(),
   }),
   assets: z.array(z.object({ id, file: z.string().regex(/^assets\/[A-Za-z0-9_.-]+$/) })).max(2000),
@@ -60,7 +60,7 @@ const worldFileSchema = z.object({
       }),
     )
     .max(500),
-  actors: z.array(z.object({ id, type: actorTypeSchema, name: z.string().max(80), data: z.record(z.unknown()) })).max(5000),
+  actors: z.array(z.object({ id, type: actorTypeSchema, name: z.string().max(80), data: z.record(z.string(), z.unknown()) })).max(5000),
   tokens: z
     .array(
       z.object({
