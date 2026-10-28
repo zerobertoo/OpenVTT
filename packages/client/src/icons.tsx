@@ -42,6 +42,7 @@ const PATHS = {
       <path d="M3 20c0-3.5 2.5-5 6-5s6 1.5 6 5M16 5a3 3 0 010 6M18 15c2 .6 3 2 3 5" />
     </>
   ),
+  close: <path d="M6 6l12 12M18 6L6 18" />,
   panelOpen: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />
