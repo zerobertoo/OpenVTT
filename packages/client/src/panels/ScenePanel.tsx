@@ -2,8 +2,10 @@ import type { WorldStateDto } from "@openvtt/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
+import { type MapImportChoice, MapImportDialog } from "../components/scenes/MapImportDialog";
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
+import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
 import { readMediaSize, UnsupportedMediaError } from "../lib/media";
 import { ErrorMessage, useAction } from "../ui";
@@ -18,6 +20,7 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
 
   const create = (e: FormEvent<HTMLFormElement>) => {
@@ -44,6 +47,23 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
       onView(scene.id);
     });
   };
+
+  const importMap = (choice: MapImportChoice) =>
+    void run(async () => {
+      const assetId = (await api.uploadAsset(state.id, choice.media)).id;
+      const scene = await api.createScene(state.id, {
+        name: choice.name,
+        assetId,
+        width: choice.width,
+        height: choice.height,
+        gridType: "square",
+        gridSize: choice.gridSize,
+        gridDistance: choice.gridDistance,
+        distanceUnit: choice.distanceUnit,
+      });
+      setImporting(false);
+      onView(scene.id);
+    });
 
   const save = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,6 +108,10 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
 
       <h3>{t("scene.new")}</h3>
       <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
+      <Button variant="secondary" onClick={() => setImporting(true)} className="justify-self-start">
+        {t("scene.import.open")}
+      </Button>
+      <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} />
       <ErrorMessage error={error} />
     </section>
   );

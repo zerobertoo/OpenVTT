@@ -26,9 +26,11 @@ export async function createAndOpenWorld(page: Page, name: string) {
 
 /** Fails the test on any axe violation, including color contrast (checked in a real browser). */
 export async function expectNoAxeViolations(page: Page) {
-  // `motion` still fades elements in under reduced motion; axe would measure a half-transparent background.
+  // Radix focus guards are invisible on purpose. `motion` still fades elements in under reduced motion; axe would measure a half-transparent background.
   await page.waitForFunction(() =>
-    [...document.querySelectorAll<HTMLElement>("[style*='opacity']")].every((el) => getComputedStyle(el).opacity === "1"),
+    [...document.querySelectorAll<HTMLElement>("[style*='opacity']:not([data-radix-focus-guard])")].every(
+      (el) => getComputedStyle(el).opacity === "1",
+    ),
   );
   const results = await new AxeBuilder({ page }).analyze();
   const summary = results.violations

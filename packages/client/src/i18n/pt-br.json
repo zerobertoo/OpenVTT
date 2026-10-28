@@ -175,7 +175,31 @@
     "moreActions": "Mais ações para {{name}}",
     "imageSizeFromFile": "A cena assume o tamanho da imagem.",
     "deleteTitle": "Excluir {{name}}?",
-    "deleteBody": "A cena e seus tokens são removidos para todos. Isso não pode ser desfeito."
+    "deleteBody": "A cena e seus tokens são removidos para todos. Isso não pode ser desfeito.",
+    "import": {
+      "open": "Importar mapa",
+      "title": "Importar um mapa",
+      "description": "Escolha um arquivo Universal VTT (.dd2vtt ou .uvtt) junto com a imagem ou o vídeo dele, ou só uma imagem ou vídeo.",
+      "files": "Arquivos do mapa",
+      "filesHint": "Selecione o .dd2vtt e a imagem ou o vídeo juntos (segure Ctrl ou Shift).",
+      "reading": "Lendo os arquivos…",
+      "confirm": "Confirmar a cena",
+      "summary": "Mapa de {{size}} px, {{lights}} luzes, {{walls}} paredes e portas encontradas.",
+      "warnings": "Pontos para conferir",
+      "warning": {
+        "no_walls": "O arquivo não tem paredes nem portas. No Dungeon Alchemist, exporte com paredes e iluminação ligadas.",
+        "truncated": "O arquivo tinha mais paredes, portas ou luzes do que o OpenVTT guarda; as que sobraram foram descartadas.",
+        "size_mismatch": "O tamanho da imagem não bate com a grade do arquivo. Confira o tamanho da célula abaixo.",
+        "grid_guessed": "Não achei a grade no nome do arquivo. Ajuste o tamanho da célula à mão (por exemplo, 28x38 no nome define sozinho)."
+      },
+      "error": {
+        "not_uvtt": "Esse arquivo não é um Universal VTT válido.",
+        "bad_grid": "O tamanho da grade do arquivo está fora do que o OpenVTT aceita.",
+        "too_large": "Esse arquivo é grande demais para importar.",
+        "no_media": "Esse arquivo não traz a imagem dentro. Selecione também a imagem ou o vídeo exportado com ele.",
+        "unsupported_file": "Use um arquivo .dd2vtt ou .uvtt, ou um mapa PNG, JPG, WebP, WebM ou MP4."
+      }
+    }
   },
   "token": {
     "title": "Tokens",

@@ -175,7 +175,31 @@
     "moreActions": "More actions for {{name}}",
     "imageSizeFromFile": "The scene takes the size of the image.",
     "deleteTitle": "Delete {{name}}?",
-    "deleteBody": "The scene and its tokens are removed for everyone. This cannot be undone."
+    "deleteBody": "The scene and its tokens are removed for everyone. This cannot be undone.",
+    "import": {
+      "open": "Import map",
+      "title": "Import a map",
+      "description": "Pick a Universal VTT file (.dd2vtt or .uvtt) together with its picture or video, or just a picture or video.",
+      "files": "Map files",
+      "filesHint": "Select the .dd2vtt and the image or video together (hold Ctrl or Shift).",
+      "reading": "Reading the files…",
+      "confirm": "Confirm the scene",
+      "summary": "Map {{size}} px, {{lights}} lights, {{walls}} walls and doors found.",
+      "warnings": "Things to check",
+      "warning": {
+        "no_walls": "The file has no walls or doors. In Dungeon Alchemist, export with walls and lighting turned on.",
+        "truncated": "The file had more walls, doors or lights than OpenVTT keeps; the extra ones were dropped.",
+        "size_mismatch": "The picture size does not match the grid in the file. Check the cell size below.",
+        "grid_guessed": "No grid was found in the file name. Set the cell size by hand (for example 28x38 in the name sets it automatically)."
+      },
+      "error": {
+        "not_uvtt": "That file is not a valid Universal VTT file.",
+        "bad_grid": "The file's grid size is outside what OpenVTT supports.",
+        "too_large": "That file is too large to import.",
+        "no_media": "This file has no picture inside. Select the image or video exported with it as well.",
+        "unsupported_file": "Use a .dd2vtt or .uvtt file, or a PNG, JPG, WebP, WebM or MP4 map."
+      }
+    }
   },
   "token": {
     "title": "Tokens",
