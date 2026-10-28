@@ -20,7 +20,15 @@
     "help": "Show this list",
     "moved": "{{name}} moved to column {{column}}, row {{row}}"
   },
-  "states": { "loadFailed": "We could not load this." },
+  "states": {
+    "loadFailed": "We could not load this.",
+    "notFoundTitle": "There is nothing at this address",
+    "notFoundText": "The link may be mistyped or the page may have moved.",
+    "crashTitle": "Something broke on this page",
+    "crashText": "Your games are safe. Try again, and reload the page if it keeps happening.",
+    "worldUnavailableTitle": "This world is not available to you",
+    "worldUnavailableText": "It may have been deleted, or you may have been removed from it. Ask the game master for a new invite link."
+  },
   "language": { "label": "Language", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
     "username": "Username",
@@ -33,7 +41,8 @@
     "firstUserHint": "The first account created becomes the installation administrator.",
     "welcomeTitle": "Your tabletop, wherever your friends are.",
     "welcomeText": "Log in, pick a world and start playing. Nothing to install.",
-    "account": "Account"
+    "account": "Account",
+    "sessionEnded": "Your session ended. Sign in again to continue."
   },
   "validation": {
     "required": "This field is required.",

@@ -1,4 +1,5 @@
 import type { UserDto } from "@openvtt/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,10 +17,14 @@ import { ScenePanel } from "./panels/ScenePanel";
 import { SettingsPanel } from "./panels/SettingsPanel";
 import { SheetsPanel } from "./panels/SheetsPanel";
 import { TokenPanel } from "./panels/TokenPanel";
+import { queryKeys } from "./queries";
 import { type TableTab, useTableUi } from "./tableStore";
 import { useCan } from "./useCan";
 import { useFormat } from "./useFormat";
 import { useWorldState } from "./useWorldState";
+
+/** How often a table that cannot connect re-checks the session and the list of worlds. */
+const REVALIDATE_WHILE_OFFLINE_MS = 8000;
 
 interface Props {
   worldId: string;
@@ -35,6 +40,18 @@ export function Table({ worldId, user }: Props) {
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
   useEffect(() => reset, [worldId, reset]);
   const [helpOpen, setHelpOpen] = useState(false);
+
+  // A connection that stays down may mean the person lost access (removed, world deleted, session ended),
+  // not only a bad network. Re-checking makes the router show the right screen instead of retrying forever.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (connected) return;
+    const timer = setInterval(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.worlds });
+    }, REVALIDATE_WHILE_OFFLINE_MS);
+    return () => clearInterval(timer);
+  }, [connected, queryClient]);
 
   const can = useCan(state?.yourRole, user.id);
   const canControl = can.canControlToken;

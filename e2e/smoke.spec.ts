@@ -93,3 +93,17 @@ test("the back button on the table returns to the world list", async ({ page }) 
   await page.getByRole("button", { name: /back/i }).click();
   await expect(page.getByRole("heading", { name: "Your worlds" })).toBeVisible();
 });
+
+test("an unknown address and a world the person is not in explain themselves", async ({ page }) => {
+  await registerNewUser(page);
+
+  await page.goto("/no/such/page");
+  await expect(page.getByRole("heading", { name: "There is nothing at this address" })).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.goto("/world/00000000-0000-0000-0000-000000000000");
+  await expect(page.getByRole("heading", { name: "This world is not available to you" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: "Back to worlds" }).click();
+  await expect(page.getByRole("heading", { name: "Your worlds" })).toBeVisible();
+});

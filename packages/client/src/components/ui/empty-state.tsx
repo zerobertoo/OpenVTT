@@ -10,7 +10,7 @@ interface EmptyStateProps {
   action?: ReactNode;
   icon?: ReactNode;
   /** Heading level, to fit the surrounding outline. */
-  headingLevel?: 2 | 3 | 4;
+  headingLevel?: 1 | 2 | 3 | 4;
   className?: string;
 }
 

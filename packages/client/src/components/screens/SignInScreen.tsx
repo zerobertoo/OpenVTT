@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api";
-import { queryKeys } from "../../queries";
+import { queryKeys, useSessionExpired } from "../../queries";
 import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -18,6 +18,7 @@ export function SignInScreen() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState<unknown>(null);
   const registering = mode === "register";
+  const sessionExpired = useSessionExpired();
 
   const form = useForm({
     defaultValues: { username: "", password: "" },
@@ -25,6 +26,7 @@ export function SignInScreen() {
       setError(null);
       try {
         const user: UserDto = await (registering ? api.register : api.login)(value.username, value.password);
+        queryClient.setQueryData(queryKeys.sessionExpired, false);
         queryClient.setQueryData(queryKeys.me, user);
       } catch (err) {
         setError(err);
@@ -54,6 +56,11 @@ export function SignInScreen() {
           {t("auth.welcomeTitle")}
         </h1>
         <p className="m-0 max-w-[34ch] text-[1.05rem] text-ink-2">{t("auth.welcomeText")}</p>
+        {sessionExpired && (
+          <p role="status" className="m-0 max-w-[34ch] font-semibold text-accent-text">
+            {t("auth.sessionEnded")}
+          </p>
+        )}
       </div>
       <Card as="section" aria-label={t(registering ? "auth.register" : "auth.login")} className="grid gap-4">
         <form

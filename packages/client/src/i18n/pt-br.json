@@ -20,7 +20,15 @@
     "help": "Mostrar esta lista",
     "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}"
   },
-  "states": { "loadFailed": "Não foi possível carregar isto." },
+  "states": {
+    "loadFailed": "Não foi possível carregar isto.",
+    "notFoundTitle": "Não há nada neste endereço",
+    "notFoundText": "O link pode estar digitado errado ou a página pode ter mudado de lugar.",
+    "crashTitle": "Algo quebrou nesta página",
+    "crashText": "Seus jogos estão seguros. Tente de novo e recarregue a página se continuar acontecendo.",
+    "worldUnavailableTitle": "Este mundo não está disponível para você",
+    "worldUnavailableText": "Ele pode ter sido excluído, ou você pode ter sido removido. Peça um novo link de convite ao mestre."
+  },
   "language": { "label": "Idioma", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
     "username": "Usuário",
@@ -33,7 +41,8 @@
     "firstUserHint": "A primeira conta criada vira o administrador da instalação.",
     "welcomeTitle": "Sua mesa de RPG, onde seus amigos estiverem.",
     "welcomeText": "Entre, escolha um mundo e comece a jogar. Sem instalar nada.",
-    "account": "Conta"
+    "account": "Conta",
+    "sessionEnded": "Sua sessão terminou. Entre de novo para continuar."
   },
   "validation": {
     "required": "Preencha este campo.",

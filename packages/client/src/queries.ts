@@ -14,6 +14,7 @@ export const queryClient = new QueryClient({
 
 export const queryKeys = {
   me: ["me"] as const,
+  sessionExpired: ["session", "expired"] as const,
   worlds: ["worlds"] as const,
   systems: ["systems"] as const,
   worldSystem: (worldId: string) => ["worlds", worldId, "system"] as const,
@@ -25,7 +26,11 @@ export const useMe = () =>
     queryKey: queryKeys.me,
     queryFn: () =>
       api.me().catch((error) => {
-        if (error instanceof ApiError && error.code === "unauthenticated") return null;
+        if (error instanceof ApiError && error.code === "unauthenticated") {
+          // Someone was signed in a moment ago: the session ended, they did not choose to leave.
+          if (queryClient.getQueryData(queryKeys.me)) queryClient.setQueryData(queryKeys.sessionExpired, true);
+          return null;
+        }
         throw error;
       }),
     staleTime: Number.POSITIVE_INFINITY,
@@ -37,3 +42,7 @@ export const useSystems = () => useQuery({ queryKey: queryKeys.systems, queryFn:
 
 export const useWorldSystem = (worldId: string) =>
   useQuery({ queryKey: queryKeys.worldSystem(worldId), queryFn: () => api.worldSystem(worldId) });
+
+/** True once a session that was working stopped being valid (expired or revoked), so sign-in can say why. */
+export const useSessionExpired = () =>
+  useQuery({ queryKey: queryKeys.sessionExpired, queryFn: () => false, staleTime: Number.POSITIVE_INFINITY, initialData: false }).data;
