@@ -2,13 +2,17 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "./api";
 
+/** The translation key for an error: its server code, or the generic one for anything unexpected. */
+export function errorKey(error: unknown) {
+  return `errors.${error instanceof ApiError ? error.code : "internal_error"}` as const;
+}
+
 export function ErrorMessage({ error }: { error: unknown }) {
   const { t } = useTranslation();
   if (!error) return null;
-  const code = error instanceof ApiError ? error.code : "internal_error";
   return (
     <p role="alert" className="error">
-      {t(`errors.${code}`)}
+      {t(errorKey(error))}
     </p>
   );
 }

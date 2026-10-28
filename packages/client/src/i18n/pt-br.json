@@ -1,6 +1,7 @@
 {
   "app": { "title": "OpenVTT", "loading": "Carregando…" },
-  "common": { "save": "Salvar", "delete": "Excluir" },
+  "common": { "save": "Salvar", "delete": "Excluir", "retry": "Tentar de novo" },
+  "states": { "loadFailed": "Não foi possível carregar isto." },
   "language": { "label": "Idioma", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
     "username": "Usuário",
@@ -24,6 +25,7 @@
   "worlds": {
     "title": "Seus mundos",
     "empty": "Você ainda não faz parte de nenhum mundo.",
+    "emptyHint": "Comece o seu mundo abaixo ou peça um link de convite a um mestre.",
     "newName": "Nome do mundo",
     "system": "Sistema de regras",
     "create": "Criar mundo",

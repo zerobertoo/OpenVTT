@@ -7,12 +7,15 @@ import { useTranslation } from "react-i18next";
 import { api } from "./api";
 import { AccountControls } from "./components/AccountControls";
 import { Button } from "./components/ui/button";
+import { Card } from "./components/ui/card";
+import { EmptyState, ErrorState } from "./components/ui/empty-state";
 import { Field } from "./components/ui/field";
 import { Input } from "./components/ui/input";
+import { Loading, Skeleton } from "./components/ui/skeleton";
 import { setLocale } from "./i18n";
 import { Logo } from "./icons";
 import { queryKeys, useMe, useSystems, useWorlds } from "./queries";
-import { ErrorMessage } from "./ui";
+import { ErrorMessage, errorKey } from "./ui";
 
 export const UserContext = createContext<UserDto | null>(null);
 
@@ -161,7 +164,34 @@ export function WorldList() {
     <section>
       <div className="card">
         <h1 className="page-title">{t("worlds.title")}</h1>
-        {worlds.length === 0 && <p className="muted">{t("worlds.empty")}</p>}
+        {worldsQuery.isPending && (
+          <Loading label={t("app.loading")} className="mt-3">
+            <div className="grid gap-[0.6rem]">
+              {[0, 1].map((row) => (
+                <Card key={row} variant="inset" className="flex items-center gap-[0.9rem]">
+                  <Skeleton shape="block" className="size-[2.8rem] flex-none rounded-[0.85rem]" />
+                  <span className="grid flex-1 gap-2">
+                    <Skeleton className="w-1/2" />
+                    <Skeleton className="h-3 w-1/4" />
+                  </span>
+                </Card>
+              ))}
+            </div>
+          </Loading>
+        )}
+        {worldsQuery.isError && (
+          <ErrorState
+            className="mt-3"
+            title={t("states.loadFailed")}
+            description={t(errorKey(worldsQuery.error))}
+            onRetry={() => void worldsQuery.refetch()}
+            retryLabel={t("common.retry")}
+            retrying={worldsQuery.isFetching}
+          />
+        )}
+        {worldsQuery.isSuccess && worlds.length === 0 && (
+          <EmptyState title={t("worlds.empty")} description={t("worlds.emptyHint")} headingLevel={2} />
+        )}
         <ul className="world-list">
           {worlds.map((w) => (
             <li key={w.id} className="world-item">

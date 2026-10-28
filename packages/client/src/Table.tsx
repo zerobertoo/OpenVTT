@@ -5,6 +5,7 @@ import { Tabs } from "radix-ui";
 import { type CSSProperties, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountControls } from "./components/AccountControls";
+import { TableLoading } from "./components/screens/TableLoading";
 import { Tip, TipProvider } from "./components/ui/tooltip";
 import { Icon, type IconName, Logo } from "./icons";
 import { type MapTool, MapView } from "./MapView";
@@ -40,12 +41,7 @@ export function Table({ worldId, user }: Props) {
   );
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
 
-  if (!state)
-    return (
-      <main className="app-main">
-        <p>{t(connected ? "app.loading" : "table.connecting")}</p>
-      </main>
-    );
+  if (!state) return <TableLoading connecting={!connected} />;
 
   const isGm = state.yourRole === "gm";
   // Players always follow the active scene; the GM can look at any scene.

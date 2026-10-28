@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthForm, UserContext } from "./App";
 import { AccountControls } from "./components/AccountControls";
+import { Card } from "./components/ui/card";
+import { Loading, Skeleton } from "./components/ui/skeleton";
 import { setLocale } from "./i18n";
 import { Logo } from "./icons";
 import { useMe } from "./queries";
@@ -39,7 +41,14 @@ export function Root() {
   if (isPending)
     return (
       <Shell>
-        <p>{t("app.loading")}</p>
+        <Loading label={t("app.loading")}>
+          <Skeleton shape="block" className="h-12 w-3/4" />
+          <Card className="mt-6 grid gap-4">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-11 rounded-full" />
+          </Card>
+        </Loading>
       </Shell>
     );
   // Also reached when /api/me is unreachable; the sign-in form then reports the network error on submit.

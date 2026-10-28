@@ -1,6 +1,7 @@
 {
   "app": { "title": "OpenVTT", "loading": "Loading…" },
-  "common": { "save": "Save", "delete": "Delete" },
+  "common": { "save": "Save", "delete": "Delete", "retry": "Try again" },
+  "states": { "loadFailed": "We could not load this." },
   "language": { "label": "Language", "en": "English", "pt-br": "Português (Brasil)" },
   "auth": {
     "username": "Username",
@@ -24,6 +25,7 @@
   "worlds": {
     "title": "Your worlds",
     "empty": "You are not part of any world yet.",
+    "emptyHint": "Start your own world below, or ask a game master for an invite link.",
     "newName": "World name",
     "system": "Rules system",
     "create": "Create world",
