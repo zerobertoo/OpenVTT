@@ -53,6 +53,35 @@ test("register, create a world, open the table and roll dice in the chat", async
   await expectNoAxeViolations(page);
 });
 
+test("a game master can set up a scene, a token, a sheet and an invite, with no accessibility violations", async ({ page }) => {
+  await registerNewUser(page);
+  await createAndOpenWorld(page, "Tour world");
+
+  await page.getByRole("tab", { name: "Scenes" }).click();
+  await page.getByRole("form", { name: "New scene" }).getByLabel("Name").fill("Tavern");
+  await page.getByRole("button", { name: "Create scene" }).click();
+  await expect(page.getByRole("list", { name: "Scenes" }).getByText("Tavern")).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.getByRole("tab", { name: "Tokens" }).click();
+  await page.getByLabel("Name").first().fill("Goblin");
+  await page.getByRole("button", { name: "Add token" }).click();
+  await page.getByRole("list", { name: "Tokens in this scene" }).getByRole("button", { name: /Goblin/ }).click();
+  await expect(page.getByRole("region", { name: "Edit token" })).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.getByRole("tab", { name: "Sheets" }).click();
+  await page.getByLabel("Name").first().fill("Ada");
+  await page.getByRole("button", { name: "Create sheet" }).click();
+  await expect(page.getByRole("list", { name: "Sheets" }).getByText("Ada")).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.getByRole("tab", { name: "World" }).click();
+  await page.getByRole("button", { name: "Create invite link" }).click();
+  await expect(page.getByLabel("Invite link")).toHaveValue(/\/join\//);
+  await expectNoAxeViolations(page);
+});
+
 test("the back button on the table returns to the world list", async ({ page }) => {
   await registerNewUser(page);
   await createAndOpenWorld(page, "Back button world");
