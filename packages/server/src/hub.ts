@@ -254,6 +254,19 @@ export class Hub {
     this.send(conn, { type: "world.state", state });
   }
 
+  /** Players get the active scene's drawings without the game master's layer, and nothing for other scenes. */
+  publishDrawings(worldId: string, sceneId: string) {
+    const scene = this.s.scenes.get(sceneId);
+    if (!scene) return;
+    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    const forPlayers = withoutHiddenMapData(scene).drawings;
+    for (const c of this.connections) {
+      if (c.worldId !== worldId) continue;
+      if (c.viewer.role === "gm") this.send(c, { type: "scene.drawings", sceneId, drawings: scene.drawings });
+      else if (sceneId === activeSceneId) this.send(c, { type: "scene.drawings", sceneId, drawings: forPlayers });
+    }
+  }
+
   broadcastState(worldId: string) {
     for (const c of this.connections) if (c.worldId === worldId) this.sendState(c);
   }

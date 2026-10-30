@@ -385,7 +385,7 @@ export function buildApp(options: AppOptions) {
     const activeSceneId = s.scenes.activeSceneId(worldId);
     if (viewer.role !== "gm" && req.params.id !== activeSceneId) throw new AppError("not_found");
     const id = s.drawings.create(req.params.id, viewer, activeSceneId, input);
-    hub.broadcastState(worldId);
+    hub.publishDrawings(worldId, req.params.id);
     return { id };
   });
 
@@ -394,7 +394,7 @@ export function buildApp(options: AppOptions) {
     if (!found) throw new AppError("not_found");
     const { viewer } = requireParticipant(req, found.worldId);
     s.drawings.remove(req.params.id, viewer);
-    hub.broadcastState(found.worldId);
+    hub.publishDrawings(found.worldId, found.sceneId);
     return { ok: true };
   });
 
@@ -404,7 +404,7 @@ export function buildApp(options: AppOptions) {
     const { viewer, user } = requireParticipant(req, worldId);
     s.drawings.clear(req.params.id, viewer);
     if (viewer.role === "gm") s.worlds.audit(worldId, user.id, "drawings.clear", s.scenes.get(req.params.id)?.name);
-    hub.broadcastState(worldId);
+    hub.publishDrawings(worldId, req.params.id);
     return { ok: true };
   });
 

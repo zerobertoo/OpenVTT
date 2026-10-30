@@ -355,6 +355,8 @@ export type ServerMessage =
   | { type: "chat.message"; message: MessageDto }
   | { type: "vision.update"; vision: VisionDto | null }
   | { type: "combat.update"; combat: CombatDto | null }
+  /** Every drawing of one scene the recipient may see, sent after a drawing is added or removed. */
+  | { type: "scene.drawings"; sceneId: string; drawings: DrawingDto[] }
   /** A short-lived marker on the map; `focus` also asks everyone to look at it (game master only). */
   | { type: "map.ping"; ping: PingDto }
   | { type: "error"; code: ErrorCode };

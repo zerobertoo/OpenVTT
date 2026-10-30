@@ -21,7 +21,7 @@ async function setup() {
     conn.ws.close();
     return msg.state;
   };
-  return { app, gm, bob, world, scene, stateOf };
+  return { app, gm, bob, world, scene, stateOf, port };
 }
 
 const SECRET_NOTE = { kind: "note", points: [100, 100], text: "The lich hides behind the altar" };
@@ -45,6 +45,22 @@ describe("drawings and note pins", () => {
     expect(JSON.stringify(bobState)).not.toContain("lich");
     expect(JSON.stringify(bobState)).not.toContain("abcdef");
     expect((await call(app, bob.cookie, "GET", `/api/worlds/${world.id}/export`)).statusCode).toBe(403);
+  });
+
+  it("sends only the changed scene's drawings over the socket, still without the game master's", async () => {
+    const { app, gm, bob, scene, world, port } = await setup();
+    const conn = connect(port, world.id, bob.cookie);
+    await conn.waitFor((m) => m.type === "world.state");
+    await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/drawings`, SECRET_NOTE);
+    await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "arrow", points: [0, 0, 50, 50] });
+    const other = (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Vault", width: 500, height: 500 })).json();
+    await call(app, gm.cookie, "POST", `/api/scenes/${other.id}/drawings`, { kind: "arrow", points: [0, 0, 9, 9] });
+    await conn.waitFor((m) => m.type === "scene.drawings" && m.drawings.length === 1);
+    await conn.settle();
+    const updates = conn.seen.filter((m) => m.type === "scene.drawings");
+    expect(updates.map((m) => m.sceneId)).toEqual([scene.id, scene.id]);
+    expect(JSON.stringify(conn.seen)).not.toContain("lich");
+    conn.ws.close();
   });
 
   it("lets players draw on the objects layer only and erase only their own marks", async () => {

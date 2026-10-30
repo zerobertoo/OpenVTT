@@ -22,6 +22,8 @@ function reducer(state: WorldStateDto | null, msg: ServerMessage): WorldStateDto
       return { ...state, tokens: state.tokens.filter((t) => t.id !== msg.tokenId) };
     case "vision.update":
       return { ...state, vision: msg.vision };
+    case "scene.drawings":
+      return { ...state, scenes: state.scenes.map((s) => (s.id === msg.sceneId ? { ...s, drawings: msg.drawings } : s)) };
     case "combat.update":
       return { ...state, combat: msg.combat };
     case "chat.message":
