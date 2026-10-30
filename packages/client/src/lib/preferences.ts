@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { type DiagonalRule, type RulerShape } from "./ruler";
+import type { DiagonalRule, RulerShape } from "./ruler";
 import { DEFAULT_MEASURE_PREFS, type MeasurePrefs } from "./units";
 
 interface PreferencesState {
@@ -40,7 +40,14 @@ export const usePreferences = create<PreferencesState>()(
       // Version 1 kept distances "as the scene says" by default; metric is the default now.
       migrate: (stored) => {
         const old = stored as Partial<PreferencesState>;
-        return { ...old, measure: { ...DEFAULT_MEASURE_PREFS, ...old.measure, system: old.measure?.system === "scene" ? "metric" : (old.measure?.system ?? "metric") } };
+        return {
+          ...old,
+          measure: {
+            ...DEFAULT_MEASURE_PREFS,
+            ...old.measure,
+            system: old.measure?.system === "scene" ? "metric" : (old.measure?.system ?? "metric"),
+          },
+        };
       },
     },
   ),

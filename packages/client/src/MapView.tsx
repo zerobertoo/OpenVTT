@@ -226,7 +226,10 @@ export function MapView(props: Props) {
             ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
             label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
           } else if (rulerShape === "cone") {
-            ruler.poly(conePoints(rulerStart, end).flatMap((p) => [p.x, p.y])).fill(area).stroke(line);
+            ruler
+              .poly(conePoints(rulerStart, end).flatMap((p) => [p.x, p.y]))
+              .fill(area)
+              .stroke(line);
             label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
           } else if (rulerShape === "rectangle") {
             ruler.rect(Math.min(rulerStart.x, end.x), Math.min(rulerStart.y, end.y), Math.abs(dx), Math.abs(dy)).fill(area).stroke(line);
@@ -234,8 +237,7 @@ export function MapView(props: Props) {
           } else {
             ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
             // The diagonal rules count whole grid steps, so they only apply on a square grid.
-            const cells =
-              scene?.gridType === "square" ? lineCells(dx, dy, scene.gridSize, diagonalRule) : cellsOf(Math.hypot(dx, dy));
+            const cells = scene?.gridType === "square" ? lineCells(dx, dy, scene.gridSize, diagonalRule) : cellsOf(Math.hypot(dx, dy));
             label.text = formatDistance(cells);
           }
           label.scale.set(1 / world.scale.x);
@@ -593,7 +595,8 @@ export function MapView(props: Props) {
         const height = Math.max(5, gridSize / 10);
         const ratio = healthRatio(token.hp, token.hpMax);
         const bar = new Graphics().roundRect(-width / 2, belowY, width, height, height / 2).fill({ color: 0x000000, alpha: 0.7 });
-        if (ratio > 0) bar.roundRect(-width / 2, belowY, Math.max(height, width * ratio), height, height / 2).fill({ color: healthColor(ratio) });
+        if (ratio > 0)
+          bar.roundRect(-width / 2, belowY, Math.max(height, width * ratio), height, height / 2).fill({ color: healthColor(ratio) });
         status.addChild(bar);
         belowY += height + 2;
       }

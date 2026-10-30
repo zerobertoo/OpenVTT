@@ -205,7 +205,8 @@ export class Hub {
   private refreshSight(conn: Connection, sight: { vision: VisionDto; tokens: TokenDto[] }, changedTokenId: string | null) {
     const next = new Set(sight.tokens.map((t) => t.id));
     for (const token of sight.tokens)
-      if (!conn.seenTokenIds.has(token.id) || token.id === changedTokenId) this.send(conn, { type: "token.upsert", token: this.s.tokens.forViewer(token, conn.viewer) });
+      if (!conn.seenTokenIds.has(token.id) || token.id === changedTokenId)
+        this.send(conn, { type: "token.upsert", token: this.s.tokens.forViewer(token, conn.viewer) });
     for (const id of conn.seenTokenIds) if (!next.has(id)) this.send(conn, { type: "token.remove", tokenId: id });
     conn.seenTokenIds = next;
     this.send(conn, { type: "vision.update", vision: sight.vision });
@@ -258,7 +259,8 @@ export class Hub {
         this.refreshSight(c, sight, after.id);
         continue;
       }
-      if (this.s.tokens.canSee(after, c.viewer, activeSceneId)) this.send(c, { type: "token.upsert", token: this.s.tokens.forViewer(after, c.viewer) });
+      if (this.s.tokens.canSee(after, c.viewer, activeSceneId))
+        this.send(c, { type: "token.upsert", token: this.s.tokens.forViewer(after, c.viewer) });
       else if (before && this.s.tokens.canSee(before, c.viewer, activeSceneId)) this.send(c, { type: "token.remove", tokenId: after.id });
     }
   }

@@ -12,8 +12,16 @@ export function RulerOptions({ scene }: { scene: SceneDto | null }) {
   const { t } = useTranslation();
   const { rulerShape, setRulerShape, diagonalRule, setDiagonalRule, measure, setMeasure } = usePreferences();
   return (
-    <div role="group" aria-label={t("ruler.options")} className="ruler-options flex flex-wrap items-center gap-2 rounded-[1.2rem] bg-chrome p-2 shadow-float">
-      <Select aria-label={t("ruler.shape")} value={rulerShape} onChange={(e) => setRulerShape(e.target.value as (typeof RULER_SHAPES)[number])}>
+    <div
+      role="group"
+      aria-label={t("ruler.options")}
+      className="ruler-options flex flex-wrap items-center gap-2 rounded-[1.2rem] bg-chrome p-2 shadow-float"
+    >
+      <Select
+        aria-label={t("ruler.shape")}
+        value={rulerShape}
+        onChange={(e) => setRulerShape(e.target.value as (typeof RULER_SHAPES)[number])}
+      >
         {RULER_SHAPES.map((shape) => (
           <option key={shape} value={shape}>
             {t(`ruler.shapes.${shape}`)}
@@ -33,7 +41,11 @@ export function RulerOptions({ scene }: { scene: SceneDto | null }) {
           ))}
         </Select>
       )}
-      <Select aria-label={t("measure.system")} value={measure.system} onChange={(e) => setMeasure({ system: e.target.value as MeasureSystem })}>
+      <Select
+        aria-label={t("measure.system")}
+        value={measure.system}
+        onChange={(e) => setMeasure({ system: e.target.value as MeasureSystem })}
+      >
         {SYSTEMS.map((system) => (
           <option key={system} value={system}>
             {t(`measure.${system}`)}

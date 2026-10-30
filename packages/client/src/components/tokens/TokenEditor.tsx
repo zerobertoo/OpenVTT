@@ -61,7 +61,9 @@ export function TokenEditor({ token, players, actors, isGm, onPatch, onUpload, o
               max={99999}
               step={1}
               defaultValue={token.hp ?? ""}
-              onBlur={(e) => e.target.value !== "" && Number(e.target.value) !== token.hp && onPatch({ hp: Math.round(Number(e.target.value)) })}
+              onBlur={(e) =>
+                e.target.value !== "" && Number(e.target.value) !== token.hp && onPatch({ hp: Math.round(Number(e.target.value)) })
+              }
             />
           )}
         </Field>
@@ -112,7 +114,8 @@ export function TokenEditor({ token, players, actors, isGm, onPatch, onUpload, o
                   defaultValue={token.hpMax ?? ""}
                   onBlur={(e) => {
                     const hpMax = e.target.value === "" ? null : Math.max(1, Math.round(Number(e.target.value)));
-                    if (hpMax !== token.hpMax) onPatch({ hpMax, ...(hpMax === null ? { hp: null } : token.hp === null ? { hp: hpMax } : {}) });
+                    if (hpMax !== token.hpMax)
+                      onPatch({ hpMax, ...(hpMax === null ? { hp: null } : token.hp === null ? { hp: hpMax } : {}) });
                   }}
                 />
               )}
