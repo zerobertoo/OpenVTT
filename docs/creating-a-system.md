@@ -15,6 +15,7 @@ my-system/
   locales/
     en.json
     pt-br.json
+  compendium.json   (optional)
 ```
 
 Look at `systems/generic` for a minimal example and `systems/dnd5e-srd` for a larger one.
@@ -103,3 +104,26 @@ Packages may only contain `system.json`, `templates/*.json` and `locales/*.json`
 ## Checking your work
 
 Load the package in a test world, create a sheet and edit the fields. The SDK exposes `sheetTemplateSchema` and `systemManifestSchema` (zod) if you want to validate files in your own CI.
+
+## compendium.json (optional)
+
+Monsters and items the game master can drag onto the map (or place with a button). A monster becomes an NPC sheet plus a token linked to it; an item becomes a token only.
+
+```json
+[
+  {
+    "id": "goblin",
+    "name": "Goblin",
+    "kind": "monster",
+    "size": 1,
+    "color": "#4f7a3a",
+    "data": { "str": 8, "dex": 14, "ac": 15, "hp": 7, "hp_max": 7 }
+  },
+  { "id": "torch", "name": "Torch", "kind": "item", "size": 0.5 }
+]
+```
+
+- `id`: lowercase letters, digits and dashes, unique in the file.
+- `size` is in grid cells (default 1); `color` is the token color when it has no picture.
+- `data` must fit the system's `npc` template; the package is refused otherwise. When it has `hp_max`, the token starts with that many hit points.
+- Up to 2,000 entries. Only include content you may redistribute (`systems/dnd5e-srd` uses SRD 5.1 monsters under CC-BY-4.0).

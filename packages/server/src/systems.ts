@@ -3,22 +3,26 @@ import { join, posix } from "node:path";
 import {
   type ActorType,
   actorTypeSchema,
+  type CompendiumEntry,
+  compendiumSchema,
   type SheetTemplate,
   type SystemManifest,
   sheetTemplateSchema,
   systemManifestSchema,
+  validateSheetData,
 } from "@openvtt/sdk";
 import { unzipSync } from "fflate";
 import { AppError } from "./errors.ts";
 
 export const OPENVTT_VERSION = "0.1.0";
 const MAX_PACKAGE_BYTES = 2 * 1024 * 1024;
-const SAFE_PATH = /^(system\.json|(templates|locales)\/[A-Za-z0-9_.-]+\.json)$/;
+const SAFE_PATH = /^(system\.json|compendium\.json|(templates|locales)\/[A-Za-z0-9_.-]+\.json)$/;
 
 export interface LoadedSystem {
   manifest: SystemManifest;
   templates: Partial<Record<ActorType, SheetTemplate>>;
   strings: Record<string, Record<string, string>>;
+  compendium: CompendiumEntry[];
 }
 
 const parseJson = (text: string | undefined, what: string): unknown => {
@@ -41,7 +45,12 @@ export function parseSystemPackage(files: Record<string, string>): LoadedSystem 
     if (!SAFE_PATH.test(path)) throw new Error(`unsafe locale ${locale}`);
     strings[locale] = parseJson(files[path], path) as Record<string, string>;
   }
-  return { manifest, templates, strings };
+  const compendium = files["compendium.json"] ? compendiumSchema.parse(parseJson(files["compendium.json"], "compendium.json")) : [];
+  const npc = templates.npc;
+  for (const entry of compendium)
+    if (entry.kind === "monster" && (!npc || !validateSheetData(npc, entry.data)))
+      throw new Error(`compendium entry ${entry.id} does not fit the npc sheet`);
+  return { manifest, templates, strings, compendium };
 }
 
 function readPackageDir(dir: string): Record<string, string> {

@@ -1,7 +1,7 @@
 import type { UserDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "./api";
 import { TableLoading } from "./components/screens/TableLoading";
@@ -19,11 +19,14 @@ import { TableKeyboard } from "./components/table/TableKeyboard";
 import { TableSounds } from "./components/table/TableSounds";
 import { TableTour } from "./components/table/TableTour";
 import { TitleChip } from "./components/table/TitleChip";
+import { Compendium } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
 import { AccountBox } from "./components/world/AccountBox";
 import { usePreferences } from "./lib/preferences";
+import { undoableActions } from "./lib/tableActions";
+import { useUndo } from "./lib/undo";
 import { MapView } from "./MapView";
 import { ChatPanel } from "./panels/ChatPanel";
 import { JournalPanel } from "./panels/JournalPanel";
@@ -101,6 +104,12 @@ export function Table({ worldId, user }: Props) {
     [runRoll, worldId],
   );
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
+  const isGmRole = can.isGm;
+  const actions = useMemo(
+    () => undoableActions(worldId, move, isGmRole ? useUndo.getState().record : () => undefined),
+    [worldId, move, isGmRole],
+  );
+  useEffect(() => useUndo.getState().clear, [worldId]);
 
   // The preview only makes sense for a player who is still in the world.
   const previewedPlayer = can.isGm ? state?.members.find((m) => m.role === "player" && m.userId === viewAsUserId) : undefined;
@@ -130,11 +139,18 @@ export function Table({ worldId, user }: Props) {
   const selectedTokens = state.tokens.filter((tk) => selectedTokenIds.includes(tk.id));
   const movableTokens = selectedTokens.filter(canControl);
   const rotateSelection = (degrees: number) => {
-    for (const token of movableTokens)
-      void api.updateToken(token.id, { rotation: (((token.rotation + degrees) % 360) + 360) % 360 }).catch(() => undefined);
+    if (movableTokens.length) actions.rotate(movableTokens, degrees);
   };
   const removeSelection = () => {
     if (isGm && selectedTokens.length > 0) setConfirmingRemoval(true);
+  };
+
+  // The drop point becomes the middle of a one-cell token, snapped to a square grid.
+  const placeEntry = (entryId: string, x: number, y: number) => {
+    if (!scene) return;
+    const half = scene.gridSize / 2;
+    const snap = (v: number) => (scene.gridType === "square" ? Math.round((v - half) / scene.gridSize) * scene.gridSize : v - half);
+    actions.place(entryId, scene.id, snap(x), snap(y));
   };
 
   const tabs: TableTab[] = isGm
@@ -151,7 +167,20 @@ export function Table({ worldId, user }: Props) {
       case "chat":
         return <ChatPanel state={state} userId={user.id} />;
       case "tokens":
-        return <TokenPanel state={state} userId={user.id} viewSceneId={viewSceneId} token={selectedToken} />;
+        return (
+          <>
+            <TokenPanel state={state} userId={user.id} viewSceneId={viewSceneId} token={selectedToken} />
+            {isGm && scene && (
+              <Compendium
+                worldId={state.id}
+                onPlace={(entryId) => {
+                  const center = useTableUi.getState().mapCenter() ?? { x: scene.width / 2, y: scene.height / 2 };
+                  placeEntry(entryId, center.x, center.y);
+                }}
+              />
+            )}
+          </>
+        );
       case "sheets":
         return <SheetsPanel state={state} locale={i18n.language} />;
       case "journal":
@@ -198,8 +227,13 @@ export function Table({ worldId, user }: Props) {
               rulerShape={rulerShape}
               diagonalRule={diagonalRule}
               draw={draw}
-              onDraw={(drawing) => void api.createDrawing(scene.id, drawing).catch(() => undefined)}
-              onErase={(drawingId) => void api.deleteDrawing(drawingId).catch(() => undefined)}
+              onDraw={(drawing) => actions.draw(scene.id, drawing)}
+              onErase={(drawingId) => {
+                const drawing = scene.drawings.find((d) => d.id === drawingId);
+                if (drawing) actions.erase(scene.id, drawing);
+              }}
+              onMoved={actions.moved}
+              onDropEntry={(entryId, x, y) => isGm && placeEntry(entryId, x, y)}
               canErase={(drawing) => isGm || drawing.authorId === user.id}
             />
           ) : (
@@ -212,9 +246,14 @@ export function Table({ worldId, user }: Props) {
           <TableKeyboard
             scene={scene}
             movableTokens={movableTokens}
-            onMove={move}
+            onMove={(tokenId, x, y) => {
+              const token = state.tokens.find((tk) => tk.id === tokenId);
+              if (token) actions.moveToken(token, x, y);
+            }}
             onRotate={rotateSelection}
             onRemove={removeSelection}
+            onUndo={isGm ? useUndo.getState().undo : undefined}
+            onRedo={isGm ? useUndo.getState().redo : undefined}
             helpOpen={helpOpen}
             onHelpOpenChange={setHelpOpen}
           />
@@ -249,7 +288,7 @@ export function Table({ worldId, user }: Props) {
                 tone="danger"
                 onConfirm={() => {
                   setConfirmingRemoval(false);
-                  for (const token of selectedTokens) void api.deleteToken(token.id).catch(() => undefined);
+                  actions.remove(selectedTokens);
                   selectToken(null);
                 }}
               />

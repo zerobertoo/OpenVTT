@@ -83,6 +83,8 @@ interface TableUiState {
   /** Only the map is shown; `tv` also hides the pointer and the way back, for a shared screen. */
   view: "normal" | "focus" | "tv";
   setView: (view: "normal" | "focus" | "tv") => void;
+  /** Map pixels at the middle of the view; set by the map once it is drawn. */
+  mapCenter: () => { x: number; y: number } | null;
   /** Whether the dice tray is open over the map. */
   diceTrayOpen: boolean;
   setDiceTrayOpen: (open: boolean) => void;
@@ -111,6 +113,7 @@ const initialState = {
   ping: null,
   minimapOpen: true,
   diceTrayOpen: false,
+  mapCenter: () => null,
   view: "normal" as "normal" | "focus" | "tv",
   draw: { kind: "free", color: "#ffc914", text: "", layer: "objects" } as DrawSettings,
 } as const;

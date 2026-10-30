@@ -312,6 +312,12 @@ export interface AssetSummaryDto {
   createdAt: number;
 }
 
+export const placeCompendiumSchema = z.object({
+  sceneId: z.string().uuid(),
+  x: z.number().finite().min(-16384).max(16384),
+  y: z.number().finite().min(-16384).max(16384),
+});
+
 export interface WorldStateDto {
   id: string;
   name: string;

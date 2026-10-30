@@ -22,6 +22,7 @@ import {
   MAX_UPLOAD_BYTES,
   PLAYER_EDITABLE_TOKEN_FIELDS,
   passwordSchema,
+  placeCompendiumSchema,
   sendMessageSchema,
   setAmbientSchema,
   setCombatantSchema,
@@ -41,7 +42,7 @@ import { ZodError, z } from "zod";
 import { parseRange } from "./assets.ts";
 import { SESSION_TTL_MS } from "./auth.ts";
 import { backupDatabase } from "./backup.ts";
-import { openDatabase } from "./db.ts";
+import { openDatabase, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 import { Hub } from "./hub.ts";
 import { registerPortabilityRoutes } from "./portability.ts";
@@ -415,6 +416,38 @@ export function buildApp(options: AppOptions) {
     s.worlds.setAmbient(req.params.id, assetId, playing);
     hub.broadcastState(req.params.id);
     return { ok: true };
+  });
+
+  // ---- compendium ---------------------------------------------------------------------------
+
+  app.get<{ Params: { id: string } }>("/api/worlds/:id/compendium", async (req) => {
+    requireGm(req, req.params.id);
+    return s.systems.get(s.worlds.info(req.params.id).systemId)?.compendium ?? [];
+  });
+
+  app.post<{ Params: { id: string; entryId: string } }>("/api/worlds/:id/compendium/:entryId/place", async (req) => {
+    const worldId = req.params.id;
+    requireGm(req, worldId);
+    const { sceneId, x, y } = placeCompendiumSchema.parse(req.body);
+    const entry = s.systems.get(s.worlds.info(worldId).systemId)?.compendium.find((e) => e.id === req.params.entryId);
+    if (!entry) throw new AppError("not_found");
+    const token = transaction(s.db, () => {
+      let actorId: string | null = null;
+      if (entry.kind === "monster") {
+        actorId = s.actors.create(worldId, { name: entry.name, type: "npc" }).id;
+        s.db.prepare("UPDATE actors SET data = ? WHERE id = ?").run(JSON.stringify(entry.data), actorId);
+      }
+      const hp = typeof entry.data.hp_max === "number" ? entry.data.hp_max : null;
+      return s.tokens.create(worldId, {
+        ...createTokenSchema.parse({ sceneId, name: entry.name, x, y, size: entry.size, color: entry.color }),
+        actorId,
+        hp,
+        hpMax: hp,
+      });
+    });
+    hub.publishToken(worldId, null, token);
+    if (token.actorId) hub.broadcastState(worldId);
+    return token;
   });
 
   // ---- handouts -----------------------------------------------------------------------------

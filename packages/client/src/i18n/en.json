@@ -42,7 +42,9 @@
     "help": "Show this list",
     "moved": "{{name}} moved to column {{column}}, row {{row}}",
     "draw": "Draw tool",
-    "focus": "Focus mode: only the map"
+    "focus": "Focus mode: only the map",
+    "undo": "Undo your last change (game master)",
+    "redo": "Redo it"
   },
   "guide": {
     "title": "How a table works",
@@ -537,5 +539,14 @@
     "back": "Back",
     "next": "Next",
     "done": "Start playing"
+  },
+  "undo": { "undone": "Undone", "redone": "Redone" },
+  "compendium": {
+    "title": "Compendium",
+    "hint": "Monsters and items of this rules system. Drag one onto the map, or place it in the middle of the view.",
+    "search": "Search the compendium",
+    "monster": "monster",
+    "item": "item",
+    "place": "Place on map"
   }
 }

@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "./api";
+import { COMPENDIUM_DRAG_TYPE } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { arrowHead, drawingAt } from "./lib/drawings";
@@ -24,6 +25,7 @@ import { touchLru } from "./lib/lru";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
+import type { Move } from "./lib/tableActions";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
@@ -58,6 +60,10 @@ interface Props {
   /** Only called for drawings `canErase` accepts. */
   onErase: (drawingId: string) => void;
   canErase: (drawing: DrawingDto) => boolean;
+  /** After a drag ends, where each dragged token started and landed. */
+  onMoved: (moves: Move[]) => void;
+  /** A compendium entry dropped on the map, at that map point. */
+  onDropEntry: (entryId: string, x: number, y: number) => void;
 }
 
 const MIN_ZOOM = 0.1;
@@ -219,6 +225,7 @@ export function MapView(props: Props) {
           video: null,
         };
         bindInteractions(app, world, ruler, rulerLabel);
+        useTableUi.setState({ mapCenter: () => world.toLocal({ x: app.screen.width / 2, y: app.screen.height / 2 }) });
         // The overview only needs to follow the view a few times a second.
         let lastMinimapDraw = 0;
         app.ticker.add(() => {
@@ -776,6 +783,7 @@ export function MapView(props: Props) {
         if (!drag || !scene) return void (drag = null);
         const { members } = drag;
         drag = null;
+        const moves: Move[] = [];
         for (const member of members) {
           const half = (member.token.size * scene.gridSize) / 2;
           let x = member.view.x - half;
@@ -792,8 +800,11 @@ export function MapView(props: Props) {
           }
           member.view.position.set(x + half, y + half);
           props_().onMove(member.token.id, x, y);
+          if (x !== member.token.x || y !== member.token.y)
+            moves.push({ tokenId: member.token.id, from: { x: member.token.x, y: member.token.y }, to: { x, y } });
           popScale(app.ticker, member.view, 1.15, 240);
         }
+        props_().onMoved(moves);
       };
       view.on("pointerup", drop);
       view.on("pointerupoutside", drop);
@@ -996,7 +1007,22 @@ export function MapView(props: Props) {
 
   return (
     <>
-      <div ref={host} className="map-host" role="application" aria-label={t("map.label")} />
+      <div
+        ref={host}
+        className="map-host"
+        role="application"
+        aria-label={t("map.label")}
+        onDragOver={(e) => e.dataTransfer.types.includes(COMPENDIUM_DRAG_TYPE) && e.preventDefault()}
+        onDrop={(e) => {
+          const entryId = e.dataTransfer.getData(COMPENDIUM_DRAG_TYPE);
+          const world = engine.current?.world;
+          if (!entryId || !world) return;
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const point = world.toLocal({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          props.onDropEntry(entryId, point.x, point.y);
+        }}
+      />
       {minimapOpen && props.scene && (
         // The overview is a pointer shortcut; the keyboard has pan, zoom and "center on my token".
         <div aria-hidden="true" className="minimap">

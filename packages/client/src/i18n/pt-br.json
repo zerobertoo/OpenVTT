@@ -42,7 +42,9 @@
     "help": "Mostrar esta lista",
     "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}",
     "draw": "Ferramenta de desenho",
-    "focus": "Modo foco: só o mapa"
+    "focus": "Modo foco: só o mapa",
+    "undo": "Desfazer sua última mudança (mestre)",
+    "redo": "Refazer"
   },
   "guide": {
     "title": "Como funciona uma mesa",
@@ -537,5 +539,14 @@
     "back": "Voltar",
     "next": "Próximo",
     "done": "Começar a jogar"
+  },
+  "undo": { "undone": "Desfeito", "redone": "Refeito" },
+  "compendium": {
+    "title": "Compêndio",
+    "hint": "Monstros e itens deste sistema de regras. Arraste um para o mapa ou coloque no meio da visão.",
+    "search": "Buscar no compêndio",
+    "monster": "monstro",
+    "item": "item",
+    "place": "Colocar no mapa"
   }
 }

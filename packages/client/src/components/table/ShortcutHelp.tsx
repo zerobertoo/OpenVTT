@@ -15,6 +15,8 @@ const SHORTCUTS = [
   { keys: ["Shift", "drag"], label: "shortcuts.selectBox" },
   { keys: ["[", "]"], label: "shortcuts.turn" },
   { keys: ["Del"], label: "shortcuts.remove" },
+  { keys: ["Ctrl", "Z"], label: "shortcuts.undo" },
+  { keys: ["Ctrl", "Shift", "Z"], label: "shortcuts.redo" },
   { keys: ["Alt", "click"], label: "shortcuts.ping" },
   { keys: ["Alt", "Shift", "click"], label: "shortcuts.lookHere" },
   { keys: ["P"], label: "shortcuts.panels" },

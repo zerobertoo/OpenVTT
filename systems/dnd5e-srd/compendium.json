@@ -1,0 +1,230 @@
+[
+  {
+    "id": "bandit",
+    "name": "Bandit",
+    "kind": "monster",
+    "size": 1,
+    "color": "#7a6a4f",
+    "data": {
+      "str": 11,
+      "dex": 12,
+      "con": 12,
+      "int": 10,
+      "wis": 10,
+      "cha": 10,
+      "challenge": "1/8",
+      "ac": 12,
+      "speed": 30,
+      "hp": 11,
+      "hp_max": 11
+    }
+  },
+  {
+    "id": "giant-rat",
+    "name": "Giant Rat",
+    "kind": "monster",
+    "size": 0.5,
+    "color": "#6b5b4b",
+    "data": {
+      "str": 7,
+      "dex": 15,
+      "con": 11,
+      "int": 2,
+      "wis": 10,
+      "cha": 4,
+      "challenge": "1/8",
+      "ac": 12,
+      "speed": 30,
+      "hp": 7,
+      "hp_max": 7
+    }
+  },
+  {
+    "id": "goblin",
+    "name": "Goblin",
+    "kind": "monster",
+    "size": 1,
+    "color": "#4f7a3a",
+    "data": {
+      "str": 8,
+      "dex": 14,
+      "con": 10,
+      "int": 10,
+      "wis": 8,
+      "cha": 8,
+      "challenge": "1/4",
+      "ac": 15,
+      "speed": 30,
+      "hp": 7,
+      "hp_max": 7
+    }
+  },
+  {
+    "id": "skeleton",
+    "name": "Skeleton",
+    "kind": "monster",
+    "size": 1,
+    "color": "#bdb6a1",
+    "data": {
+      "str": 10,
+      "dex": 14,
+      "con": 15,
+      "int": 6,
+      "wis": 8,
+      "cha": 5,
+      "challenge": "1/4",
+      "ac": 13,
+      "speed": 30,
+      "hp": 13,
+      "hp_max": 13
+    }
+  },
+  {
+    "id": "wolf",
+    "name": "Wolf",
+    "kind": "monster",
+    "size": 1,
+    "color": "#6d6d6d",
+    "data": {
+      "str": 12,
+      "dex": 15,
+      "con": 12,
+      "int": 3,
+      "wis": 12,
+      "cha": 6,
+      "challenge": "1/4",
+      "ac": 13,
+      "speed": 40,
+      "hp": 11,
+      "hp_max": 11
+    }
+  },
+  {
+    "id": "zombie",
+    "name": "Zombie",
+    "kind": "monster",
+    "size": 1,
+    "color": "#5d6b4a",
+    "data": {
+      "str": 13,
+      "dex": 6,
+      "con": 16,
+      "int": 3,
+      "wis": 6,
+      "cha": 5,
+      "challenge": "1/4",
+      "ac": 8,
+      "speed": 20,
+      "hp": 22,
+      "hp_max": 22
+    }
+  },
+  {
+    "id": "orc",
+    "name": "Orc",
+    "kind": "monster",
+    "size": 1,
+    "color": "#5a7044",
+    "data": {
+      "str": 16,
+      "dex": 12,
+      "con": 16,
+      "int": 7,
+      "wis": 11,
+      "cha": 10,
+      "challenge": "1/2",
+      "ac": 13,
+      "speed": 30,
+      "hp": 15,
+      "hp_max": 15
+    }
+  },
+  {
+    "id": "ogre",
+    "name": "Ogre",
+    "kind": "monster",
+    "size": 2,
+    "color": "#8a6d3b",
+    "data": {
+      "str": 19,
+      "dex": 8,
+      "con": 16,
+      "int": 5,
+      "wis": 7,
+      "cha": 7,
+      "challenge": "2",
+      "ac": 11,
+      "speed": 40,
+      "hp": 59,
+      "hp_max": 59
+    }
+  },
+  {
+    "id": "owlbear",
+    "name": "Owlbear",
+    "kind": "monster",
+    "size": 2,
+    "color": "#7b5a3a",
+    "data": {
+      "str": 20,
+      "dex": 12,
+      "con": 17,
+      "int": 3,
+      "wis": 12,
+      "cha": 7,
+      "challenge": "3",
+      "ac": 13,
+      "speed": 40,
+      "hp": 59,
+      "hp_max": 59
+    }
+  },
+  {
+    "id": "young-green-dragon",
+    "name": "Young Green Dragon",
+    "kind": "monster",
+    "size": 2,
+    "color": "#2f7a4b",
+    "data": {
+      "str": 19,
+      "dex": 12,
+      "con": 17,
+      "int": 16,
+      "wis": 13,
+      "cha": 15,
+      "challenge": "8",
+      "ac": 18,
+      "speed": 40,
+      "hp": 136,
+      "hp_max": 136
+    }
+  },
+  {
+    "id": "potion-of-healing",
+    "name": "Potion of Healing",
+    "kind": "item",
+    "size": 0.5,
+    "color": "#c0392b"
+  },
+  {
+    "id": "treasure-chest",
+    "name": "Treasure Chest",
+    "kind": "item",
+    "size": 1,
+    "color": "#a0782c"
+  },
+  {
+    "id": "torch",
+    "name": "Torch",
+    "kind": "item",
+    "size": 0.5,
+    "color": "#e67e22"
+  },
+  {
+    "id": "rope",
+    "name": "Rope (50 feet)",
+    "kind": "item",
+    "size": 0.5,
+    "color": "#9c7f5a"
+  }
+]

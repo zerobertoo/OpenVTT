@@ -1,4 +1,4 @@
-import type { SystemManifest } from "@openvtt/sdk";
+import type { CompendiumEntry, SystemManifest } from "@openvtt/sdk";
 import type {
   ActorDto,
   AssetSummaryDto,
@@ -71,6 +71,9 @@ export const api = {
   updateScene: (sceneId: string, body: object) => patch<SceneDto>(`/api/scenes/${sceneId}`, body),
   deleteScene: (sceneId: string) => del(`/api/scenes/${sceneId}`),
   worldAssets: (worldId: string) => get<AssetSummaryDto[]>(`/api/worlds/${worldId}/assets`),
+  compendium: (worldId: string) => get<CompendiumEntry[]>(`/api/worlds/${worldId}/compendium`),
+  placeCompendium: (worldId: string, entryId: string, body: { sceneId: string; x: number; y: number }) =>
+    post<TokenDto>(`/api/worlds/${worldId}/compendium/${entryId}/place`, body),
   setAmbient: (worldId: string, body: { assetId: string | null; playing: boolean }) => put(`/api/worlds/${worldId}/ambient`, body),
   createHandout: (worldId: string, body: object) => post<{ id: string }>(`/api/worlds/${worldId}/handouts`, body),
   updateHandout: (handoutId: string, body: object) => patch(`/api/handouts/${handoutId}`, body),

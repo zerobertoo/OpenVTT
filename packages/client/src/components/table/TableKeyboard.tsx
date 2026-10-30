@@ -13,22 +13,34 @@ interface Props {
   onMove: (tokenId: string, x: number, y: number) => void;
   onRotate: (degrees: number) => void;
   onRemove: () => void;
+  /** Game master only; they resolve to false when there was nothing to undo or redo. */
+  onUndo?: () => Promise<boolean>;
+  onRedo?: () => Promise<boolean>;
   /** Lets the title chip's help button open the same dialog. */
   helpOpen: boolean;
   onHelpOpenChange: (open: boolean) => void;
 }
 
 /** Keyboard shortcuts for the table, the help dialog and a live region that says where a moved token landed. */
-export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove, helpOpen, onHelpOpenChange }: Props) {
+export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo, helpOpen, onHelpOpenChange }: Props) {
   const { t } = useTranslation();
   const [announcement, setAnnouncement] = useState("");
   // The handler is attached once and reads the newest props through this ref.
-  const latest = useRef({ scene, movableTokens, onMove, onRotate, onRemove });
-  latest.current = { scene, movableTokens, onMove, onRotate, onRemove };
+  const latest = useRef({ scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo });
+  latest.current = { scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isTypingTarget(event.target)) return;
+      const key = event.key.toLowerCase();
+      if ((event.ctrlKey || event.metaKey) && (key === "z" || key === "y")) {
+        const redo = key === "y" || event.shiftKey;
+        const step = redo ? latest.current.onRedo : latest.current.onUndo;
+        if (!step) return;
+        event.preventDefault();
+        void step().then((done) => done && setAnnouncement(t(redo ? "undo.redone" : "undo.undone")));
+        return;
+      }
       const action = actionForKey(event);
       if (!action) return;
       const ui = useTableUi.getState();

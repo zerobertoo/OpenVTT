@@ -180,6 +180,30 @@ export function resolveLabel(
 export const actorTypeSchema = z.enum(["character", "npc"]);
 export type ActorType = z.infer<typeof actorTypeSchema>;
 
+/**
+ * Optional `compendium.json` of a system: monsters become an NPC sheet plus a linked token when placed on the
+ * map, items only a token. `data` follows the NPC template.
+ */
+export const compendiumSchema = z
+  .array(
+    z.object({
+      id: z
+        .string()
+        .regex(/^[a-z0-9][a-z0-9-]*$/)
+        .max(60),
+      name: z.string().min(1).max(60),
+      kind: z.enum(["monster", "item"]),
+      size: z.number().min(0.25).max(20).default(1),
+      color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .default("#8a5a44"),
+      data: z.record(z.string(), z.unknown()).default({}),
+    }),
+  )
+  .max(2000);
+export type CompendiumEntry = z.infer<typeof compendiumSchema>[number];
+
 export const systemManifestSchema = z.object({
   id: z
     .string()
