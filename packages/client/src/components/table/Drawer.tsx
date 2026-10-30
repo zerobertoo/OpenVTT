@@ -7,7 +7,14 @@ import { Button } from "../ui/button";
 import { TabContent, TabList, Tabs, TabTrigger } from "../ui/tabs";
 import { Tip } from "../ui/tooltip";
 
-const TAB_ICONS: Record<TableTab, IconName> = { chat: "chat", tokens: "tokens", sheets: "sheets", scenes: "scenes", settings: "world" };
+const TAB_ICONS: Record<TableTab, IconName> = {
+  chat: "chat",
+  tokens: "tokens",
+  sheets: "sheets",
+  journal: "journal",
+  scenes: "scenes",
+  settings: "world",
+};
 
 interface Props {
   open: boolean;

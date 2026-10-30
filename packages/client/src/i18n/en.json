@@ -157,7 +157,7 @@
     "showPanels": "Show panels",
     "reconnected": "Back at the table"
   },
-  "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Sheets", "scenes": "Scenes", "settings": "World" },
+  "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Sheets", "scenes": "Scenes", "settings": "World", "journal": "Journal" },
   "ruler": {
     "options": "Ruler options",
     "shape": "Shape",
@@ -439,5 +439,28 @@
     "clearTitle": "Erase every drawing on this scene?",
     "clearBody": "Drawings, texts and note pins of everybody on this scene are removed.",
     "locked": "This layer is locked. Unlock it in the Layers menu."
+  },
+  "journal": {
+    "untitled": "New handout",
+    "none": "No handouts yet",
+    "noneGm": "Write notes for yourself or handouts for the players. You choose who reads each one.",
+    "nonePlayer": "Handouts the game master shares with you show up here.",
+    "list": "Handouts",
+    "new": "New handout",
+    "edit": "Edit",
+    "editTitle": "Edit handout",
+    "title": "Title",
+    "body": "Text",
+    "bodyHint": "Markdown: # heading, **bold**, *italic*, - list, [link](https://…). Pictures come from the library below.",
+    "audience": "Who can read it",
+    "everyone": "Everyone",
+    "sharedAll": "Shared with everyone",
+    "sharedWith": "Shared with {{names}}",
+    "private": "Only you can read this",
+    "library": "Library",
+    "upload": "Upload a picture",
+    "libraryEmpty": "Nothing uploaded in this world yet.",
+    "video": "Video",
+    "insert": "Insert in text"
   }
 }

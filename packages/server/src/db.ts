@@ -174,6 +174,17 @@ ALTER TABLE scenes ADD COLUMN locked_layers TEXT NOT NULL DEFAULT '[]';
   `
 ALTER TABLE scenes ADD COLUMN grid_hex TEXT;
 `,
+  `
+CREATE TABLE handouts (
+  id TEXT PRIMARY KEY,
+  world_id TEXT NOT NULL REFERENCES worlds(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  audience TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX handouts_world ON handouts (world_id);
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

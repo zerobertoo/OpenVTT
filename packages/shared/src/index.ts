@@ -253,6 +253,36 @@ export interface CombatDto {
 
 export const setCombatantSchema = z.object({ tokenId: z.string().min(1), score: z.number().finite().min(-1000).max(1000) });
 
+/** A journal entry or handout in markdown. `audience` is `["*"]` for everyone, user ids, or empty for the game master alone. */
+export interface HandoutDto {
+  id: string;
+  title: string;
+  body: string;
+  /** Only the game master receives it; players get an empty list. */
+  audience: string[];
+}
+
+const handoutFields = {
+  title: z.string().trim().min(1).max(120),
+  body: z.string().max(50000),
+  audience: z.array(z.union([z.literal("*"), z.string().uuid()])).max(50),
+};
+export const handoutInputSchema = z.object({
+  ...handoutFields,
+  body: handoutFields.body.default(""),
+  audience: handoutFields.audience.default([]),
+});
+/** No defaults, so a partial update never wipes what is stored. */
+export const updateHandoutSchema = z.object(handoutFields).partial();
+
+/** An uploaded file of the world, for the game master's library. */
+export interface AssetSummaryDto {
+  id: string;
+  mime: string;
+  size: number;
+  createdAt: number;
+}
+
 export interface WorldStateDto {
   id: string;
   name: string;
@@ -270,6 +300,8 @@ export interface WorldStateDto {
   vision: VisionDto | null;
   /** Null while no combat is running. */
   combat: CombatDto | null;
+  /** Journal entries the recipient may read. */
+  handouts: HandoutDto[];
 }
 
 /** Server → client messages. */

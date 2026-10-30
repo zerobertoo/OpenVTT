@@ -22,6 +22,12 @@ const PATHS = {
       <path d="M9 11h6M9 15h6" />
     </>
   ),
+  journal: (
+    <>
+      <path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z" />
+      <path d="M5 17a3 3 0 013-3h11M9 8h6" />
+    </>
+  ),
   scenes: (
     <>
       <rect x="3" y="5" width="18" height="14" rx="1" />

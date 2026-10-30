@@ -17,6 +17,8 @@ Each scene may also carry `drawings`: `kind` (`free`, `line`, `arrow`, `rect`, `
 
 Each token may also carry `hp` and `hpMax` (both `null` for no health bar), `conditions` (a list of ids such as `prone` or `poisoned`) and `showName`. These are optional too.
 
+`handouts` (optional) lists journal entries: `title`, `body` (markdown; pictures written as `![alt](asset:<id>)`) and `shared`. Shared handouts come back readable by everyone; handouts shared with chosen players come back private to the game master, since accounts are not exported.
+
 What is **not** exported, on purpose:
 
 - user accounts and memberships: the importer becomes the game master of the new world, so token controllers and sheet owners are cleared;

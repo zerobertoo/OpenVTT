@@ -14,7 +14,13 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { type Readable, Transform } from "node:stream";
-import { type ALLOWED_IMAGE_TYPES, type ALLOWED_VIDEO_TYPES, DEFAULT_MAX_VIDEO_BYTES, MAX_UPLOAD_BYTES } from "@openvtt/shared";
+import {
+  type ALLOWED_IMAGE_TYPES,
+  type ALLOWED_VIDEO_TYPES,
+  type AssetSummaryDto,
+  DEFAULT_MAX_VIDEO_BYTES,
+  MAX_UPLOAD_BYTES,
+} from "@openvtt/shared";
 import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";
 
@@ -131,6 +137,19 @@ export class AssetService {
   /** Largest accepted size for a type of asset. */
   maxBytesFor(mime: AssetType): number {
     return isVideoType(mime) ? this.limits.maxVideoBytes : MAX_UPLOAD_BYTES;
+  }
+
+  listFor(worldId: string): AssetSummaryDto[] {
+    return (
+      this.db
+        .prepare("SELECT id, mime, size, created_at FROM assets WHERE world_id = ? ORDER BY created_at DESC, rowid DESC")
+        .all(worldId) as {
+        id: string;
+        mime: string;
+        size: number;
+        created_at: number;
+      }[]
+    ).map((r) => ({ id: r.id, mime: r.mime, size: r.size, createdAt: r.created_at }));
   }
 
   /** Stores an image held in memory. Videos go through `saveStream`. */

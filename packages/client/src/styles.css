@@ -193,6 +193,11 @@ output { font-weight: 800; font-size: 1.1rem; }
 .drawer-panel > section, .drawer-panel > fieldset > section { min-width: 0; display: flex; flex-direction: column; gap: 0.7rem; flex: 1 0 auto; }
 .drawer-panel > section.chat, .drawer-panel > fieldset > section.chat { flex: 1 1 0; min-height: 0; }
 .drawer-panel h3 { margin-top: 0; }
+.markdown { display: grid; gap: 0.5rem; overflow-wrap: anywhere; }
+.markdown :is(p, ul, h4, h5, h6) { margin: 0; }
+.markdown ul { padding-left: 1.2rem; }
+.markdown a { color: inherit; text-decoration: underline; }
+.markdown code { font-family: ui-monospace, monospace; font-size: 0.9em; }
 
 /* --- chat --- */
 .chat { height: 100%; }

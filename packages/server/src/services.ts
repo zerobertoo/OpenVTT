@@ -6,6 +6,7 @@ import { ChatService } from "./chat.ts";
 import { CombatService } from "./combat.ts";
 import type { Db } from "./db.ts";
 import { DrawingService } from "./drawings.ts";
+import { HandoutService } from "./handouts.ts";
 import { SceneService } from "./scenes.ts";
 import { SystemRegistry } from "./systems.ts";
 import { TokenService } from "./tokens.ts";
@@ -23,6 +24,7 @@ export interface Services {
   chat: ChatService;
   combat: CombatService;
   drawings: DrawingService;
+  handouts: HandoutService;
   systems: SystemRegistry;
 }
 
@@ -41,6 +43,7 @@ export function createServices(db: Db, dataDir: string, builtInSystemsDir: strin
     chat: new ChatService(db),
     combat: new CombatService(db),
     drawings: new DrawingService(db),
+    handouts: new HandoutService(db),
     systems,
   };
 }

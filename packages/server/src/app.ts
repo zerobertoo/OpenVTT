@@ -15,6 +15,7 @@ import {
   credentialsSchema,
   DEFAULT_MAX_VIDEO_BYTES,
   type ErrorCode,
+  handoutInputSchema,
   joinWorldSchema,
   MAX_UPLOAD_BYTES,
   PLAYER_EDITABLE_TOKEN_FIELDS,
@@ -23,6 +24,7 @@ import {
   setCombatantSchema,
   type UserDto,
   updateActorSchema,
+  updateHandoutSchema,
   updateProfileSchema,
   updateSceneSchema,
   updateTokenSchema,
@@ -235,6 +237,12 @@ export function buildApp(options: AppOptions) {
     return { id: asset.id, mime: asset.mime };
   });
 
+  // The game master's library: every file uploaded to the world, newest first.
+  app.get<{ Params: { id: string } }>("/api/worlds/:id/assets", async (req) => {
+    requireGm(req, req.params.id);
+    return s.assets.listFor(req.params.id);
+  });
+
   app.get<{ Params: { id: string } }>("/api/assets/:id", async (req, reply) => {
     const asset = s.assets.find(req.params.id);
     // Same answer for missing assets and assets of other worlds.
@@ -327,6 +335,33 @@ export function buildApp(options: AppOptions) {
     if (!worldId) throw new AppError("not_found");
     const { viewer } = requireMember(req, worldId);
     s.drawings.clear(req.params.id, viewer);
+    hub.broadcastState(worldId);
+    return { ok: true };
+  });
+
+  // ---- handouts -----------------------------------------------------------------------------
+
+  app.post<{ Params: { id: string } }>("/api/worlds/:id/handouts", async (req) => {
+    requireGm(req, req.params.id);
+    const id = s.handouts.create(req.params.id, handoutInputSchema.parse(req.body));
+    hub.broadcastState(req.params.id);
+    return { id };
+  });
+
+  app.patch<{ Params: { id: string } }>("/api/handouts/:id", async (req) => {
+    const worldId = s.handouts.worldIdOf(req.params.id);
+    if (!worldId) throw new AppError("not_found");
+    requireGm(req, worldId);
+    s.handouts.update(req.params.id, worldId, updateHandoutSchema.parse(req.body));
+    hub.broadcastState(worldId);
+    return { ok: true };
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/handouts/:id", async (req) => {
+    const worldId = s.handouts.worldIdOf(req.params.id);
+    if (!worldId) throw new AppError("not_found");
+    requireGm(req, worldId);
+    s.handouts.remove(req.params.id);
     hub.broadcastState(worldId);
     return { ok: true };
   });

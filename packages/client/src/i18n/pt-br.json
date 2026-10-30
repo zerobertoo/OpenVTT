@@ -157,7 +157,7 @@
     "showPanels": "Mostrar painéis",
     "reconnected": "De volta à mesa"
   },
-  "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Fichas", "scenes": "Cenas", "settings": "Mundo" },
+  "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Fichas", "scenes": "Cenas", "settings": "Mundo", "journal": "Diário" },
   "ruler": {
     "options": "Opções da régua",
     "shape": "Forma",
@@ -439,5 +439,28 @@
     "clearTitle": "Apagar todos os desenhos desta cena?",
     "clearBody": "Desenhos, textos e pins de nota de todos nesta cena são removidos.",
     "locked": "Esta camada está travada. Destrave no menu Camadas."
+  },
+  "journal": {
+    "untitled": "Novo texto",
+    "none": "Nenhum texto ainda",
+    "noneGm": "Escreva notas para você ou textos para os jogadores. Você escolhe quem lê cada um.",
+    "nonePlayer": "Os textos que o mestre compartilhar com você aparecem aqui.",
+    "list": "Textos",
+    "new": "Novo texto",
+    "edit": "Editar",
+    "editTitle": "Editar texto",
+    "title": "Título",
+    "body": "Texto",
+    "bodyHint": "Markdown: # título, **negrito**, *itálico*, - lista, [link](https://…). Imagens vêm da biblioteca abaixo.",
+    "audience": "Quem pode ler",
+    "everyone": "Todos",
+    "sharedAll": "Compartilhado com todos",
+    "sharedWith": "Compartilhado com {{names}}",
+    "private": "Só você pode ler",
+    "library": "Biblioteca",
+    "upload": "Enviar imagem",
+    "libraryEmpty": "Nada enviado neste mundo ainda.",
+    "video": "Vídeo",
+    "insert": "Inserir no texto"
   }
 }

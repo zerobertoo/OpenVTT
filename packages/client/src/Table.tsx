@@ -23,6 +23,7 @@ import { AccountBox } from "./components/world/AccountBox";
 import { usePreferences } from "./lib/preferences";
 import { MapView } from "./MapView";
 import { ChatPanel } from "./panels/ChatPanel";
+import { JournalPanel } from "./panels/JournalPanel";
 import { ScenePanel } from "./panels/ScenePanel";
 import { SettingsPanel } from "./panels/SettingsPanel";
 import { SheetsPanel } from "./panels/SheetsPanel";
@@ -117,7 +118,9 @@ export function Table({ worldId, user }: Props) {
     if (isGm && selectedTokens.length > 0) setConfirmingRemoval(true);
   };
 
-  const tabs: TableTab[] = isGm ? ["chat", "tokens", "sheets", "scenes", "settings"] : ["chat", "tokens", "sheets", "settings"];
+  const tabs: TableTab[] = isGm
+    ? ["chat", "tokens", "sheets", "journal", "scenes", "settings"]
+    : ["chat", "tokens", "sheets", "journal", "settings"];
 
   const stageStyle = { "--drawer-space": drawerOpen ? "calc(var(--drawer-width) + 1.8rem)" : "0px" } as CSSProperties;
 
@@ -129,6 +132,8 @@ export function Table({ worldId, user }: Props) {
         return <TokenPanel state={state} userId={user.id} viewSceneId={viewSceneId} token={selectedToken} />;
       case "sheets":
         return <SheetsPanel state={state} locale={i18n.language} />;
+      case "journal":
+        return <JournalPanel state={state} isGm={isGm} />;
       case "scenes":
         return <ScenePanel state={state} viewSceneId={viewSceneId} onView={viewScene} />;
       case "settings":

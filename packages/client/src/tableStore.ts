@@ -2,7 +2,7 @@ import type { DrawingKind, DrawingLayer, PingDto } from "@openvtt/shared";
 import { create } from "zustand";
 import type { MapTool } from "./MapView";
 
-export type TableTab = "chat" | "tokens" | "sheets" | "scenes" | "settings";
+export type TableTab = "chat" | "tokens" | "sheets" | "journal" | "scenes" | "settings";
 
 /** What the game master draws over the map; only the game master receives walls, doors and lights at all. */
 export interface MapLayers {

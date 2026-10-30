@@ -233,6 +233,7 @@ export class Hub {
       messages: this.s.chat.historyFor(worldId, viewer),
       vision: sight?.vision ?? null,
       combat: this.s.combat.stateFor(worldId, viewer),
+      handouts: this.s.handouts.visibleTo(worldId, viewer),
     };
   }
 

@@ -1,5 +1,15 @@
 import type { SystemManifest } from "@openvtt/sdk";
-import type { ActorDto, ErrorCode, MessageDto, SceneDto, SystemInfoDto, TokenDto, UserDto, WorldSummaryDto } from "@openvtt/shared";
+import type {
+  ActorDto,
+  AssetSummaryDto,
+  ErrorCode,
+  MessageDto,
+  SceneDto,
+  SystemInfoDto,
+  TokenDto,
+  UserDto,
+  WorldSummaryDto,
+} from "@openvtt/shared";
 
 /** Error carrying a server error code (or "network") that maps to `errors.<code>` in translations. */
 export class ApiError extends Error {
@@ -55,6 +65,10 @@ export const api = {
   createScene: (worldId: string, body: object) => post<SceneDto>(`/api/worlds/${worldId}/scenes`, body),
   updateScene: (sceneId: string, body: object) => patch<SceneDto>(`/api/scenes/${sceneId}`, body),
   deleteScene: (sceneId: string) => del(`/api/scenes/${sceneId}`),
+  worldAssets: (worldId: string) => get<AssetSummaryDto[]>(`/api/worlds/${worldId}/assets`),
+  createHandout: (worldId: string, body: object) => post<{ id: string }>(`/api/worlds/${worldId}/handouts`, body),
+  updateHandout: (handoutId: string, body: object) => patch(`/api/handouts/${handoutId}`, body),
+  deleteHandout: (handoutId: string) => del(`/api/handouts/${handoutId}`),
   createDrawing: (sceneId: string, body: object) => post<{ id: string }>(`/api/scenes/${sceneId}/drawings`, body),
   deleteDrawing: (drawingId: string) => del(`/api/drawings/${drawingId}`),
   clearDrawings: (sceneId: string) => del(`/api/scenes/${sceneId}/drawings`),

@@ -90,6 +90,11 @@ const worldFileSchema = z.object({
       }),
     )
     .max(20000),
+  // Added later; "shared" handouts go to everybody, the rest stay with the game master (accounts are not exported).
+  handouts: z
+    .array(z.object({ title: z.string().min(1).max(120), body: z.string().max(50000), shared: z.boolean() }))
+    .max(5000)
+    .default([]),
   messages: z
     .array(
       z.object({
@@ -164,6 +169,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       scenes,
       actors,
       tokens,
+      handouts: s.handouts.visibleTo(worldId, gmView).map((h) => ({ title: h.title, body: h.body, shared: h.audience.includes("*") })),
       messages,
     };
     const slug =
@@ -281,6 +287,11 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
             file.world.activeSceneId ? (idMap.get(file.world.activeSceneId) ?? null) : null,
             worldId,
           );
+        // Pictures in handouts point at assets, whose ids change on import.
+        const remapAssets = (body: string) =>
+          body.replace(/\(asset:([0-9a-f-]{36})\)/g, (all, old: string) => (idMap.has(old) ? `(asset:${idMap.get(old)})` : all));
+        for (const h of file.handouts)
+          s.handouts.create(worldId, { title: h.title, body: remapAssets(h.body), audience: h.shared ? ["*"] : [] });
         const insertMessage = s.db.prepare(
           `INSERT INTO messages (id, world_id, user_id, sender_name, kind, to_user_id, gm_only, content, roll, created_at)
            VALUES (?, ?, ?, ?, ?, NULL, 0, ?, ?, ?)`,
