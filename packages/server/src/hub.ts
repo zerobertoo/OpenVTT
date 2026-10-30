@@ -3,7 +3,7 @@ import {
   type MessageDto,
   pathIsBlocked,
   type ServerMessage,
-  type TableRole,
+  tableRole,
   type TokenDto,
   type VisionDto,
   type WorldStateDto,
@@ -27,6 +27,8 @@ interface Connection {
   /** Player whose sight the game master is previewing; null shows everything. */
   viewAs: string | null;
   lastPingAt: number;
+  /** Re-read with the role on every state sent, so moves and pings need no query of their own. */
+  observer: boolean;
 }
 
 const MAX_WS_PAYLOAD = 16 * 1024;
@@ -97,7 +99,7 @@ export class Hub {
   }
 
   private open(socket: WebSocket, viewer: Viewer, worldId: string) {
-    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set(), viewAs: null, lastPingAt: 0 };
+    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set(), viewAs: null, lastPingAt: 0, observer: true };
     this.connections.add(conn);
     this.broadcastState(worldId);
     socket.on("message", (raw) => {
@@ -125,7 +127,7 @@ export class Hub {
     const { token } = found;
     if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId)) throw new AppError("not_found");
     if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
-    if (this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId) === "observer") throw new AppError("forbidden");
+    if (conn.observer) throw new AppError("forbidden");
     const scene = this.s.scenes.get(token.sceneId)!;
     if (scene.lockedLayers.includes("tokens")) return this.publishToken(conn.worldId, token, token);
     const x = Math.min(Math.max(msg.x, 0), scene.width);
@@ -144,7 +146,7 @@ export class Hub {
 
   /** Relays a ping on the active scene to everyone; only the game master can ask the others to look at it. */
   private ping(conn: Connection, msg: { x: number; y: number; focus?: boolean }) {
-    if (this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId) === "observer") return;
+    if (conn.observer) return;
     const now = Date.now();
     if (now - conn.lastPingAt < PING_MIN_INTERVAL_MS) return;
     conn.lastPingAt = now;
@@ -241,9 +243,11 @@ export class Hub {
 
   private sendState(conn: Connection) {
     // Role is re-read so a role change can never keep stale privileges on an open socket.
-    const role: TableRole | null = this.s.worlds.roleOf(conn.worldId, conn.viewer.userId);
-    if (!role) return conn.socket.close();
+    const memberRole = this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId);
+    if (!memberRole) return conn.socket.close();
+    const role = tableRole(memberRole);
     conn.viewer.role = role;
+    conn.observer = memberRole === "observer";
     if (role !== "gm") conn.viewAs = null;
     const state = this.buildState(conn.worldId, conn.viewer, this.onlineIn(conn.worldId), conn.viewAs);
     conn.seenTokenIds = new Set(state.tokens.map((t) => t.id));
