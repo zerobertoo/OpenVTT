@@ -17,6 +17,7 @@ import { SelectionBar } from "./components/table/SelectionBar";
 import { EmptyMap } from "./components/table/TableGuide";
 import { TableKeyboard } from "./components/table/TableKeyboard";
 import { TableSounds } from "./components/table/TableSounds";
+import { TableTour } from "./components/table/TableTour";
 import { TitleChip } from "./components/table/TitleChip";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
@@ -207,6 +208,7 @@ export function Table({ worldId, user }: Props) {
 
           <DiceOverlay messages={state.messages} userId={user.id} />
           <TableSounds state={state} userId={user.id} />
+          {scene && view === "normal" && <TableTour isGm={isGm} />}
           <TableKeyboard
             scene={scene}
             movableTokens={movableTokens}

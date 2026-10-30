@@ -516,5 +516,26 @@
       "music_play": "tocou a música",
       "music_stop": "parou a música"
     }
+  },
+  "theme": {
+    "contrast": "Contraste",
+    "contrastNormal": "Normal",
+    "contrastHigh": "Alto",
+    "textSize": "Tamanho do texto",
+    "accent": "Cor de destaque",
+    "accents": { "teal": "Verde-azulado", "blue": "Azul", "violet": "Violeta", "rose": "Rosa", "amber": "Âmbar", "green": "Verde" }
+  },
+  "tour": {
+    "title": "Boas-vindas à mesa ({{step}} de {{total}})",
+    "map": "Este é o mapa. Arraste o fundo para se mover, use a rolagem ou a pinça para dar zoom.",
+    "tools": "As ferramentas embaixo selecionam e movem tokens, medem distâncias e desenham no mapa (V, R e B no teclado).",
+    "gmLayers": "Camadas mostra paredes, portas e luzes só para você, trava camadas do mapa e deixa ver o mapa como um jogador vê.",
+    "dice": "Dados abre a bandeja: escolha os dados e jogue, ou digite /r 1d20+3 no chat.",
+    "panels": "Os painéis do lado guardam o chat, tokens, fichas, o diário e as configurações do mundo. P esconde, F deixa só o mapa.",
+    "keys": "Aperte ? a qualquer momento para ver todos os atalhos.",
+    "skip": "Pular o tour",
+    "back": "Voltar",
+    "next": "Próximo",
+    "done": "Começar a jogar"
   }
 }

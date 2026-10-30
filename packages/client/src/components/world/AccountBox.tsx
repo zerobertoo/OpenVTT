@@ -3,6 +3,7 @@ import { AccountControls } from "../AccountControls";
 import { DiceSetting } from "./DiceSetting";
 import { MeasureSettings } from "./MeasureSettings";
 import { SoundSetting } from "./SoundSetting";
+import { ThemeSetting } from "./ThemeSetting";
 
 /** Language and log-out, at the bottom of the World tab. */
 export function AccountBox() {
@@ -14,6 +15,7 @@ export function AccountBox() {
       <MeasureSettings />
       <DiceSetting />
       <SoundSetting />
+      <ThemeSetting />
     </section>
   );
 }

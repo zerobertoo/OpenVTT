@@ -516,5 +516,26 @@
       "music_play": "started the music",
       "music_stop": "stopped the music"
     }
+  },
+  "theme": {
+    "contrast": "Contrast",
+    "contrastNormal": "Normal",
+    "contrastHigh": "High",
+    "textSize": "Text size",
+    "accent": "Accent color",
+    "accents": { "teal": "Teal", "blue": "Blue", "violet": "Violet", "rose": "Rose", "amber": "Amber", "green": "Green" }
+  },
+  "tour": {
+    "title": "Welcome to the table ({{step}} of {{total}})",
+    "map": "This is the map. Drag the background to move around, scroll or pinch to zoom.",
+    "tools": "The tools at the bottom select and move tokens, measure distances and draw on the map (V, R and B on the keyboard).",
+    "gmLayers": "Layers shows walls, doors and lights only to you, locks map layers and lets you see the map as one player does.",
+    "dice": "Dice opens the tray: pick dice and throw them, or type /r 1d20+3 in the chat.",
+    "panels": "The panels on the side hold the chat, tokens, sheets, the journal and the world settings. P hides them, F leaves only the map.",
+    "keys": "Press ? at any time for every keyboard shortcut.",
+    "skip": "Skip the tour",
+    "back": "Back",
+    "next": "Next",
+    "done": "Start playing"
   }
 }

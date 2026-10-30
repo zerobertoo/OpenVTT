@@ -46,6 +46,19 @@
   --drawer-width: 26rem;
 }
 
+/* Other accent hues: in dark mode slightly lighter than the default, so every hue keeps 4.5:1 (checked for all six). */
+:root[data-accent] {
+  --accent: light-dark(oklch(0.537 0.08 var(--accent-hue)), oklch(0.77 0.094 var(--accent-hue)));
+  --accent-text: light-dark(oklch(0.463 0.072 var(--accent-hue)), oklch(0.77 0.094 var(--accent-hue)));
+  --accent-soft: light-dark(oklch(0.923 0.024 var(--accent-hue)), oklch(0.33 0.039 var(--accent-hue)));
+  --on-accent: light-dark(oklch(1 0 0), oklch(0.223 0.023 var(--accent-hue)));
+}
+:root[data-contrast="high"] {
+  --text: light-dark(oklch(0 0 0), oklch(1 0 0));
+  --text-2: var(--text);
+  --line: light-dark(oklch(0.45 0.02 175), oklch(0.78 0.03 175));
+  --on-chrome-2: var(--on-chrome);
+}
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
 

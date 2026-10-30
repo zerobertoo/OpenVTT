@@ -6,6 +6,8 @@ const TEST_PASSWORD = "e2e-test-password";
 
 /** Creates a fresh account through the UI and leaves the page on the world list. */
 export async function registerNewUser(page: Page) {
+  // The first-session tour would cover the table in every test; its own test turns it back on.
+  await page.addInitScript(() => sessionStorage.getItem("e2e-tour") || localStorage.setItem("openvtt-tour-done", "1"));
   const username = `e2e_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/");
   await page.getByRole("button", { name: "No account yet? Create one" }).click();
