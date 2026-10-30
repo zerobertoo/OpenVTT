@@ -1,19 +1,11 @@
-# Deploy behind Dokploy's Traefik.
-# No host port is published: Traefik reaches the container over the internal Docker network,
-# so port 3000 on the host can be taken by something else without a conflict.
-#
-# In Dokploy: set Compose Path to ./compose.dokploy.yaml. In the Domains tab pick the service
-# "openvtt", Container Port 3000, and turn on HTTPS (Let's Encrypt). Redeploy after changing domains.
+# For Dokploy: no host port is published, Traefik reaches the container on port 3000 over the internal network.
 services:
   openvtt:
     build: .
     volumes:
-      # The database, uploaded maps (images and videos) and installed systems all live here.
       - openvtt-data:/data
     environment:
-      # Traffic arrives over HTTPS through Traefik, so the session cookie must be secure.
       OPENVTT_SECURE_COOKIES: "1"
-      # Largest animated map video in bytes (default 104857600 = 100 MiB).
       OPENVTT_MAX_VIDEO_BYTES: ${OPENVTT_MAX_VIDEO_BYTES:-104857600}
     restart: unless-stopped
     networks:
