@@ -31,6 +31,7 @@
     "ruler": "Ferramenta de régua",
     "move": "Mover o token selecionado uma casa",
     "deselect": "Desmarcar o token",
+    "center": "Centralizar a visão no seu token",
     "ping": "Marcar um ponto do mapa para todos",
     "lookHere": "Mestre: fazer todos olharem para um ponto",
     "dice": "Abrir ou fechar a bandeja de dados",
@@ -339,6 +340,8 @@
   },
   "token": {
     "hp": "Pontos de vida (máx. {{max}})",
+    "importImages": "Importar imagens",
+    "importImagesHint": "Escolha até {{max}} imagens; cada uma vira um token com o nome do arquivo.",
     "hpCurrent": "Pontos de vida",
     "hpMax": "Pontos de vida máximos",
     "conditions": "Condições",

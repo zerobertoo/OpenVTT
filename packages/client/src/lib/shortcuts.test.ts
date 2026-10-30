@@ -19,6 +19,7 @@ describe("actionForKey", () => {
     expect(press("=")).toEqual({ type: "view", kind: "zoomIn" });
     expect(press("-")).toEqual({ type: "view", kind: "zoomOut" });
     expect(press("0")).toEqual({ type: "view", kind: "fit" });
+    expect(press("c")).toEqual({ type: "view", kind: "center" });
   });
 
   it("turns arrow keys into one-cell moves", () => {

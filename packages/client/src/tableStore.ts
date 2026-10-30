@@ -36,8 +36,8 @@ interface TableUiState {
   viewAsUserId: string | null;
   setViewAs: (userId: string | null) => void;
   /** Latest request to change the map view; `id` makes a repeated press a new request. */
-  viewCommand: { kind: "zoomIn" | "zoomOut" | "fit"; id: number } | null;
-  changeView: (kind: "zoomIn" | "zoomOut" | "fit") => void;
+  viewCommand: { kind: "zoomIn" | "zoomOut" | "fit" | "center"; id: number } | null;
+  changeView: (kind: "zoomIn" | "zoomOut" | "fit" | "center") => void;
   /** Latest ping received; `id` makes two pings at the same spot distinct events. */
   ping: (PingDto & { id: number }) | null;
   showPing: (ping: PingDto) => void;

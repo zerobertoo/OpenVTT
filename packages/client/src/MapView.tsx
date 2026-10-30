@@ -675,6 +675,17 @@ export function MapView(props: Props) {
       return;
     }
     const center = { x: e.app.screen.width / 2, y: e.app.screen.height / 2 };
+    if (viewCommand.kind === "center") {
+      // The selected token if it is one of mine, otherwise the first of mine on this map.
+      const { scene, tokens, canControl, selectedTokenIds } = latest.current;
+      const mine = tokens.filter((tk) => tk.sceneId === scene?.id && canControl(tk));
+      const target = mine.find((tk) => selectedTokenIds.includes(tk.id)) ?? mine[0];
+      if (!scene || !target) return;
+      const half = (target.size * scene.gridSize) / 2;
+      const scale = e.world.scale.x;
+      e.world.position.set(center.x - (target.x + half) * scale, center.y - (target.y + half) * scale);
+      return;
+    }
     const before = e.world.toLocal(center);
     const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, e.world.scale.x * (viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP)));
     e.world.scale.set(next);

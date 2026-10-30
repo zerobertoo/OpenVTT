@@ -31,6 +31,7 @@
     "ruler": "Ruler tool",
     "move": "Move the selected token one cell",
     "deselect": "Deselect the token",
+    "center": "Center the view on your token",
     "ping": "Ping a spot on the map for everyone",
     "lookHere": "Game master: make everyone look at a spot",
     "dice": "Open or close the dice tray",
@@ -339,6 +340,8 @@
   },
   "token": {
     "hp": "Hit points (max {{max}})",
+    "importImages": "Import images",
+    "importImagesHint": "Pick up to {{max}} images; each becomes a token named after its file.",
     "hpCurrent": "Hit points",
     "hpMax": "Maximum hit points",
     "conditions": "Conditions",
