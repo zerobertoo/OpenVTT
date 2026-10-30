@@ -38,6 +38,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.46
         version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-virtual':
+        specifier: ^3.14.24
+        version: 3.14.24(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       canvas-confetti:
         specifier: ^1.9.4
         version: 1.9.4
@@ -50,6 +53,9 @@ importers:
       i18next:
         specifier: ^26.5.11
         version: 26.5.11(typescript@6.0.3)
+      lucide-react:
+        specifier: ^1.64.0
+        version: 1.64.0(@types/react@19.3.0)(react@19.3.1)
       motion:
         specifier: ^14.7.1
         version: 14.7.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2129,12 +2135,21 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  '@tanstack/react-virtual@3.14.24':
+    resolution: {integrity: sha512-JoNsByXR68fNlB2NZuT3bSk8uYBxuOWl6YNJ7djTrw7IMwBWuaOtffxj/TcuMa80WmL6byb+80i1NEM/8Qmocw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   '@tanstack/router-core@1.171.39':
     resolution: {integrity: sha512-qUhoJ0meuSUqGYQbHbcJYdASr06YtK+bulbj6vtrhKYFkLgkSsZ6tXmMyym7sFxiSJSPYgasgozrL01LyyR/6A==}
     engines: {node: '>=20.19'}
 
   '@tanstack/store@0.11.2':
     resolution: {integrity: sha512-sJ4mjol8uQsHV0gOJzzjwXfh2Fwm+Sz0+8deqiTm4jGbMdjzNSW+xZCFm0kUa870uhd8yi+DpKnZb5Kc4apa0Q==}
+
+  '@tanstack/virtual-core@3.19.9':
+    resolution: {integrity: sha512-Syiaf3w69dFyYv4o2mqJ1/2VtBJTNq5Hu5cVXfnzOuJKFpUojukQR13ZW+5NvdMJM7GFHeNPmveMNhoIubiFyA==}
 
   '@testing-library/dom@10.4.2':
     resolution: {integrity: sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q==}
@@ -2882,6 +2897,15 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-react@1.64.0:
+    resolution: {integrity: sha512-v626F/bcLNvFom6vzztHILtG9tUgXXbgA5AGkd82YkV401+Ko/NHyrWafbPwGofa+6p/EgDJcvEkIwsMH9098w==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -5241,6 +5265,12 @@ snapshots:
       react-dom: 19.3.1(react@19.3.1)
       use-sync-external-store: 1.7.0(react@19.3.1)
 
+  '@tanstack/react-virtual@3.14.24(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+    dependencies:
+      '@tanstack/virtual-core': 3.19.9
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
+
   '@tanstack/router-core@1.171.39':
     dependencies:
       '@tanstack/history': 1.162.5
@@ -5249,6 +5279,8 @@ snapshots:
       seroval-plugins: 1.7.2(seroval@1.7.2)
 
   '@tanstack/store@0.11.2': {}
+
+  '@tanstack/virtual-core@3.19.9': {}
 
   '@testing-library/dom@10.4.2':
     dependencies:
@@ -5927,6 +5959,12 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-react@1.64.0(@types/react@19.3.0)(react@19.3.1):
+    dependencies:
+      react: 19.3.1
+    optionalDependencies:
+      '@types/react': 19.3.0
 
   lz-string@1.5.0: {}
 

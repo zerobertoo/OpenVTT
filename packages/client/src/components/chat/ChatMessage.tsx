@@ -15,10 +15,12 @@ interface Props {
   isNew: boolean;
   /** Given for the person's own rolls: throws the same dice again. */
   onRollAgain?: () => void;
+  /** Placement from the virtual list. */
+  row?: { ref: (element: HTMLElement | null) => void; index: number; top: number };
 }
 
 /** One chat line: a plain message, a whisper or a dice roll. */
-export function ChatMessage({ message, color, isNew, onRollAgain }: Props) {
+export function ChatMessage({ message, color, isNew, onRollAgain, row }: Props) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const animateDice = isNew && !reduceMotion;
@@ -43,6 +45,9 @@ export function ChatMessage({ message, color, isNew, onRollAgain }: Props) {
 
   return (
     <motion.li
+      ref={row?.ref}
+      data-index={row?.index}
+      style={row && { position: "absolute", top: row.top, left: 0, right: 0 }}
       className={`msg msg-${kind}`}
       initial={isNew && !reduceMotion ? { opacity: 0, y: 14, scale: 0.97 } : false}
       animate={{ opacity: 1, y: 0, scale: 1 }}

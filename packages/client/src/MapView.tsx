@@ -1,5 +1,17 @@
 import type { DrawingDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
-import { Application, Container, type FederatedPointerEvent, Graphics, Sprite, Text, Texture, type Ticker, VideoSource } from "pixi.js";
+import {
+  Application,
+  Container,
+  CullerPlugin,
+  extensions,
+  type FederatedPointerEvent,
+  Graphics,
+  Sprite,
+  Text,
+  Texture,
+  type Ticker,
+  VideoSource,
+} from "pixi.js";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "./api";
@@ -8,6 +20,7 @@ import { Icon } from "./icons";
 import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
+import { touchLru } from "./lib/lru";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
@@ -59,18 +72,22 @@ function fitToScreen(world: Container, screen: { width: number; height: number }
   world.position.set((screen.width - scene.width * scale) / 2, (screen.height - scene.height * scale) / 2);
 }
 const DRAG_SEND_INTERVAL_MS = 80;
+// Objects outside the view are skipped when drawing (only those marked `cullable`).
+extensions.add(CullerPlugin);
+
+/** Decoded images kept in GPU memory; past this the least recently used ones not on screen are released. */
+const MAX_TEXTURES = 96;
 const textureCache = new Map<string, Promise<Texture>>();
 
 /** Pixi cannot infer the parser from our extension-less asset URLs, so decode through an ImageBitmap. */
-function loadTexture(assetId: string): Promise<Texture> {
-  let cached = textureCache.get(assetId);
-  if (!cached) {
-    cached = fetch(assetUrl(assetId))
+function loadTexture(assetId: string, inUse: () => Set<string>): Promise<Texture> {
+  const cached =
+    textureCache.get(assetId) ??
+    fetch(assetUrl(assetId))
       .then((r) => r.blob())
       .then((blob) => createImageBitmap(blob))
       .then((bitmap) => Texture.from(bitmap));
-    textureCache.set(assetId, cached);
-  }
+  touchLru(textureCache, assetId, cached, MAX_TEXTURES, inUse(), (texture) => void texture.then((t) => t.destroy(true)));
   return cached;
 }
 
@@ -414,6 +431,10 @@ export function MapView(props: Props) {
     }
 
     const props_ = () => latest.current;
+    const assetsInUse = () => {
+      const { scene, tokens } = props_();
+      return new Set([scene?.assetId, ...tokens.map((t) => t.assetId)].filter((id): id is string => Boolean(id)));
+    };
 
     /** Scene outline, tokens as dots and the part of the map on screen, on the overview canvas. */
     function drawMinimap() {
@@ -463,7 +484,11 @@ export function MapView(props: Props) {
       e.drawingLayers.background.visible = e.background.visible = layers.background;
       e.drawingLayers.objects.visible = layers.objects;
       e.tokenLayer.visible = layers.tokens;
-      for (const drawing of scene.drawings) e.drawingLayers[drawing.layer].addChild(drawingView(drawing, scene.gridSize));
+      for (const drawing of scene.drawings) {
+        const view = drawingView(drawing, scene.gridSize);
+        view.cullable = true;
+        e.drawingLayers[drawing.layer].addChild(view);
+      }
     }
 
     async function syncScene() {
@@ -497,7 +522,7 @@ export function MapView(props: Props) {
         }
       } else if (scene.assetId) {
         disposeVideo(e);
-        const texture = await loadTexture(scene.assetId);
+        const texture = await loadTexture(scene.assetId, assetsInUse);
         if (engine.current?.fitted !== null && props_().scene?.id !== sceneId) return;
         const sprite = new Sprite(texture);
         sprite.width = scene.width;
@@ -708,6 +733,7 @@ export function MapView(props: Props) {
       const view = new Container();
       view.eventMode = "static";
       view.cursor = "pointer";
+      view.cullable = true;
       // Dragging a selected token drags the whole selection (the ones this person may move) by the same distance.
       let drag: { startX: number; startY: number; lastSent: number; members: { token: TokenDto; view: Container }[] } | null = null;
       view.on("pointerdown", (e) => {
@@ -824,7 +850,7 @@ export function MapView(props: Props) {
       view.addChild(drawStatus(token, px, gridSize));
       if (token.assetId) {
         const assetId = token.assetId;
-        void loadTexture(assetId).then((texture) => {
+        void loadTexture(assetId, assetsInUse).then((texture) => {
           if (view.destroyed) return;
           const sprite = new Sprite(texture);
           sprite.anchor.set(0.5);
@@ -928,9 +954,12 @@ export function MapView(props: Props) {
     if (engine.current) engine.current.rulerLabel.text = "";
   }, [props.tool]);
 
-  // A hidden tab has nobody to watch the map, so the video stops decoding until it is shown again.
+  // A hidden tab has nobody to watch the map: drawing stops and the video stops decoding until it is shown again.
   useEffect(() => {
     const onVisibilityChange = () => {
+      const ticker = engine.current?.app.ticker;
+      if (document.hidden) ticker?.stop();
+      else ticker?.start();
       const background = engine.current?.video;
       if (!background?.loaded) return;
       if (document.hidden) background.loaded.element.pause();

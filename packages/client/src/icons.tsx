@@ -1,112 +1,56 @@
-import type { ReactNode } from "react";
+import {
+  BookOpen,
+  ChevronLeft,
+  CircleUserRound,
+  Dices,
+  Ellipsis,
+  FileText,
+  Globe,
+  Image,
+  Layers,
+  type LucideIcon,
+  MessageSquare,
+  MousePointer2,
+  PanelRight,
+  PanelRightClose,
+  Pause,
+  Pencil,
+  Play,
+  Ruler,
+  Send,
+  Users,
+  X,
+} from "lucide-react";
 
-/** Line icons on a 24px grid, drawn with one stroke weight. Decorative: callers provide the accessible text. */
-const PATHS = {
-  back: <path d="M15 6l-6 6 6 6" />,
-  layers: (
-    <>
-      <path d="M12 3l9 5-9 5-9-5z" />
-      <path d="M3 13l9 5 9-5" />
-    </>
-  ),
-  chat: <path d="M4 5h16v11H9l-5 4z" />,
-  tokens: (
-    <>
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 20c0-4 3-6 7-6s7 2 7 6" />
-    </>
-  ),
-  sheets: (
-    <>
-      <path d="M6 3h9l3 3v15H6z" />
-      <path d="M9 11h6M9 15h6" />
-    </>
-  ),
-  journal: (
-    <>
-      <path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z" />
-      <path d="M5 17a3 3 0 013-3h11M9 8h6" />
-    </>
-  ),
-  scenes: (
-    <>
-      <rect x="3" y="5" width="18" height="14" rx="1" />
-      <path d="M3 16l5-5 4 4 3-3 6 6" />
-    </>
-  ),
-  world: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
-    </>
-  ),
-  select: <path d="M6 3l12 8-5 1.5L10.5 18z" />,
-  ruler: (
-    <>
-      <path d="M3 16L16 3l5 5L8 21z" />
-      <path d="M8 11l2 2M11 8l2 2M14 5l2 2" />
-    </>
-  ),
-  draw: (
-    <>
-      <path d="M4 20l1-5L16 4l4 4L9 19z" />
-      <path d="M13.5 6.5l4 4" />
-    </>
-  ),
-  dice: (
-    <>
-      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
-      <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
-    </>
-  ),
-  play: <path d="M8 5l11 7-11 7z" />,
-  pause: <path d="M8 5v14M16 5v14" />,
-  send: <path d="M4 12l16-8-6 16-3-7z" />,
-  users: (
-    <>
-      <circle cx="9" cy="8" r="3" />
-      <path d="M3 20c0-3.5 2.5-5 6-5s6 1.5 6 5M16 5a3 3 0 010 6M18 15c2 .6 3 2 3 5" />
-    </>
-  ),
-  close: <path d="M6 6l12 12M18 6L6 18" />,
-  more: (
-    <>
-      <circle cx="5" cy="12" r="1.2" />
-      <circle cx="12" cy="12" r="1.2" />
-      <circle cx="19" cy="12" r="1.2" />
-    </>
-  ),
-  panelOpen: (
-    <>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M15 4v16" />
-    </>
-  ),
-  panelClose: (
-    <>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M15 4v16M9 10l3 2-3 2" />
-    </>
-  ),
-} satisfies Record<string, ReactNode>;
+const ICONS = {
+  back: ChevronLeft,
+  layers: Layers,
+  chat: MessageSquare,
+  tokens: CircleUserRound,
+  sheets: FileText,
+  journal: BookOpen,
+  scenes: Image,
+  world: Globe,
+  select: MousePointer2,
+  ruler: Ruler,
+  draw: Pencil,
+  dice: Dices,
+  play: Play,
+  pause: Pause,
+  send: Send,
+  users: Users,
+  close: X,
+  more: Ellipsis,
+  panelOpen: PanelRight,
+  panelClose: PanelRightClose,
+} satisfies Record<string, LucideIcon>;
 
-export type IconName = keyof typeof PATHS;
+export type IconName = keyof typeof ICONS;
 
+/** Lucide line icons. Decorative: callers provide the accessible text. */
 export function Icon({ name }: { name: IconName }) {
-  return (
-    <svg
-      className="icon"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {PATHS[name]}
-    </svg>
-  );
+  const Glyph = ICONS[name];
+  return <Glyph className="icon" strokeWidth={1.75} aria-hidden="true" />;
 }
 
 /** A d20 silhouette: solid hexagon with a triangle cut into it, still readable at 16 px. */
