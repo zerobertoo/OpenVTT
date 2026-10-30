@@ -75,7 +75,7 @@ export function Table({ worldId, user }: Props) {
   const rulerShape = usePreferences((p) => p.rulerShape);
   const diagonalRule = usePreferences((p) => p.diagonalRule);
   const drawerWidth = usePreferences((p) => p.drawerWidth);
-  // A shared screen opens the table with `?tv` and shows only the map.
+  // A shared screen opens the table with `?tv` and shows only the map, without what is meant for the game master alone.
   useEffect(() => {
     if (new URLSearchParams(location.search).has("tv")) setView("tv");
   }, [setView]);
@@ -211,7 +211,7 @@ export function Table({ worldId, user }: Props) {
           {scene ? (
             <MapView
               scene={scene}
-              tokens={state.tokens}
+              tokens={view === "tv" ? state.tokens.filter((tk) => !tk.hidden) : state.tokens}
               tool={tool}
               selectedTokenIds={selectedTokenIds}
               canControl={canControl}
@@ -220,7 +220,7 @@ export function Table({ worldId, user }: Props) {
               onSelectMany={selectTokens}
               onMove={move}
               vision={state.vision}
-              layers={viewAs ? PLAYER_LAYERS : layers}
+              layers={viewAs || view === "tv" ? PLAYER_LAYERS : layers}
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
               onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus })}
               formatDistance={(cells) => format.distance(cells, scene)}
