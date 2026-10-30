@@ -463,6 +463,15 @@ export function buildApp(options: AppOptions) {
     return message;
   });
 
+  app.get<{ Params: { id: string } }>("/api/worlds/:id/log.md", async (req, reply) => {
+    const { viewer } = requireMember(req, req.params.id);
+    const world = s.worlds.info(req.params.id);
+    return reply
+      .header("content-type", "text/markdown; charset=utf-8")
+      .header("content-disposition", 'attachment; filename="session-log.md"')
+      .send(s.chat.logFor(req.params.id, world.name, viewer));
+  });
+
   // ---- actors (sheets) ----------------------------------------------------------------------
 
   app.post<{ Params: { id: string } }>("/api/worlds/:id/actors", async (req) => {

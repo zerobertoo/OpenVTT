@@ -59,6 +59,7 @@ export const api = {
   createInvite: (worldId: string) => post<{ code: string }>(`/api/worlds/${worldId}/invites`),
   join: (code: string, displayName: string, color: string) => post<WorldSummaryDto>(`/api/invites/${code}/join`, { displayName, color }),
   exportUrl: (worldId: string) => `/api/worlds/${worldId}/export`,
+  logUrl: (worldId: string) => `/api/worlds/${worldId}/log.md`,
   importWorld: (zip: Blob) => request<WorldSummaryDto>("POST", "/api/worlds/import", zip, "application/zip"),
 
   uploadAsset: (worldId: string, file: Blob) => request<{ id: string }>("POST", `/api/worlds/${worldId}/assets`, file),

@@ -197,7 +197,8 @@
     "gmOnlyTag": "só o mestre",
     "rollSummary": "{{notation}}: total {{total}}",
     "naturalTwenty": "20 natural!",
-    "naturalOne": "1 natural"
+    "naturalOne": "1 natural",
+    "exportLog": "Baixar o registro da sessão (Markdown)"
   },
   "layers": {
     "title": "Camadas",

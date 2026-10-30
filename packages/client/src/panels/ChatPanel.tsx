@@ -46,6 +46,9 @@ export function ChatPanel({ state, userId }: { state: WorldStateDto; userId: str
         error={error}
         onSend={async (message) => Boolean(await run(() => api.sendMessage(state.id, message)))}
       />
+      <a className="justify-self-start text-sm text-accent-text underline underline-offset-[3px]" href={api.logUrl(state.id)} download>
+        {t("chat.exportLog")}
+      </a>
     </section>
   );
 }

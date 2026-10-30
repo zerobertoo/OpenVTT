@@ -197,7 +197,8 @@
     "gmOnlyTag": "GM only",
     "rollSummary": "{{notation}}: total {{total}}",
     "naturalTwenty": "Natural 20!",
-    "naturalOne": "Natural 1"
+    "naturalOne": "Natural 1",
+    "exportLog": "Download the session log (Markdown)"
   },
   "layers": {
     "title": "Layers",

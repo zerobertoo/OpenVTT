@@ -102,6 +102,24 @@ export class ChatService {
     return message;
   }
 
+  /** The whole conversation the viewer may read, as markdown. */
+  logFor(worldId: string, worldName: string, viewer: Viewer): string {
+    const rows = this.db
+      .prepare("SELECT * FROM messages WHERE world_id = ? ORDER BY created_at, rowid")
+      .all(worldId) as unknown as MessageRow[];
+    const lines = [`# ${worldName}`, ""];
+    for (const message of rows.map(toDto)) {
+      if (!canReadMessage(message, viewer)) continue;
+      const time = new Date(message.createdAt).toISOString().slice(0, 16).replace("T", " ");
+      const flags = [message.kind === "whisper" && "whisper", message.gmOnly && "gm"].filter(Boolean);
+      const result = message.roll ? ` = **${message.roll.total}**` : "";
+      lines.push(
+        `- ${time} **${message.senderName}**${flags.length ? ` (${flags.join(", ")})` : ""}: ${message.content.replace(/\s*\n\s*/g, " ")}${result}`,
+      );
+    }
+    return `${lines.join("\n")}\n`;
+  }
+
   /** Latest messages the viewer may read, oldest first. */
   historyFor(worldId: string, viewer: Viewer): MessageDto[] {
     const rows = this.db
