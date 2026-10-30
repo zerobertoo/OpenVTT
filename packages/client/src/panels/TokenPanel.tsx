@@ -10,6 +10,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { bulkPosition, MAX_BULK_TOKENS, tokenNameFromFile } from "../lib/bulkTokens";
+import { shrinkImage } from "../lib/shrinkImage";
 import { useTableUi } from "../tableStore";
 import { ErrorMessage, useAction } from "../ui";
 import { useCan } from "../useCan";
@@ -49,7 +50,7 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
     if (!scene || files.length === 0) return;
     void run(async () => {
       for (const [index, file] of files.entries()) {
-        const { id: assetId } = await api.uploadAsset(state.id, file);
+        const { id: assetId } = await api.uploadAsset(state.id, await shrinkImage(file));
         const { x, y } = bulkPosition(index, scene);
         await api.createToken(state.id, { sceneId: scene.id, name: tokenNameFromFile(file.name), x, y, size: 1, assetId });
       }
@@ -63,7 +64,7 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
 
   const uploadImage = (file: File) => {
     if (!token) return;
-    void run(async () => api.updateToken(token.id, { assetId: (await api.uploadAsset(state.id, file)).id }));
+    void run(async () => api.updateToken(token.id, { assetId: (await api.uploadAsset(state.id, await shrinkImage(file))).id }));
   };
 
   const players = state.members.filter((m) => m.role === "player");
@@ -99,7 +100,22 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
       {token && canControl && (
         <TokenEditor
           // Uncontrolled inputs read their defaults once, so remount when the token changes from outside.
-          key={token.id + JSON.stringify([token.name, token.size, token.color, token.hidden, token.actorId, token.rotation, token.assetId, token.hp, token.hpMax, token.conditions, token.showName])}
+          key={
+            token.id +
+            JSON.stringify([
+              token.name,
+              token.size,
+              token.color,
+              token.hidden,
+              token.actorId,
+              token.rotation,
+              token.assetId,
+              token.hp,
+              token.hpMax,
+              token.conditions,
+              token.showName,
+            ])
+          }
           token={token}
           players={players}
           actors={state.actors}

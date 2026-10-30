@@ -41,6 +41,9 @@ interface TableUiState {
   /** Latest ping received; `id` makes two pings at the same spot distinct events. */
   ping: (PingDto & { id: number }) | null;
   showPing: (ping: PingDto) => void;
+  /** Whether the overview map shows in the corner. */
+  minimapOpen: boolean;
+  toggleMinimap: () => void;
   /** Whether the dice tray is open over the map. */
   diceTrayOpen: boolean;
   setDiceTrayOpen: (open: boolean) => void;
@@ -67,6 +70,7 @@ const initialState = {
   viewAsUserId: null,
   viewCommand: null,
   ping: null,
+  minimapOpen: true,
   diceTrayOpen: false,
 } as const;
 
@@ -77,6 +81,7 @@ export const useTableUi = create<TableUiState>((set) => ({
   setViewAs: (viewAsUserId) => set({ viewAsUserId }),
   changeView: (kind) => set((state) => ({ viewCommand: { kind, id: (state.viewCommand?.id ?? 0) + 1 } })),
   showPing: (ping) => set((state) => ({ ping: { ...ping, id: (state.ping?.id ?? 0) + 1 } })),
+  toggleMinimap: () => set((state) => ({ minimapOpen: !state.minimapOpen })),
   setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),

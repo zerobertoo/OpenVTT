@@ -32,6 +32,7 @@
     "move": "Move the selected token one cell",
     "deselect": "Deselect the token",
     "center": "Center the view on your token",
+    "minimap": "Show or hide the overview map",
     "ping": "Ping a spot on the map for everyone",
     "lookHere": "Game master: make everyone look at a spot",
     "dice": "Open or close the dice tray",
@@ -180,6 +181,7 @@
     "ruler": "Ruler",
     "label": "Map",
     "hint": "Drag the background or use the right mouse button to pan, scroll to zoom.",
+    "minimap": "Overview map",
     "playVideo": "Play map animation",
     "pauseVideo": "Pause map animation",
     "videoUnsupported": "This browser cannot play the map video, so the map is shown without it."

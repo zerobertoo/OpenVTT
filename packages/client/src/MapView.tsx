@@ -7,6 +7,7 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { closeVideo, openVideo } from "./lib/media";
+import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type MapLayers, useTableUi } from "./tableStore";
@@ -129,6 +130,8 @@ export function MapView(props: Props) {
     fitted: string | null;
     video: VideoBackground | null;
   } | null>(null);
+  const minimap = useRef<HTMLCanvasElement>(null);
+  const minimapOpen = useTableUi((ui) => ui.minimapOpen);
   const [videoUi, setVideoUi] = useState<VideoUi>({ status: "none", playing: false });
 
   // One Pixi application for the lifetime of the component.
@@ -175,6 +178,13 @@ export function MapView(props: Props) {
           video: null,
         };
         bindInteractions(app, world, ruler, rulerLabel);
+        // The overview only needs to follow the view a few times a second.
+        let lastMinimapDraw = 0;
+        app.ticker.add(() => {
+          if (performance.now() - lastMinimapDraw < 100) return;
+          lastMinimapDraw = performance.now();
+          drawMinimap();
+        });
         syncAll.current();
       });
 
@@ -339,6 +349,38 @@ export function MapView(props: Props) {
     }
 
     const props_ = () => latest.current;
+
+    /** Scene outline, tokens as dots and the part of the map on screen, on the overview canvas. */
+    function drawMinimap() {
+      const canvas = minimap.current;
+      const e = engine.current;
+      const scene = props_().scene;
+      if (!canvas || !e || !scene) return;
+      const size = minimapSize(scene);
+      // Twice the CSS size keeps the dots crisp on dense screens.
+      if (canvas.width !== size.width * 2) {
+        canvas.width = size.width * 2;
+        canvas.height = size.height * 2;
+      }
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      const factor = canvas.width / scene.width;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgba(20, 22, 26, 0.85)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      for (const token of props_().tokens) {
+        if (token.sceneId !== scene.id) continue;
+        const span = token.size * scene.gridSize;
+        context.fillStyle = token.color;
+        context.beginPath();
+        context.arc((token.x + span / 2) * factor, (token.y + span / 2) * factor, Math.max(2.5, (span / 2) * factor), 0, Math.PI * 2);
+        context.fill();
+      }
+      const view = visibleArea({ x: e.world.x, y: e.world.y, scale: e.world.scale.x }, e.app.screen);
+      context.strokeStyle = "#ffffff";
+      context.lineWidth = 2;
+      context.strokeRect(view.x * factor, view.y * factor, view.width * factor, view.height * factor);
+    }
     syncAll.current = () => {
       void syncScene();
       syncTokens();
@@ -747,6 +789,18 @@ export function MapView(props: Props) {
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, []);
 
+  // Pressing or dragging on the overview brings that spot to the middle of the view.
+  const moveViewTo = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const e = engine.current;
+    const scene = latest.current.scene;
+    if (!e || !scene || event.buttons === 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const point = sceneAt({ x: event.clientX - rect.left, y: event.clientY - rect.top }, minimapSize(scene), scene);
+    const scale = e.world.scale.x;
+    e.world.position.set(e.app.screen.width / 2 - point.x * scale, e.app.screen.height / 2 - point.y * scale);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
   const toggleVideo = () => {
     const background = engine.current?.video;
     if (!background?.loaded) return;
@@ -763,6 +817,17 @@ export function MapView(props: Props) {
   return (
     <>
       <div ref={host} className="map-host" role="application" aria-label={t("map.label")} />
+      {minimapOpen && props.scene && (
+        <canvas
+          ref={minimap}
+          className="minimap"
+          // The overview is a pointer shortcut; the keyboard has pan, zoom and "center on my token".
+          aria-hidden="true"
+          style={{ width: minimapSize(props.scene).width, height: minimapSize(props.scene).height, maxWidth: MINIMAP_MAX_SIDE }}
+          onPointerDown={moveViewTo}
+          onPointerMove={moveViewTo}
+        />
+      )}
       {videoUi.status === "ready" && (
         <Button variant="secondary" size="sm" className="video-control" onClick={toggleVideo}>
           <Icon name={videoUi.playing ? "pause" : "play"} />

@@ -10,6 +10,7 @@ describe("actionForKey", () => {
     expect(press("R")).toEqual({ type: "tool", tool: "ruler" });
     expect(press("p")).toEqual({ type: "togglePanels" });
     expect(press("D")).toEqual({ type: "diceTray" });
+    expect(press("m")).toEqual({ type: "minimap" });
     expect(press("?")).toEqual({ type: "help" });
     expect(press("Escape")).toEqual({ type: "deselect" });
   });

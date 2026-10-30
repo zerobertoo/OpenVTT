@@ -32,6 +32,7 @@
     "move": "Mover o token selecionado uma casa",
     "deselect": "Desmarcar o token",
     "center": "Centralizar a visão no seu token",
+    "minimap": "Mostrar ou esconder o mapa miniatura",
     "ping": "Marcar um ponto do mapa para todos",
     "lookHere": "Mestre: fazer todos olharem para um ponto",
     "dice": "Abrir ou fechar a bandeja de dados",
@@ -180,6 +181,7 @@
     "ruler": "Régua",
     "label": "Mapa",
     "hint": "Arraste o fundo ou use o botão direito para mover o mapa, role para dar zoom.",
+    "minimap": "Mapa miniatura",
     "playVideo": "Reproduzir animação do mapa",
     "pauseVideo": "Pausar animação do mapa",
     "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele."
