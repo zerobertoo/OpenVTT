@@ -6,7 +6,7 @@ function positiveIntFromEnv(name: string): number | undefined {
   const raw = process.env[name];
   if (raw === undefined || raw === "") return undefined;
   const value = Number(raw);
-  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer (bytes), got "${raw}"`);
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer, got "${raw}"`);
   return value;
 }
 
@@ -16,6 +16,8 @@ const app = buildApp({
   clientDir: resolve(import.meta.dirname, "../../client/dist"),
   maxVideoBytes: positiveIntFromEnv("OPENVTT_MAX_VIDEO_BYTES"),
   secureCookies: process.env.OPENVTT_SECURE_COOKIES === "1",
+  backupIntervalHours: positiveIntFromEnv("OPENVTT_BACKUP_INTERVAL_HOURS"),
+  backupKeep: positiveIntFromEnv("OPENVTT_BACKUP_KEEP"),
 });
 
 await app.listen({ port, host: process.env.HOST ?? "0.0.0.0" });

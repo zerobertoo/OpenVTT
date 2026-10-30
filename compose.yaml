@@ -13,6 +13,9 @@ services:
     #   OPENVTT_SECURE_COOKIES: "1"
     #   # Largest animated map video or music file in bytes (default 104857600 = 100 MiB).
     #   OPENVTT_MAX_VIDEO_BYTES: "104857600"
+    #   # Copy the database into /data/backups every 24 hours and keep the last 7 copies.
+    #   OPENVTT_BACKUP_INTERVAL_HOURS: "24"
+    #   OPENVTT_BACKUP_KEEP: "7"
 
 volumes:
   openvtt-data:

@@ -7,6 +7,8 @@ services:
     environment:
       OPENVTT_SECURE_COOKIES: "1"
       OPENVTT_MAX_VIDEO_BYTES: ${OPENVTT_MAX_VIDEO_BYTES:-104857600}
+      OPENVTT_BACKUP_INTERVAL_HOURS: ${OPENVTT_BACKUP_INTERVAL_HOURS:-24}
+      OPENVTT_BACKUP_KEEP: ${OPENVTT_BACKUP_KEEP:-7}
     restart: unless-stopped
     networks:
       - dokploy-network

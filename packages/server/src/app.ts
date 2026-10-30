@@ -40,6 +40,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ZodError, z } from "zod";
 import { parseRange } from "./assets.ts";
 import { SESSION_TTL_MS } from "./auth.ts";
+import { backupDatabase } from "./backup.ts";
 import { openDatabase } from "./db.ts";
 import { AppError } from "./errors.ts";
 import { Hub } from "./hub.ts";
@@ -63,6 +64,9 @@ export interface AppOptions {
   secureCookies?: boolean;
   /** Largest accepted map video in bytes; defaults to `DEFAULT_MAX_VIDEO_BYTES`. */
   maxVideoBytes?: number;
+  /** Copies the database into `<data>/backups` this often; off when not given. */
+  backupIntervalHours?: number;
+  backupKeep?: number;
 }
 
 export function buildApp(options: AppOptions) {
@@ -76,7 +80,17 @@ export function buildApp(options: AppOptions) {
 
   app.register(fastifyCookie);
   hub.attach(app.server);
+  const backupTimer = options.backupIntervalHours
+    ? setInterval(() => {
+        try {
+          backupDatabase(db, join(dataDir, "backups"), options.backupKeep ?? 7);
+        } catch (error) {
+          app.log.error(error);
+        }
+      }, options.backupIntervalHours * 3_600_000)
+    : undefined;
   app.addHook("onClose", async () => {
+    clearInterval(backupTimer);
     hub.closeAll();
     db.close();
   });

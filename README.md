@@ -49,6 +49,16 @@ Environment variables:
 | `OPENVTT_DB` | `data/openvtt.db` | SQLite file; assets and installed systems are stored next to it |
 | `OPENVTT_SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
 | `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video or music file (MP3, Ogg) accepted; images stay capped at 15 MiB |
+| `OPENVTT_BACKUP_INTERVAL_HOURS` | off | Copies the database into `backups/` next to it every this many hours |
+| `OPENVTT_BACKUP_KEEP` | `7` | How many of those copies are kept; older ones are deleted |
+
+### Backup and restore
+
+Everything lives in the data directory (`OPENVTT_DB`'s folder, the `openvtt-data` volume in Docker): the database, `assets/` and `systems/`.
+
+- **Scheduled copies.** Set `OPENVTT_BACKUP_INTERVAL_HOURS` (for example `24`). The server writes `backups/openvtt-<date>.db` while it runs, with SQLite's `VACUUM INTO`, so the copy is consistent even mid-session. Uploaded files are never changed after upload, so copying `assets/` from time to time (or with any file sync tool) completes the backup.
+- **One world.** The game master can download a world as a `.openvtt.zip` (World tab) and import it on any installation.
+- **Restore.** Stop the server, replace `openvtt.db` with the chosen copy, delete `openvtt.db-wal` and `openvtt.db-shm` if present, put `assets/` back if it was lost, and start again. In Docker: `docker compose stop`, copy the file into the volume (for example with `docker run --rm -v openvtt-data:/data -v "$PWD":/backup alpine cp /backup/openvtt-<date>.db /data/openvtt.db`), then `docker compose start`.
 
 ### Animated maps
 
