@@ -1,3 +1,4 @@
+import type { PingDto } from "@openvtt/shared";
 import { create } from "zustand";
 import type { MapTool } from "./MapView";
 
@@ -34,6 +35,9 @@ interface TableUiState {
   /** Latest request to change the map view; `id` makes a repeated press a new request. */
   viewCommand: { kind: "zoomIn" | "zoomOut" | "fit"; id: number } | null;
   changeView: (kind: "zoomIn" | "zoomOut" | "fit") => void;
+  /** Latest ping received; `id` makes two pings at the same spot distinct events. */
+  ping: (PingDto & { id: number }) | null;
+  showPing: (ping: PingDto) => void;
   /** Whether the dice tray is open over the map. */
   diceTrayOpen: boolean;
   setDiceTrayOpen: (open: boolean) => void;
@@ -55,6 +59,7 @@ const initialState = {
   layers: DEFAULT_LAYERS,
   viewAsUserId: null,
   viewCommand: null,
+  ping: null,
   diceTrayOpen: false,
 } as const;
 
@@ -64,6 +69,7 @@ export const useTableUi = create<TableUiState>((set) => ({
   setLayer: (layer, show) => set((state) => ({ layers: { ...state.layers, [layer]: show } })),
   setViewAs: (viewAsUserId) => set({ viewAsUserId }),
   changeView: (kind) => set((state) => ({ viewCommand: { kind, id: (state.viewCommand?.id ?? 0) + 1 } })),
+  showPing: (ping) => set((state) => ({ ping: { ...ping, id: (state.ping?.id ?? 0) + 1 } })),
   setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),

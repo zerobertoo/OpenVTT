@@ -144,6 +144,7 @@ export function Table({ worldId, user }: Props) {
               vision={state.vision}
               layers={viewAs ? PLAYER_LAYERS : layers}
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
+              onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus })}
               formatDistance={(cells) => format.distance(cells, scene)}
             />
           ) : (

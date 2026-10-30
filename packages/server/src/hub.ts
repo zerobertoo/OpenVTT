@@ -26,6 +26,7 @@ interface Connection {
   seenTokenIds: Set<string>;
   /** Player whose sight the game master is previewing; null shows everything. */
   viewAs: string | null;
+  lastPingAt: number;
 }
 
 const MAX_WS_PAYLOAD = 16 * 1024;
@@ -39,7 +40,11 @@ const clientMessageSchema = z.discriminatedUnion("type", [
     x: z.number().finite(),
     y: z.number().finite(),
   }),
+  z.object({ type: z.literal("map.ping"), x: z.number().finite(), y: z.number().finite(), focus: z.boolean().optional() }),
 ]);
+
+/** Pings are relayed, never stored; this keeps one connection from flooding the table. */
+const PING_MIN_INTERVAL_MS = 300;
 
 export function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
@@ -92,7 +97,7 @@ export class Hub {
   }
 
   private open(socket: WebSocket, viewer: Viewer, worldId: string) {
-    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set(), viewAs: null };
+    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set(), viewAs: null, lastPingAt: 0 };
     this.connections.add(conn);
     this.broadcastState(worldId);
     socket.on("message", (raw) => {
@@ -111,6 +116,7 @@ export class Hub {
   private handle(conn: Connection, msg: z.infer<typeof clientMessageSchema>) {
     if (msg.type === "world.resync") return this.sendState(conn);
     if (msg.type === "world.viewAs") return this.previewAs(conn, msg.userId);
+    if (msg.type === "map.ping") return this.ping(conn, msg);
 
     // token.move: validate against the live DB, never trust the client's view of permissions.
     const found = this.s.tokens.find(msg.tokenId);
@@ -132,6 +138,24 @@ export class Hub {
     }
     const after = this.s.tokens.update(token.id, conn.worldId, { x, y });
     this.publishToken(conn.worldId, token, after);
+  }
+
+  /** Relays a ping on the active scene to everyone; only the game master can ask the others to look at it. */
+  private ping(conn: Connection, msg: { x: number; y: number; focus?: boolean }) {
+    const now = Date.now();
+    if (now - conn.lastPingAt < PING_MIN_INTERVAL_MS) return;
+    conn.lastPingAt = now;
+    const sceneId = this.s.scenes.activeSceneId(conn.worldId);
+    const scene = sceneId ? this.s.scenes.get(sceneId) : null;
+    if (!scene) return;
+    const ping = {
+      sceneId: scene.id,
+      userId: conn.viewer.userId,
+      x: Math.min(Math.max(msg.x, 0), scene.width),
+      y: Math.min(Math.max(msg.y, 0), scene.height),
+      focus: conn.viewer.role === "gm" && msg.focus === true,
+    };
+    for (const c of this.connections) if (c.worldId === conn.worldId) this.send(c, { type: "map.ping", ping });
   }
 
   /** The game master previews a player's sight; anyone who is not a player of this world is ignored. */

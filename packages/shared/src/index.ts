@@ -210,12 +210,25 @@ export type ServerMessage =
   | { type: "chat.message"; message: MessageDto }
   | { type: "vision.update"; vision: VisionDto | null }
   | { type: "combat.update"; combat: CombatDto | null }
+  /** A short-lived marker on the map; `focus` also asks everyone to look at it (game master only). */
+  | { type: "map.ping"; ping: PingDto }
   | { type: "error"; code: ErrorCode };
+
+export interface PingDto {
+  sceneId: string;
+  userId: string;
+  /** Scene pixels. */
+  x: number;
+  y: number;
+  focus: boolean;
+}
 
 /** Client → server messages. */
 export type ClientMessage =
   | { type: "world.resync" }
   | { type: "token.move"; tokenId: string; x: number; y: number }
+  /** Marks a spot on the active scene for everybody; `focus` is for the game master. */
+  | { type: "map.ping"; x: number; y: number; focus?: boolean }
   /** Game master only: see the table the way this player does (their tokens' sight); null goes back to seeing everything. */
   | { type: "world.viewAs"; userId: string | null };
 

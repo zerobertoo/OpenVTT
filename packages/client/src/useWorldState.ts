@@ -3,6 +3,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "./components/ui/toast";
 import { reconnectDelay } from "./lib/backoff";
+import { useTableUi } from "./tableStore";
 
 const MAX_CLIENT_MESSAGES = 300;
 
@@ -62,7 +63,12 @@ export function useWorldState(worldId: string) {
           toast({ title: translate.current("table.reconnected"), tone: "success" });
         }
       };
-      socket.onmessage = (event) => dispatch(JSON.parse(event.data) as ServerMessage);
+      socket.onmessage = (event) => {
+        const message = JSON.parse(event.data) as ServerMessage;
+        // Pings are moments, not state: they go straight to the map instead of through the reducer.
+        if (message.type === "map.ping") useTableUi.getState().showPing(message.ping);
+        else dispatch(message);
+      };
       socket.onclose = () => {
         setConnected(false);
         lostConnection = true;

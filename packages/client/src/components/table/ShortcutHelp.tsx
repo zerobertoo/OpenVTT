@@ -8,6 +8,8 @@ const SHORTCUTS = [
   { keys: ["Esc"], label: "shortcuts.deselect" },
   { keys: ["+", "-"], label: "shortcuts.zoom" },
   { keys: ["0"], label: "shortcuts.fit" },
+  { keys: ["Alt", "click"], label: "shortcuts.ping" },
+  { keys: ["Alt", "Shift", "click"], label: "shortcuts.lookHere" },
   { keys: ["P"], label: "shortcuts.panels" },
   { keys: ["D"], label: "shortcuts.dice" },
   { keys: ["?"], label: "shortcuts.help" },

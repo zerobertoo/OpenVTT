@@ -16,6 +16,8 @@
     "ruler": "Ruler tool",
     "move": "Move the selected token one cell",
     "deselect": "Deselect the token",
+    "ping": "Ping a spot on the map for everyone",
+    "lookHere": "Game master: make everyone look at a spot",
     "dice": "Open or close the dice tray",
     "zoom": "Zoom in or out",
     "fit": "Fit the whole map in view",

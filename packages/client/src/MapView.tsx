@@ -25,6 +25,8 @@ interface Props {
   /** Which overlays to draw (walls, doors and lights only exist for the game master). */
   layers: MapLayers;
   onToggleDoor: (wallId: string, open: boolean) => void;
+  /** Alt+click marks a spot for everybody; Alt+Shift+click (game master) also asks them to look at it. */
+  onPing: (x: number, y: number, focus: boolean) => void;
   /** Formats the ruler label; receives distance in grid cells. */
   formatDistance: (cells: number) => string;
 }
@@ -174,6 +176,10 @@ export function MapView(props: Props) {
       const toWorld = (e: FederatedPointerEvent) => world.toLocal(e.global);
 
       app.stage.on("pointerdown", (e) => {
+        if (e.altKey && e.button === 0) {
+          const point = toWorld(e);
+          return props_().onPing(point.x, point.y, e.shiftKey);
+        }
         const p = props_().tool;
         if (e.button === 1 || e.button === 2 || (p === "select" && e.target === app.stage)) {
           panning = { x: e.global.x - world.x, y: e.global.y - world.y };
@@ -462,7 +468,8 @@ export function MapView(props: Props) {
       view.cursor = "pointer";
       let drag: { dx: number; dy: number; lastSent: number } | null = null;
       view.on("pointerdown", (e) => {
-        if (props_().tool !== "select" || e.button !== 0) return;
+        // Alt+click pings, even on top of a token: let it reach the stage.
+        if (props_().tool !== "select" || e.button !== 0 || e.altKey) return;
         e.stopPropagation();
         props_().onSelect(token.id);
         const current = currentToken(token.id);
@@ -570,6 +577,44 @@ export function MapView(props: Props) {
     e.world.scale.set(next);
     e.world.position.set(center.x - before.x * next, center.y - before.y * next);
   }, [viewCommand, latest]);
+
+  // A ping from anyone shows as a ring that grows and fades; a "look here" also brings the view to it.
+  const ping = useTableUi((ui) => ui.ping);
+  useEffect(() => {
+    const e = engine.current;
+    if (!e || !ping || ping.sceneId !== latest.current.scene?.id) return;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (ping.focus) {
+      const scale = e.world.scale.x;
+      e.world.position.set(e.app.screen.width / 2 - ping.x * scale, e.app.screen.height / 2 - ping.y * scale);
+    }
+    const grid = latest.current.scene.gridSize;
+    const ring = new Graphics();
+    ring.position.set(ping.x, ping.y);
+    e.world.addChild(ring);
+    const color = ping.focus ? 0xffc914 : 0x66d9ff;
+    const started = performance.now();
+    const DURATION_MS = 1600;
+    const step = () => {
+      const t = Math.min(1, (performance.now() - started) / DURATION_MS);
+      if (ring.destroyed) return void e.app.ticker.remove(step);
+      const radius = grid * (reduced ? 0.8 : 0.3 + 1.2 * t);
+      ring
+        .clear()
+        .circle(0, 0, radius)
+        .stroke({ width: 4, color, alpha: 1 - t });
+      ring.circle(0, 0, grid * 0.12).fill({ color, alpha: 1 - t });
+      if (t >= 1) {
+        e.app.ticker.remove(step);
+        ring.destroy();
+      }
+    };
+    e.app.ticker.add(step);
+    return () => {
+      e.app.ticker.remove(step);
+      if (!ring.destroyed) ring.destroy();
+    };
+  }, [ping, latest]);
 
   useEffect(() => {
     engine.current?.ruler.clear();

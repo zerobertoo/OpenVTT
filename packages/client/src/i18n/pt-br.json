@@ -16,6 +16,8 @@
     "ruler": "Ferramenta de régua",
     "move": "Mover o token selecionado uma casa",
     "deselect": "Desmarcar o token",
+    "ping": "Marcar um ponto do mapa para todos",
+    "lookHere": "Mestre: fazer todos olharem para um ponto",
     "dice": "Abrir ou fechar a bandeja de dados",
     "zoom": "Aumentar ou diminuir o zoom",
     "fit": "Enquadrar o mapa inteiro",
