@@ -7,6 +7,7 @@ import {
   buildUvtt,
   createDrawingSchema,
   lightInputSchema,
+  MAP_LAYERS,
   MAX_SCENE_DRAWINGS,
   MAX_SCENE_LIGHTS,
   MAX_SCENE_WALLS,
@@ -61,6 +62,7 @@ const worldFileSchema = z.object({
         visionEnabled: z.boolean().default(false),
         visionRadius: z.number().finite().min(1).max(200).default(12),
         drawings: z.array(createDrawingSchema).max(MAX_SCENE_DRAWINGS).default([]),
+        lockedLayers: z.array(z.enum(MAP_LAYERS)).max(MAP_LAYERS.length).default([]),
       }),
     )
     .max(500),

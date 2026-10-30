@@ -1,4 +1,4 @@
-import type { MemberDto, SceneDto } from "@openvtt/shared";
+import { MAP_LAYERS, type MapLayer, type MemberDto, type SceneDto } from "@openvtt/shared";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 import type { MapLayers } from "../../tableStore";
@@ -15,18 +15,26 @@ interface Props {
   /** Player whose view is being previewed; null is the normal game master view. */
   viewAsUserId: string | null;
   onViewAsChange: (userId: string | null) => void;
+  onLockChange: (lockedLayers: MapLayer[]) => void;
 }
 
-const LAYER_LABELS = ["walls", "doors", "lights", "lightRange", "grid", "gmDrawings"] as const satisfies readonly (keyof MapLayers)[];
+/** Which switch shows each map layer. */
+const LAYER_VISIBILITY = { background: "background", objects: "objects", tokens: "tokens", gm: "gmDrawings" } as const satisfies Record<
+  MapLayer,
+  keyof MapLayers
+>;
+
+const LAYER_LABELS = ["walls", "doors", "lights", "lightRange", "grid"] as const satisfies readonly (keyof MapLayers)[];
 
 /** Game master only: which overlays are drawn on the map, and a preview of what one player sees. */
-export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUserId, onViewAsChange }: Props) {
+export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUserId, onViewAsChange, onLockChange }: Props) {
   const { t } = useTranslation();
   const previewing = viewAsUserId !== null;
   const hasMapData = Boolean(scene && (scene.walls.length > 0 || scene.lights.length > 0));
   return (
     <Popover
       className="w-80"
+      label={t("layers.title")}
       trigger={
         <button
           type="button"
@@ -58,11 +66,45 @@ export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUse
             )}
           </Field>
         )}
+        {scene && (
+          <fieldset className="m-0 grid min-w-0 grid-cols-[1fr_auto_auto] items-center gap-x-3 gap-y-2 border-0 p-0">
+            <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("layers.mapLayers")}</legend>
+            <span aria-hidden="true" />
+            <span aria-hidden="true" className="text-ink-2 text-xs">
+              {t("layers.show")}
+            </span>
+            <span aria-hidden="true" className="text-ink-2 text-xs">
+              {t("layers.lock")}
+            </span>
+            {MAP_LAYERS.map((layer) => {
+              const name = t(`layers.names.${layer}`);
+              const locked = scene.lockedLayers.includes(layer);
+              return (
+                <div key={layer} className="contents">
+                  <span>{name}</span>
+                  <Switch
+                    aria-label={t("layers.showLayer", { name })}
+                    checked={previewing ? layer !== "gm" : layers[LAYER_VISIBILITY[layer]]}
+                    disabled={previewing}
+                    onChange={(e) => onLayerChange(LAYER_VISIBILITY[layer], e.target.checked)}
+                  />
+                  <Switch
+                    aria-label={t("layers.lockLayer", { name })}
+                    checked={locked}
+                    onChange={(e) =>
+                      onLockChange(e.target.checked ? [...scene.lockedLayers, layer] : scene.lockedLayers.filter((l) => l !== layer))
+                    }
+                  />
+                </div>
+              );
+            })}
+          </fieldset>
+        )}
         <fieldset disabled={previewing} className="m-0 grid min-w-0 gap-2 border-0 p-0">
           <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("layers.overlays")}</legend>
           {LAYER_LABELS.map((layer) => {
             // Overlays that need map data are pointless on a scene without any.
-            const needsData = layer !== "grid" && layer !== "gmDrawings" && !hasMapData;
+            const needsData = layer !== "grid" && !hasMapData;
             return (
               <Field key={layer} label={t(`layers.${layer}`)} inline>
                 {(control) => (

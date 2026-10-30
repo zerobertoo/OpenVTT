@@ -22,6 +22,7 @@ interface SceneRow {
   floor: number;
   vision_enabled: number;
   vision_radius: number;
+  locked_layers: string;
 }
 
 interface WallRow {
@@ -98,6 +99,7 @@ const toDto = (r: SceneRow, walls: WallDto[], lights: LightDto[], drawings: Draw
   floor: r.floor,
   visionEnabled: r.vision_enabled === 1,
   visionRadius: r.vision_radius,
+  lockedLayers: JSON.parse(r.locked_layers) as SceneDto["lockedLayers"],
   drawings,
 });
 
@@ -168,8 +170,8 @@ export class SceneService {
       this.db
         .prepare(
           `INSERT INTO scenes (id, world_id, name, asset_id, width, height, grid_type, grid_size, grid_distance, distance_unit,
-             baked_lighting, floor_group, floor, vision_enabled, vision_radius, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             baked_lighting, floor_group, floor, vision_enabled, vision_radius, locked_layers, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -187,6 +189,7 @@ export class SceneService {
           input.floor,
           input.visionEnabled ? 1 : 0,
           input.visionRadius,
+          JSON.stringify(input.lockedLayers),
           Date.now(),
         );
       this.replaceMap(id, input);
@@ -205,7 +208,7 @@ export class SceneService {
       this.db
         .prepare(
           `UPDATE scenes SET name = ?, asset_id = ?, width = ?, height = ?, grid_type = ?, grid_size = ?,
-           grid_distance = ?, distance_unit = ?, baked_lighting = ?, floor_group = ?, floor = ?, vision_enabled = ?, vision_radius = ? WHERE id = ?`,
+           grid_distance = ?, distance_unit = ?, baked_lighting = ?, floor_group = ?, floor = ?, vision_enabled = ?, vision_radius = ?, locked_layers = ? WHERE id = ?`,
         )
         .run(
           next.name,
@@ -221,6 +224,7 @@ export class SceneService {
           next.floor,
           next.visionEnabled ? 1 : 0,
           next.visionRadius,
+          JSON.stringify(next.lockedLayers),
           sceneId,
         );
       if (input.walls || input.lights) {

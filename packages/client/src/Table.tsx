@@ -191,7 +191,13 @@ export function Table({ worldId, user }: Props) {
             onHelpOpenChange={setHelpOpen}
           />
           {tool === "ruler" && <RulerOptions scene={scene} />}
-          {tool === "draw" && scene && <DrawOptions isGm={isGm} onClear={() => void api.clearDrawings(scene.id).catch(() => undefined)} />}
+          {tool === "draw" && scene && (
+            <DrawOptions
+              isGm={isGm}
+              lockedLayers={scene.lockedLayers}
+              onClear={() => void api.clearDrawings(scene.id).catch(() => undefined)}
+            />
+          )}
           {selectedTokens.length > 1 && (
             <SelectionBar
               count={selectedTokens.length}
@@ -230,6 +236,7 @@ export function Table({ worldId, user }: Props) {
                   onLayerChange={setLayer}
                   viewAsUserId={viewAs}
                   onViewAsChange={changeViewAs}
+                  onLockChange={(lockedLayers) => scene && void api.updateScene(scene.id, { lockedLayers }).catch(() => undefined)}
                 />
               )
             }

@@ -239,9 +239,10 @@ export function MapView(props: Props) {
         } else if (p === "draw" && e.button === 0) {
           const point = toWorld(e);
           const { draw, scene } = props_();
-          if (!scene) return;
+          if (!scene || (draw.kind !== "erase" && scene.lockedLayers.includes(draw.kind === "note" ? "gm" : draw.layer))) return;
           if (draw.kind === "erase") {
-            const target = drawingAt(scene.drawings.filter(props_().canErase), point, 10 / world.scale.x);
+            const erasable = scene.drawings.filter((d) => props_().canErase(d) && !scene.lockedLayers.includes(d.layer));
+            const target = drawingAt(erasable, point, 10 / world.scale.x);
             if (target) props_().onErase(target.id);
           } else if (draw.kind === "text" || draw.kind === "note") {
             if (draw.text.trim())
@@ -453,6 +454,9 @@ export function MapView(props: Props) {
       for (const layer of Object.values(e.drawingLayers)) layer.removeChildren().forEach((c) => c.destroy({ children: true }));
       if (!scene) return;
       e.drawingLayers.gm.visible = layers.gmDrawings;
+      e.drawingLayers.background.visible = e.background.visible = layers.background;
+      e.drawingLayers.objects.visible = layers.objects;
+      e.tokenLayer.visible = layers.tokens;
       for (const drawing of scene.drawings) e.drawingLayers[drawing.layer].addChild(drawingView(drawing, scene.gridSize));
     }
 
@@ -706,7 +710,7 @@ export function MapView(props: Props) {
         const ids = selected.includes(token.id) ? selected : [token.id];
         if (ids !== selected) props_().onSelect(token.id);
         const current = currentToken(token.id);
-        if (!current || !props_().canControl(current)) return;
+        if (!current || !props_().canControl(current) || props_().scene?.lockedLayers.includes("tokens")) return;
         const members = ids.flatMap((id) => {
           const member = currentToken(id);
           const memberView = engine.current!.tokenViews.get(id);

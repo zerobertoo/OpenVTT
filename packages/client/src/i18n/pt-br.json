@@ -213,7 +213,12 @@
     "grid": "Grade",
     "previewOverrides": "Ao ver como jogador, as camadas ficam ocultas.",
     "baked": "Este mapa já traz a iluminação desenhada na imagem, por isso o alcance das luzes vem desligado.",
-    "gmDrawings": "Seus desenhos e notas"
+    "mapLayers": "Camadas do mapa",
+    "show": "Mostrar",
+    "lock": "Travar",
+    "showLayer": "Mostrar {{name}}",
+    "lockLayer": "Travar {{name}}",
+    "names": { "background": "Fundo", "objects": "Objetos", "tokens": "Tokens", "gm": "Só o mestre" }
   },
   "scene": {
     "title": "Cenas",
@@ -430,6 +435,7 @@
     "clearMine": "Apagar meus desenhos",
     "clearAll": "Apagar todos os desenhos",
     "clearTitle": "Apagar todos os desenhos desta cena?",
-    "clearBody": "Desenhos, textos e pins de nota de todos nesta cena são removidos."
+    "clearBody": "Desenhos, textos e pins de nota de todos nesta cena são removidos.",
+    "locked": "Esta camada está travada. Destrave no menu Camadas."
   }
 }

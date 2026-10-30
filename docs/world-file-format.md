@@ -11,7 +11,7 @@ assets/<uuid>.<png|jpg|webp>
 
 Each scene may carry `walls` (segments `x1,y1,x2,y2` in map pixels, `kind` `wall` or `door`, `open` for doors), `lights` (`x`, `y` in pixels, `radius` in grid cells, `intensity`, `color` as `#rrggbb`, `shadows`), `bakedLighting`, and `floorGroup` / `floor` for maps imported as several floors. All are optional: files written before they existed still import, with empty lists. Importers ignore unknown fields.
 
-Each scene may also carry `drawings`: `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `text` or `note`), `layer` (`background`, `objects` or `gm`), `points` (flat `[x1, y1, x2, y2, ...]` in map pixels), `color` (`#rrggbb`) and `text`. Who drew them is not exported. Notes always land on the `gm` layer.
+Each scene may also carry `drawings`: `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `text` or `note`), `layer` (`background`, `objects` or `gm`), `points` (flat `[x1, y1, x2, y2, ...]` in map pixels), `color` (`#rrggbb`) and `text`. Who drew them is not exported. Notes always land on the `gm` layer. A scene may list `lockedLayers` (`background`, `objects`, `tokens`, `gm`).
 
 Each token may also carry `hp` and `hpMax` (both `null` for no health bar), `conditions` (a list of ids such as `prone` or `poisoned`) and `showName`. These are optional too.
 

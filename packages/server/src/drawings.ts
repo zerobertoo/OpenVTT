@@ -22,6 +22,7 @@ export class DrawingService {
   /** Players draw only on the objects layer of the active scene and never place note pins; notes always go to the `gm` layer. */
   create(sceneId: string, viewer: Viewer, activeSceneId: string | null, input: DrawingInput): string {
     const isGm = viewer.role === "gm";
+    if (this.lockedLayers(sceneId).includes(input.kind === "note" ? "gm" : input.layer)) throw new AppError("forbidden");
     if (!isGm && (sceneId !== activeSceneId || input.kind === "note" || input.layer !== "objects")) throw new AppError("forbidden");
     const { n } = this.db.prepare("SELECT COUNT(*) AS n FROM drawings WHERE scene_id = ?").get(sceneId) as { n: number };
     if (n >= MAX_SCENE_DRAWINGS) throw new AppError("invalid_input");
@@ -62,12 +63,23 @@ export class DrawingService {
     // A player is never told that a game master drawing exists.
     if (!found || (viewer.role !== "gm" && found.layer === "gm")) throw new AppError("not_found");
     if (viewer.role !== "gm" && found.authorId !== viewer.userId) throw new AppError("forbidden");
+    if (this.lockedLayers(found.sceneId).includes(found.layer)) throw new AppError("forbidden");
     this.db.prepare("DELETE FROM drawings WHERE id = ?").run(drawingId);
   }
 
   /** Clears the scene for the game master, or only the viewer's own drawings for anyone else. */
   clear(sceneId: string, viewer: Viewer) {
-    if (viewer.role === "gm") this.db.prepare("DELETE FROM drawings WHERE scene_id = ?").run(sceneId);
-    else this.db.prepare("DELETE FROM drawings WHERE scene_id = ? AND author_id = ? AND layer <> 'gm'").run(sceneId, viewer.userId);
+    const locked = JSON.stringify(this.lockedLayers(sceneId));
+    const unlocked = "layer NOT IN (SELECT value FROM json_each(?))";
+    if (viewer.role === "gm") this.db.prepare(`DELETE FROM drawings WHERE scene_id = ? AND ${unlocked}`).run(sceneId, locked);
+    else
+      this.db
+        .prepare(`DELETE FROM drawings WHERE scene_id = ? AND author_id = ? AND layer <> 'gm' AND ${unlocked}`)
+        .run(sceneId, viewer.userId, locked);
+  }
+
+  private lockedLayers(sceneId: string): string[] {
+    const row = this.db.prepare("SELECT locked_layers FROM scenes WHERE id = ?").get(sceneId) as { locked_layers: string } | undefined;
+    return row ? (JSON.parse(row.locked_layers) as string[]) : [];
   }
 }

@@ -23,6 +23,7 @@ const tavern: SceneDto = {
   visionEnabled: false,
   visionRadius: 12,
   drawings: [],
+  lockedLayers: [],
 };
 const cave: SceneDto = { ...tavern, id: "s2", name: "Goblin cave" };
 

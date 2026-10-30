@@ -26,6 +26,7 @@ const scene: SceneDto = {
   visionEnabled: false,
   visionRadius: 12,
   drawings: [],
+  lockedLayers: [],
 };
 const token: TokenDto = {
   id: "t1",

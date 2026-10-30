@@ -349,6 +349,12 @@ export function buildApp(options: AppOptions) {
     if (!s.tokens.canControl(found.token, viewer)) throw new AppError("forbidden");
     if (viewer.role !== "gm" && Object.keys(patch).some((k) => !(PLAYER_EDITABLE_TOKEN_FIELDS as readonly string[]).includes(k)))
       throw new AppError("forbidden");
+    if (
+      viewer.role !== "gm" &&
+      (patch.x !== undefined || patch.y !== undefined || patch.rotation !== undefined) &&
+      s.scenes.get(found.token.sceneId)?.lockedLayers.includes("tokens")
+    )
+      throw new AppError("forbidden");
     const after = s.tokens.update(found.token.id, found.worldId, patch);
     hub.publishToken(found.worldId, found.token, after);
     // A name or visibility change alters what the initiative list may show; other tokens must not cause traffic.

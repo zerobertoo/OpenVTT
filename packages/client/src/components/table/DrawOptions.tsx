@@ -1,4 +1,4 @@
-import { DRAWING_KINDS, DRAWING_LAYERS } from "@openvtt/shared";
+import { DRAWING_KINDS, DRAWING_LAYERS, type MapLayer } from "@openvtt/shared";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type DrawSettings, useTableUi } from "../../tableStore";
@@ -8,12 +8,13 @@ import { Input, Select } from "../ui/input";
 
 interface Props {
   isGm: boolean;
+  lockedLayers: MapLayer[];
   /** Erases the scene for the game master, or the person's own marks for anyone else. */
   onClear: () => void;
 }
 
 /** Shown above the map tools while drawing: what to place, its color and words, and the layer (game master). */
-export function DrawOptions({ isGm, onClear }: Props) {
+export function DrawOptions({ isGm, lockedLayers, onClear }: Props) {
   const { t } = useTranslation();
   const draw = useTableUi((ui) => ui.draw);
   const setDraw = useTableUi((ui) => ui.setDraw);
@@ -21,6 +22,7 @@ export function DrawOptions({ isGm, onClear }: Props) {
   // Note pins are the game master's own notes.
   const kinds = [...DRAWING_KINDS.filter((k) => isGm || k !== "note"), "erase"] as const;
   const needsText = draw.kind === "text" || draw.kind === "note";
+  const locked = draw.kind !== "erase" && lockedLayers.includes(draw.kind === "note" ? "gm" : draw.layer);
   return (
     <div
       role="group"
@@ -71,6 +73,11 @@ export function DrawOptions({ isGm, onClear }: Props) {
             </option>
           ))}
         </Select>
+      )}
+      {locked && (
+        <p role="status" className="m-0 text-on-chrome-2 text-sm">
+          {t("draw.locked")}
+        </p>
       )}
       <Button variant="secondary" size="sm" onClick={() => (isGm ? setConfirming(true) : onClear())}>
         {t(isGm ? "draw.clearAll" : "draw.clearMine")}

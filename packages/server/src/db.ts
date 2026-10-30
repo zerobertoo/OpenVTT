@@ -167,6 +167,9 @@ CREATE TABLE drawings (
 );
 CREATE INDEX drawings_scene ON drawings (scene_id);
 `,
+  `
+ALTER TABLE scenes ADD COLUMN locked_layers TEXT NOT NULL DEFAULT '[]';
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

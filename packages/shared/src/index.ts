@@ -101,6 +101,9 @@ export type DrawingKind = (typeof DRAWING_KINDS)[number];
 /** `gm` drawings (and every note pin) are never sent to players. */
 export const DRAWING_LAYERS = ["background", "objects", "gm"] as const;
 export type DrawingLayer = (typeof DRAWING_LAYERS)[number];
+/** Everything on a map sits on one of these; a locked layer cannot be changed from the map until it is unlocked. */
+export const MAP_LAYERS = ["background", "objects", "tokens", "gm"] as const;
+export type MapLayer = (typeof MAP_LAYERS)[number];
 
 /** A mark on the map. `points` is flat `[x1, y1, x2, y2, ...]` in map pixels; shapes use the first two points. */
 export interface DrawingDto {
@@ -161,6 +164,7 @@ export interface SceneDto {
   visionRadius: number;
   /** Players never receive the `gm` layer. */
   drawings: DrawingDto[];
+  lockedLayers: MapLayer[];
 }
 
 export interface TokenDto {
@@ -345,6 +349,7 @@ const sceneFields = {
   floor: z.number().int().min(-20).max(50),
   visionEnabled: z.boolean(),
   visionRadius: z.number().finite().min(1).max(200),
+  lockedLayers: z.array(z.enum(MAP_LAYERS)).max(MAP_LAYERS.length),
 };
 // Defaults live only on creation: Zod 4 would also apply them to a partial update and wipe what is stored.
 export const createSceneSchema = z.object({
@@ -361,6 +366,7 @@ export const createSceneSchema = z.object({
   floor: sceneFields.floor.default(0),
   visionEnabled: sceneFields.visionEnabled.default(false),
   visionRadius: sceneFields.visionRadius.default(12),
+  lockedLayers: sceneFields.lockedLayers.default([]),
 });
 export const updateSceneSchema = z.object(sceneFields).partial();
 

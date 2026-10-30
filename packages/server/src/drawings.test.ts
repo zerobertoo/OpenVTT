@@ -99,3 +99,41 @@ describe("drawings and note pins", () => {
     expect(msg.state.scenes[0]!.drawings[0]).toMatchObject({ kind: "note", layer: "gm", text: SECRET_NOTE.text, authorId: null });
   });
 });
+
+describe("locked layers", () => {
+  it("refuses drawing, erasing and dragging on a locked layer until it is unlocked", async () => {
+    const { app, gm, bob, scene, world, stateOf } = await setup();
+    const mark = (await call(app, bob.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "line", points: [0, 0, 9, 9] })).json();
+    const token = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
+        sceneId: scene.id,
+        name: "Hero",
+        x: 0,
+        y: 0,
+        controllerIds: [bob.user.id],
+      })
+    ).json();
+    await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { lockedLayers: ["objects", "tokens"] });
+
+    expect(
+      (await call(app, bob.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "line", points: [0, 0, 1, 1] })).statusCode,
+    ).toBe(403);
+    expect(
+      (await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "line", points: [0, 0, 1, 1] })).statusCode,
+    ).toBe(403);
+    expect((await call(app, bob.cookie, "DELETE", `/api/drawings/${mark.id}`)).statusCode).toBe(403);
+    await call(app, gm.cookie, "DELETE", `/api/scenes/${scene.id}/drawings`);
+    expect((await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 70 })).statusCode).toBe(403);
+    // The background layer is still open.
+    expect(
+      (await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "line", layer: "background", points: [0, 0, 1, 1] }))
+        .statusCode,
+    ).toBe(200);
+    const locked = await stateOf(bob.cookie);
+    expect(locked.scenes[0]!.drawings).toHaveLength(2);
+    expect(locked.scenes[0]!.lockedLayers).toEqual(["objects", "tokens"]);
+
+    await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { lockedLayers: [] });
+    expect((await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 70 })).statusCode).toBe(200);
+  });
+});

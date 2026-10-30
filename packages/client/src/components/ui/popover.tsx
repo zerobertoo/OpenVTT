@@ -11,15 +11,18 @@ interface PopoverProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   className?: string;
+  /** Accessible name of the panel, which screen readers announce as a dialog. */
+  label?: string;
 }
 
 /** A small floating panel for a short form or a hint. Esc and an outside click close it; focus moves in and back. */
-export function Popover({ trigger, children, open, onOpenChange, className }: PopoverProps) {
+export function Popover({ trigger, children, open, onOpenChange, className, label }: PopoverProps) {
   return (
     <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
       <RadixPopover.Trigger asChild>{trigger}</RadixPopover.Trigger>
       <RadixPopover.Portal>
         <RadixPopover.Content
+          aria-label={label}
           sideOffset={8}
           collisionPadding={12}
           className={cn(floatingStyles, "w-72 max-w-[calc(100vw-1.5rem)] p-4", className)}

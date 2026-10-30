@@ -213,7 +213,12 @@
     "grid": "Grid",
     "previewOverrides": "While previewing a player, overlays are hidden.",
     "baked": "This map already has its lighting drawn in the image, so the light range is off by default.",
-    "gmDrawings": "Your drawings and notes"
+    "mapLayers": "Map layers",
+    "show": "Show",
+    "lock": "Lock",
+    "showLayer": "Show {{name}}",
+    "lockLayer": "Lock {{name}}",
+    "names": { "background": "Background", "objects": "Objects", "tokens": "Tokens", "gm": "Game master only" }
   },
   "scene": {
     "title": "Scenes",
@@ -430,6 +435,7 @@
     "clearMine": "Erase my drawings",
     "clearAll": "Erase all drawings",
     "clearTitle": "Erase every drawing on this scene?",
-    "clearBody": "Drawings, texts and note pins of everybody on this scene are removed."
+    "clearBody": "Drawings, texts and note pins of everybody on this scene are removed.",
+    "locked": "This layer is locked. Unlock it in the Layers menu."
   }
 }

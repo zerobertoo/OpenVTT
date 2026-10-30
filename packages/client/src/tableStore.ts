@@ -15,11 +15,35 @@ export interface MapLayers {
   grid: boolean;
   /** Drawings and note pins on the game master's own layer. */
   gmDrawings: boolean;
+  /** The map picture with its background drawings, the object drawings, and the tokens. */
+  background: boolean;
+  objects: boolean;
+  tokens: boolean;
 }
 
-export const DEFAULT_LAYERS: MapLayers = { walls: true, doors: true, lights: true, lightRange: false, grid: true, gmDrawings: true };
+export const DEFAULT_LAYERS: MapLayers = {
+  walls: true,
+  doors: true,
+  lights: true,
+  lightRange: false,
+  grid: true,
+  gmDrawings: true,
+  background: true,
+  objects: true,
+  tokens: true,
+};
 /** What a player sees: the map and the grid, none of the game master's overlays. */
-export const PLAYER_LAYERS: MapLayers = { walls: false, doors: false, lights: false, lightRange: false, grid: true, gmDrawings: false };
+export const PLAYER_LAYERS: MapLayers = {
+  walls: false,
+  doors: false,
+  lights: false,
+  lightRange: false,
+  grid: true,
+  gmDrawings: false,
+  background: true,
+  objects: true,
+  tokens: true,
+};
 
 /** What the draw tool places next; `erase` removes the mark under the pointer instead. */
 export interface DrawSettings {
