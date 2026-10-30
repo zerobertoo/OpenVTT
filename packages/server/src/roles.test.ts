@@ -64,7 +64,7 @@ describe("roles", () => {
 
 describe("moderation", () => {
   it("mutes a player's chat and kicks them out, closing their connection and freeing their tokens", async () => {
-    const { app, gm, world, join, port, scene } = await setup();
+    const { app, gm, world, join, port, scene, stateOf } = await setup();
     const bob = await join("bob");
     const token = (
       await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
@@ -75,6 +75,9 @@ describe("moderation", () => {
         controllerIds: [bob.user.id],
       })
     ).json();
+    const handout = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/handouts`, { title: "For Bob", audience: [bob.user.id] })
+    ).json();
     await call(app, gm.cookie, "PATCH", `/api/worlds/${world.id}/members/${bob.user.id}`, { muted: true });
     expect((await call(app, bob.cookie, "POST", `/api/worlds/${world.id}/messages`, { content: "hey" })).statusCode).toBe(403);
 
@@ -84,6 +87,9 @@ describe("moderation", () => {
     expect((await call(app, gm.cookie, "DELETE", `/api/worlds/${world.id}/members/${bob.user.id}`)).statusCode).toBe(200);
     await closed;
     expect((await call(app, bob.cookie, "GET", `/api/worlds/${world.id}/log.md`)).statusCode).toBe(403);
+    // Handouts shared with them stay editable and are no longer shared with them.
+    expect((await call(app, gm.cookie, "PATCH", `/api/handouts/${handout.id}`, { body: "edited" })).statusCode).toBe(200);
+    expect((await stateOf(gm.cookie)).handouts[0]?.audience).toEqual([]);
     // The token stays editable now that its controller is gone.
     expect((await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, { name: "Hero 2" })).json().controllerIds).toEqual([]);
 

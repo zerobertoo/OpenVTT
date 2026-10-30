@@ -130,7 +130,7 @@ export class WorldService {
       .run(patch.role ?? current.role, (patch.muted ?? current.muted) ? 1 : 0, worldId, userId);
   }
 
-  /** Removes a member and every link to them: token control and sheet ownership. */
+  /** Removes a member and every link to them: token control, sheet ownership and handout sharing. */
   kick(worldId: string, userId: string) {
     const current = this.member(worldId, userId);
     if (!current) throw new AppError("not_found");
@@ -143,6 +143,11 @@ export class WorldService {
         )
         .run(userId, worldId);
       this.db.prepare("UPDATE actors SET owner_id = NULL WHERE world_id = ? AND owner_id = ?").run(worldId, userId);
+      this.db
+        .prepare(
+          "UPDATE handouts SET audience = (SELECT json_group_array(value) FROM json_each(handouts.audience) WHERE value <> ?) WHERE world_id = ?",
+        )
+        .run(userId, worldId);
     });
   }
 
