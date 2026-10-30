@@ -5,7 +5,9 @@ test("the game master gives a token hit points, a condition and a visible name",
   await registerNewUser(page);
   await createAndOpenWorld(page, "Health world");
   const worldId = page.url().split("/world/")[1]!.split(/[/?#]/)[0]!;
-  const scene = await (await page.request.post(`/api/worlds/${worldId}/scenes`, { data: { name: "Arena", width: 700, height: 500 } })).json();
+  const scene = await (
+    await page.request.post(`/api/worlds/${worldId}/scenes`, { data: { name: "Arena", width: 700, height: 500 } })
+  ).json();
   const token = await (
     await page.request.post(`/api/worlds/${worldId}/tokens`, { data: { sceneId: scene.id, name: "Ogre", x: 70, y: 70 } })
   ).json();

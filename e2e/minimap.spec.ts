@@ -6,7 +6,7 @@ test("the overview map shows with a scene and can be hidden with M", async ({ pa
   await registerNewUser(page);
   await createAndOpenWorld(page, "Minimap world");
   const worldId = page.url().split("/world/")[1]!.split(/[/?#]/)[0]!;
-  const minimap = page.locator("canvas.minimap");
+  const minimap = page.locator(".minimap canvas");
   await expect(minimap).toHaveCount(0);
 
   await page.request.post(`/api/worlds/${worldId}/scenes`, { data: { name: "Arena", width: 1400, height: 700 } });

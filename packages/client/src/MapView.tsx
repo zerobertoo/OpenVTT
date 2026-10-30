@@ -818,15 +818,15 @@ export function MapView(props: Props) {
     <>
       <div ref={host} className="map-host" role="application" aria-label={t("map.label")} />
       {minimapOpen && props.scene && (
-        <canvas
-          ref={minimap}
-          className="minimap"
-          // The overview is a pointer shortcut; the keyboard has pan, zoom and "center on my token".
-          aria-hidden="true"
-          style={{ width: minimapSize(props.scene).width, height: minimapSize(props.scene).height, maxWidth: MINIMAP_MAX_SIDE }}
-          onPointerDown={moveViewTo}
-          onPointerMove={moveViewTo}
-        />
+        // The overview is a pointer shortcut; the keyboard has pan, zoom and "center on my token".
+        <div aria-hidden="true" className="minimap">
+          <canvas
+            ref={minimap}
+            style={{ width: minimapSize(props.scene).width, height: minimapSize(props.scene).height, maxWidth: MINIMAP_MAX_SIDE }}
+            onPointerDown={moveViewTo}
+            onPointerMove={moveViewTo}
+          />
+        </div>
       )}
       {videoUi.status === "ready" && (
         <Button variant="secondary" size="sm" className="video-control" onClick={toggleVideo}>
