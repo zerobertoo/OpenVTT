@@ -44,6 +44,8 @@ export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove
           return ui.selectToken(null);
         case "minimap":
           return ui.toggleMinimap();
+        case "focus":
+          return ui.setView(ui.view === "normal" ? "focus" : "normal");
         case "diceTray":
           return ui.setDiceTrayOpen(!ui.diceTrayOpen);
         case "view":

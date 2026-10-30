@@ -18,6 +18,7 @@ import { EmptyMap } from "./components/table/TableGuide";
 import { TableKeyboard } from "./components/table/TableKeyboard";
 import { TableSounds } from "./components/table/TableSounds";
 import { TitleChip } from "./components/table/TitleChip";
+import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
 import { AccountBox } from "./components/world/AccountBox";
@@ -47,16 +48,33 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, layers, viewAsUserId, diceTrayOpen, draw } =
+  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, layers, viewAsUserId, diceTrayOpen, draw, view } =
     useTableUi();
-  const { setTab, toggleDrawer, setTool, selectToken, toggleToken, selectTokens, viewScene, reset, setDiceTrayOpen, setLayer, setViewAs } =
-    useTableUi.getState();
+  const {
+    setTab,
+    toggleDrawer,
+    setTool,
+    selectToken,
+    toggleToken,
+    selectTokens,
+    viewScene,
+    reset,
+    setDiceTrayOpen,
+    setLayer,
+    setViewAs,
+    setView,
+  } = useTableUi.getState();
 
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
   useEffect(() => reset, [worldId, reset]);
   const [helpOpen, setHelpOpen] = useState(false);
   const rulerShape = usePreferences((p) => p.rulerShape);
   const diagonalRule = usePreferences((p) => p.diagonalRule);
+  const drawerWidth = usePreferences((p) => p.drawerWidth);
+  // A shared screen opens the table with `?tv` and shows only the map.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has("tv")) setView("tv");
+  }, [setView]);
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
 
   // A connection that stays down may mean the person lost access (removed, world deleted, session ended),
@@ -122,7 +140,10 @@ export function Table({ worldId, user }: Props) {
     ? ["chat", "tokens", "sheets", "journal", "scenes", "settings"]
     : ["chat", "tokens", "sheets", "journal", "settings"];
 
-  const stageStyle = { "--drawer-space": drawerOpen ? "calc(var(--drawer-width) + 1.8rem)" : "0px" } as CSSProperties;
+  const stageStyle = {
+    "--drawer-space": drawerOpen && view === "normal" ? "calc(var(--drawer-width) + 1.8rem)" : "0px",
+    ...(drawerWidth ? { "--drawer-width": `${drawerWidth}px` } : {}),
+  } as CSSProperties;
 
   const renderPanel = (id: TableTab) => {
     switch (id) {
@@ -156,7 +177,7 @@ export function Table({ worldId, user }: Props) {
   return (
     <MotionConfig reducedMotion="user">
       <TipProvider>
-        <main className="table-stage" style={stageStyle}>
+        <main className={view === "tv" ? "table-stage tv-view" : "table-stage"} style={stageStyle}>
           {scene ? (
             <MapView
               scene={scene}
@@ -186,7 +207,6 @@ export function Table({ worldId, user }: Props) {
 
           <DiceOverlay messages={state.messages} userId={user.id} />
           <TableSounds state={state} userId={user.id} />
-          <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
           <TableKeyboard
             scene={scene}
             movableTokens={movableTokens}
@@ -196,69 +216,80 @@ export function Table({ worldId, user }: Props) {
             helpOpen={helpOpen}
             onHelpOpenChange={setHelpOpen}
           />
-          {tool === "ruler" && <RulerOptions scene={scene} />}
-          {tool === "draw" && scene && (
-            <DrawOptions
-              isGm={isGm}
-              lockedLayers={scene.lockedLayers}
-              onClear={() => void api.clearDrawings(scene.id).catch(() => undefined)}
-            />
-          )}
-          {selectedTokens.length > 1 && (
-            <SelectionBar
-              count={selectedTokens.length}
-              canRotate={movableTokens.length > 0}
-              canDelete={isGm}
-              onRotate={rotateSelection}
-              onDelete={removeSelection}
-              onClear={() => selectToken(null)}
-            />
-          )}
-          <ConfirmDialog
-            open={confirmingRemoval}
-            onOpenChange={setConfirmingRemoval}
-            title={t("selection.deleteTitle", { count: selectedTokens.length })}
-            description={t("selection.deleteBody")}
-            confirmLabel={t("common.delete")}
-            cancelLabel={t("common.cancel")}
-            tone="danger"
-            onConfirm={() => {
-              setConfirmingRemoval(false);
-              for (const token of selectedTokens) void api.deleteToken(token.id).catch(() => undefined);
-              selectToken(null);
-            }}
-          />
-          <MapToolbar
-            tool={tool}
-            onToolChange={setTool}
-            canDraw={!can.isObserver}
-            diceTrayOpen={diceTrayOpen}
-            onToggleDiceTray={() => setDiceTrayOpen(!diceTrayOpen)}
-            layersMenu={
-              isGm && (
-                <MapLayersMenu
-                  scene={scene}
-                  players={state.members.filter((m) => m.role === "player")}
-                  layers={layers}
-                  onLayerChange={setLayer}
-                  viewAsUserId={viewAs}
-                  onViewAsChange={changeViewAs}
-                  onLockChange={(lockedLayers) => scene && void api.updateScene(scene.id, { lockedLayers }).catch(() => undefined)}
+          {view === "normal" ? (
+            <>
+              <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
+              {tool === "ruler" && <RulerOptions scene={scene} />}
+              {tool === "draw" && scene && (
+                <DrawOptions
+                  isGm={isGm}
+                  lockedLayers={scene.lockedLayers}
+                  onClear={() => void api.clearDrawings(scene.id).catch(() => undefined)}
                 />
-              )
-            }
-          />
-          {diceTrayOpen && <DiceTray onRoll={rollFromTray} error={rollError} onClose={() => setDiceTrayOpen(false)} />}
-          <p className="map-hint">{t("map.hint")}</p>
-          <OnlineChip members={state.members} />
-          <Drawer
-            open={drawerOpen}
-            onToggle={toggleDrawer}
-            tab={tab}
-            onTabChange={setTab}
-            tabs={tabs}
-            renderPanel={renderPanelWhenOnline}
-          />
+              )}
+              {selectedTokens.length > 1 && (
+                <SelectionBar
+                  count={selectedTokens.length}
+                  canRotate={movableTokens.length > 0}
+                  canDelete={isGm}
+                  onRotate={rotateSelection}
+                  onDelete={removeSelection}
+                  onClear={() => selectToken(null)}
+                />
+              )}
+              <ConfirmDialog
+                open={confirmingRemoval}
+                onOpenChange={setConfirmingRemoval}
+                title={t("selection.deleteTitle", { count: selectedTokens.length })}
+                description={t("selection.deleteBody")}
+                confirmLabel={t("common.delete")}
+                cancelLabel={t("common.cancel")}
+                tone="danger"
+                onConfirm={() => {
+                  setConfirmingRemoval(false);
+                  for (const token of selectedTokens) void api.deleteToken(token.id).catch(() => undefined);
+                  selectToken(null);
+                }}
+              />
+              <MapToolbar
+                tool={tool}
+                onToolChange={setTool}
+                canDraw={!can.isObserver}
+                diceTrayOpen={diceTrayOpen}
+                onToggleDiceTray={() => setDiceTrayOpen(!diceTrayOpen)}
+                layersMenu={
+                  isGm && (
+                    <MapLayersMenu
+                      scene={scene}
+                      players={state.members.filter((m) => m.role === "player")}
+                      layers={layers}
+                      onLayerChange={setLayer}
+                      viewAsUserId={viewAs}
+                      onViewAsChange={changeViewAs}
+                      onLockChange={(lockedLayers) => scene && void api.updateScene(scene.id, { lockedLayers }).catch(() => undefined)}
+                    />
+                  )
+                }
+              />
+              {diceTrayOpen && <DiceTray onRoll={rollFromTray} error={rollError} onClose={() => setDiceTrayOpen(false)} />}
+              <p className="map-hint">{t("map.hint")}</p>
+              <OnlineChip members={state.members} />
+              <Drawer
+                open={drawerOpen}
+                onToggle={toggleDrawer}
+                tab={tab}
+                onTabChange={setTab}
+                tabs={tabs}
+                renderPanel={renderPanelWhenOnline}
+              />
+            </>
+          ) : (
+            view === "focus" && (
+              <Button variant="secondary" size="sm" className="focus-exit" onClick={() => setView("normal")}>
+                {t("table.exitFocus")}
+              </Button>
+            )
+          )}
         </main>
       </TipProvider>
     </MotionConfig>

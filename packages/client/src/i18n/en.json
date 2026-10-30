@@ -41,7 +41,8 @@
     "panels": "Show or hide the panels",
     "help": "Show this list",
     "moved": "{{name}} moved to column {{column}}, row {{row}}",
-    "draw": "Draw tool"
+    "draw": "Draw tool",
+    "focus": "Focus mode: only the map"
   },
   "guide": {
     "title": "How a table works",
@@ -160,7 +161,9 @@
     "panels": "Table panels",
     "hidePanels": "Hide panels",
     "showPanels": "Show panels",
-    "reconnected": "Back at the table"
+    "reconnected": "Back at the table",
+    "resizePanels": "Panel width",
+    "exitFocus": "Show the panels again (F)"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Sheets", "scenes": "Scenes", "settings": "World", "journal": "Journal" },
   "ruler": {
@@ -402,7 +405,8 @@
     "template": "Sheet template (JSON)",
     "templateHelp": "Edit the fields of the sheet for the selected type. Computed fields use formulas like floor((@strength - 10) / 2).",
     "invalidJson": "This is not valid JSON.",
-    "resetTemplate": "Restore system default"
+    "resetTemplate": "Restore system default",
+    "tvView": "Open the TV view in a new window (map only, for a shared screen)"
   },
   "errors": {
     "invalid_input": "Some of the information is invalid.",

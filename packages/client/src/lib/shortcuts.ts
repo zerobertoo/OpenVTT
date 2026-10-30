@@ -7,6 +7,7 @@ export type ShortcutAction =
   | { type: "deselect" }
   | { type: "diceTray" }
   | { type: "minimap" }
+  | { type: "focus" }
   | { type: "view"; kind: "zoomIn" | "zoomOut" | "fit" | "center" }
   /** Move the selected token by whole cells; each axis is -1, 0 or 1. */
   | { type: "move"; dx: number; dy: number }
@@ -46,6 +47,8 @@ export function actionForKey(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "met
       return { type: "view", kind: "zoomOut" };
     case "m":
       return { type: "minimap" };
+    case "f":
+      return { type: "focus" };
     case "c":
       return { type: "view", kind: "center" };
     case "0":

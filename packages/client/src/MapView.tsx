@@ -139,7 +139,7 @@ export function MapView(props: Props) {
     video: VideoBackground | null;
   } | null>(null);
   const minimap = useRef<HTMLCanvasElement>(null);
-  const minimapOpen = useTableUi((ui) => ui.minimapOpen);
+  const minimapOpen = useTableUi((ui) => ui.minimapOpen && ui.view !== "tv");
   const [videoUi, setVideoUi] = useState<VideoUi>({ status: "none", playing: false });
 
   // One Pixi application for the lifetime of the component.

@@ -80,6 +80,9 @@ interface TableUiState {
   toggleMinimap: () => void;
   draw: DrawSettings;
   setDraw: (draw: Partial<DrawSettings>) => void;
+  /** Only the map is shown; `tv` also hides the pointer and the way back, for a shared screen. */
+  view: "normal" | "focus" | "tv";
+  setView: (view: "normal" | "focus" | "tv") => void;
   /** Whether the dice tray is open over the map. */
   diceTrayOpen: boolean;
   setDiceTrayOpen: (open: boolean) => void;
@@ -108,6 +111,7 @@ const initialState = {
   ping: null,
   minimapOpen: true,
   diceTrayOpen: false,
+  view: "normal" as "normal" | "focus" | "tv",
   draw: { kind: "free", color: "#ffc914", text: "", layer: "objects" } as DrawSettings,
 } as const;
 
@@ -120,6 +124,7 @@ export const useTableUi = create<TableUiState>((set) => ({
   showPing: (ping) => set((state) => ({ ping: { ...ping, id: (state.ping?.id ?? 0) + 1 } })),
   toggleMinimap: () => set((state) => ({ minimapOpen: !state.minimapOpen })),
   setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
+  setView: (view) => set({ view }),
   setDraw: (draw) => set((state) => ({ draw: { ...state.draw, ...draw } })),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),

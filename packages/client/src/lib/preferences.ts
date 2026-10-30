@@ -23,6 +23,9 @@ interface PreferencesState {
   /** 0 to 1; 0 never starts the table music in this browser. */
   musicVolume: number;
   setMusicVolume: (volume: number) => void;
+  /** Width of the side panels in pixels; null keeps the default. */
+  drawerWidth: number | null;
+  setDrawerWidth: (width: number) => void;
 }
 
 /** Per-browser display preferences. They are kept in this browser only; nothing is sent to the server. */
@@ -43,6 +46,8 @@ export const usePreferences = create<PreferencesState>()(
       setSounds: (sounds) => set({ sounds }),
       musicVolume: 0.5,
       setMusicVolume: (musicVolume) => set({ musicVolume }),
+      drawerWidth: null,
+      setDrawerWidth: (drawerWidth) => set({ drawerWidth }),
     }),
     {
       name: "openvtt-preferences",

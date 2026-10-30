@@ -190,6 +190,14 @@ output { font-weight: 800; font-size: 1.1rem; }
 .drawer-toggle { position: absolute; top: 0.9rem; right: 0.9rem; z-index: 3; box-shadow: var(--shadow-chrome); }
 
 .drawer { position: absolute; top: 0.9rem; right: 0.9rem; bottom: 0.9rem; z-index: 2; width: var(--drawer-width); max-width: calc(100% - 1.8rem); display: grid; grid-template-columns: 4.1rem minmax(0, 1fr); overflow: hidden; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-chrome); }
+.drawer-resizer { position: absolute; top: 0; bottom: 0; left: 0; z-index: 1; width: 0.6rem; cursor: ew-resize; touch-action: none; }
+.drawer-resizer:hover, .drawer-resizer:focus-visible { background: color-mix(in srgb, var(--accent) 45%, transparent); outline: none; }
+.tv-view { cursor: none; }
+.focus-exit { position: absolute; top: 0.9rem; left: 0.9rem; z-index: 3; }
+@media (pointer: coarse) {
+  .dock button, .dock [role="radio"] { min-height: 2.9rem; }
+  .drawer-resizer { width: 1.1rem; }
+}
 .drawer-panel { min-width: 0; min-height: 0; overflow-y: auto; padding: 3.6rem 1rem 1rem; display: flex; flex-direction: column; }
 .drawer-panel > section, .drawer-panel > fieldset > section { min-width: 0; display: flex; flex-direction: column; gap: 0.7rem; flex: 1 0 auto; }
 .drawer-panel > section.chat, .drawer-panel > fieldset > section.chat { flex: 1 1 0; min-height: 0; }
@@ -246,7 +254,8 @@ output { font-weight: 800; font-size: 1.1rem; }
 
 /* --- responsive: the drawer becomes a bottom sheet --- */
 @media (max-width: 52rem) {
-  :root { --drawer-width: 100%; }
+  :root, .table-stage { --drawer-width: 100% !important; }
+  .drawer-resizer { display: none; }
   .drawer { top: auto; left: 0.6rem; right: 0.6rem; bottom: 0.6rem; width: auto; max-width: none; height: min(62dvh, 34rem); grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
   .drawer-panel { padding: 0.8rem; }
   .drawer-toggle { top: auto; right: 1.2rem; }

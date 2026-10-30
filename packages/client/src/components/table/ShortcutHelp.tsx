@@ -18,6 +18,7 @@ const SHORTCUTS = [
   { keys: ["Alt", "click"], label: "shortcuts.ping" },
   { keys: ["Alt", "Shift", "click"], label: "shortcuts.lookHere" },
   { keys: ["P"], label: "shortcuts.panels" },
+  { keys: ["F"], label: "shortcuts.focus" },
   { keys: ["D"], label: "shortcuts.dice" },
   { keys: ["?"], label: "shortcuts.help" },
 ] as const;

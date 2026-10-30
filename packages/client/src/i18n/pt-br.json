@@ -41,7 +41,8 @@
     "panels": "Mostrar ou ocultar os painéis",
     "help": "Mostrar esta lista",
     "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}",
-    "draw": "Ferramenta de desenho"
+    "draw": "Ferramenta de desenho",
+    "focus": "Modo foco: só o mapa"
   },
   "guide": {
     "title": "Como funciona uma mesa",
@@ -160,7 +161,9 @@
     "panels": "Painéis da mesa",
     "hidePanels": "Ocultar painéis",
     "showPanels": "Mostrar painéis",
-    "reconnected": "De volta à mesa"
+    "reconnected": "De volta à mesa",
+    "resizePanels": "Largura do painel",
+    "exitFocus": "Mostrar os painéis de novo (F)"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Fichas", "scenes": "Cenas", "settings": "Mundo", "journal": "Diário" },
   "ruler": {
@@ -402,7 +405,8 @@
     "template": "Modelo de ficha (JSON)",
     "templateHelp": "Edite os campos da ficha do tipo selecionado. Campos calculados usam fórmulas como floor((@strength - 10) / 2).",
     "invalidJson": "Isso não é um JSON válido.",
-    "resetTemplate": "Restaurar padrão do sistema"
+    "resetTemplate": "Restaurar padrão do sistema",
+    "tvView": "Abrir a visão de TV em outra janela (só o mapa, para uma tela compartilhada)"
   },
   "errors": {
     "invalid_input": "Algumas informações são inválidas.",

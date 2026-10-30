@@ -148,6 +148,14 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
           )}
         </p>
       )}
+      <a
+        className="justify-self-start text-accent-text text-sm underline underline-offset-[3px]"
+        href={`${location.pathname}?tv`}
+        target="_blank"
+        rel="noopener"
+      >
+        {t("settings.tvView")}
+      </a>
       {isGm && (
         <>
           {isOwner && (
