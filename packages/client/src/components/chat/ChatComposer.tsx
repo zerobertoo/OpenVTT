@@ -1,6 +1,7 @@
 import { type FormEvent, type KeyboardEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
+import { parseWhisper, rollBody } from "../../lib/chatCommand";
 import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
@@ -20,18 +21,33 @@ export function ChatComposer({ recipients, onSend, error }: Props) {
   const [draft, setDraft] = useState("");
   const [recipient, setRecipient] = useState("");
   const [gmOnly, setGmOnly] = useState(false);
+  const [commandError, setCommandError] = useState<string | null>(null);
   // What was sent before, newest last; the arrow keys walk through it like a terminal.
   const history = useRef<string[]>([]);
   const cursor = useRef(0);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!draft.trim()) return;
-    if (await onSend({ content: draft, toUserId: recipient || null, gmOnly })) {
-      history.current.push(draft);
+  const send = async (content: string, toUserId: string | null) => {
+    if (await onSend({ content, toUserId, gmOnly })) {
+      history.current.push(draft || content);
       cursor.current = history.current.length;
       setDraft("");
     }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setCommandError(null);
+    if (!draft.trim()) return;
+    const whisper = parseWhisper(draft, recipients);
+    if (typeof whisper === "string") return setCommandError(t(whisper === "empty" ? "chat.whisperEmpty" : "chat.whisperUnknown"));
+    if (whisper) return send(whisper.content, whisper.toUserId);
+    return send(draft, recipient || null);
+  };
+
+  // Rolls what is typed (or a plain d20) with advantage or disadvantage.
+  const rollWith = (keyword: "adv" | "dis") => {
+    setCommandError(null);
+    void send(`/r ${rollBody(draft) ?? "1d20"} ${keyword}`, recipient || null);
   };
 
   const walkHistory = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -75,7 +91,21 @@ export function ChatComposer({ recipients, onSend, error }: Props) {
           {(control) => <Checkbox {...control} checked={gmOnly} onChange={(e) => setGmOnly(e.target.checked)} />}
         </Field>
       </div>
-      <ErrorMessage error={error} />
+      <div className="chat-options">
+        <Button type="button" variant="secondary" size="sm" onClick={() => rollWith("adv")}>
+          {t("chat.advantage")}
+        </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={() => rollWith("dis")}>
+          {t("chat.disadvantage")}
+        </Button>
+      </div>
+      {commandError ? (
+        <p role="alert" className="error">
+          {commandError}
+        </p>
+      ) : (
+        <ErrorMessage error={error} />
+      )}
     </form>
   );
 }

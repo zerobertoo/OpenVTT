@@ -48,6 +48,15 @@ describe("ChatMessage", () => {
     expect(screen.getByText("Natural 20!")).toBeInTheDocument();
   });
 
+  it("offers to roll again only when asked to", async () => {
+    const onRollAgain = vi.fn();
+    const { rerender } = render(inList(<ChatMessage message={rollMessage} color={undefined} isNew={false} />));
+    expect(screen.queryByRole("button", { name: "Roll again" })).toBeNull();
+    rerender(inList(<ChatMessage message={rollMessage} color={undefined} isNew={false} onRollAgain={onRollAgain} />));
+    await userEvent.click(screen.getByRole("button", { name: "Roll again" }));
+    expect(onRollAgain).toHaveBeenCalled();
+  });
+
   it("is announced through a polite live region", () => {
     render(inList(<ChatMessage message={base} color={undefined} isNew />));
     expect(screen.getByRole("list")).toHaveAttribute("aria-live", "polite");
@@ -98,6 +107,29 @@ describe("ChatComposer", () => {
     await userEvent.type(screen.getByLabelText(/Message, or/), "hi");
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(screen.getByLabelText(/Message, or/)).toHaveValue("hi");
+  });
+
+  it("rolls with advantage using the dice already typed, or a plain d20", async () => {
+    const onSend = vi.fn().mockResolvedValue(true);
+    render(<ChatComposer recipients={[]} onSend={onSend} error={null} />);
+    await userEvent.click(screen.getByRole("button", { name: "Advantage" }));
+    expect(onSend).toHaveBeenLastCalledWith({ content: "/r 1d20 adv", toUserId: null, gmOnly: false });
+
+    await userEvent.type(screen.getByLabelText(/Message, or/), "/r 1d20+5 adv");
+    await userEvent.click(screen.getByRole("button", { name: "Disadvantage" }));
+    expect(onSend).toHaveBeenLastCalledWith({ content: "/r 1d20+5 dis", toUserId: null, gmOnly: false });
+  });
+
+  it("turns /w Name message into a whisper, and explains an unknown name", async () => {
+    const onSend = vi.fn().mockResolvedValue(true);
+    render(<ChatComposer recipients={recipients} onSend={onSend} error={null} />);
+    const box = screen.getByLabelText(/Message, or/);
+    await userEvent.type(box, "/w grace psst{Enter}");
+    expect(onSend).toHaveBeenCalledWith({ content: "psst", toUserId: "u2", gmOnly: false });
+
+    await userEvent.type(box, "/w Nobody hi{Enter}");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No one here by that name");
+    expect(onSend).toHaveBeenCalledTimes(1);
   });
 
   it("has no accessibility violations", async () => {

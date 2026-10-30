@@ -27,7 +27,18 @@ export function ChatPanel({ state, userId }: { state: WorldStateDto; userId: str
     <section aria-label={t("chat.title")} className="chat">
       <ul className="chat-log" ref={listRef} aria-live="polite">
         {state.messages.map((m) => (
-          <ChatMessage key={m.id} message={m} color={colorOf(m.userId)} isNew={!seenOnOpen.current.has(m.id)} />
+          <ChatMessage
+            key={m.id}
+            message={m}
+            color={colorOf(m.userId)}
+            isNew={!seenOnOpen.current.has(m.id)}
+            onRollAgain={
+              m.roll && m.userId === userId
+                ? () =>
+                    void run(() => api.sendMessage(state.id, { content: `/r ${m.roll!.notation}`, toUserId: m.toUserId, gmOnly: m.gmOnly }))
+                : undefined
+            }
+          />
         ))}
       </ul>
       <ChatComposer

@@ -167,7 +167,11 @@
     "shape": "Forma",
     "diagonal": "Diagonais",
     "shapes": { "line": "Linha", "circle": "Círculo", "cone": "Cone", "rectangle": "Retângulo" },
-    "diagonals": { "exact": "Linha reta", "alternating": "5-10-5 (a cada duas diagonais, uma conta dobrado)", "simple": "Cada passo conta um" }
+    "diagonals": {
+      "exact": "Linha reta",
+      "alternating": "5-10-5 (a cada duas diagonais, uma conta dobrado)",
+      "simple": "Cada passo conta um"
+    }
   },
   "map": {
     "tools": "Ferramentas do mapa",
@@ -181,11 +185,16 @@
   },
   "chat": {
     "title": "Chat",
-    "placeholder": "Mensagem, ou /r 2d6+3 para rolar",
+    "placeholder": "Mensagem, ou /r 2d6+3 para rolar, /w Nome para sussurrar",
     "to": "Para",
     "everyone": "Todos",
     "gmOnly": "Só o mestre",
     "send": "Enviar",
+    "advantage": "Vantagem",
+    "disadvantage": "Desvantagem",
+    "rollAgain": "Rolar de novo",
+    "whisperUnknown": "Ninguém com esse nome. Use /w Nome mensagem.",
+    "whisperEmpty": "Escreva uma mensagem depois do nome.",
     "whisperTag": "sussurro",
     "gmOnlyTag": "só o mestre",
     "rollSummary": "{{notation}}: total {{total}}",

@@ -167,7 +167,11 @@
     "shape": "Shape",
     "diagonal": "Diagonals",
     "shapes": { "line": "Line", "circle": "Circle", "cone": "Cone", "rectangle": "Rectangle" },
-    "diagonals": { "exact": "Straight line", "alternating": "5-10-5 (every second diagonal counts double)", "simple": "Every step counts one" }
+    "diagonals": {
+      "exact": "Straight line",
+      "alternating": "5-10-5 (every second diagonal counts double)",
+      "simple": "Every step counts one"
+    }
   },
   "map": {
     "tools": "Map tools",
@@ -181,11 +185,16 @@
   },
   "chat": {
     "title": "Chat",
-    "placeholder": "Message, or /r 2d6+3 to roll",
+    "placeholder": "Message, or /r 2d6+3 to roll, /w Name to whisper",
     "to": "To",
     "everyone": "Everyone",
     "gmOnly": "GM only",
     "send": "Send",
+    "advantage": "Advantage",
+    "disadvantage": "Disadvantage",
+    "rollAgain": "Roll again",
+    "whisperUnknown": "No one here by that name. Use /w Name message.",
+    "whisperEmpty": "Write a message after the name.",
     "whisperTag": "whisper",
     "gmOnlyTag": "GM only",
     "rollSummary": "{{notation}}: total {{total}}",

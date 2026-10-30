@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormat } from "../../useFormat";
 import { Avatar } from "../ui/avatar";
+import { Button } from "../ui/button";
 import { DiceRoll, naturalD20, TUMBLE_MS } from "./DiceRoll";
 
 interface Props {
@@ -12,10 +13,12 @@ interface Props {
   color: string | undefined;
   /** Only messages that arrive while the panel is open animate and celebrate. */
   isNew: boolean;
+  /** Given for the person's own rolls: throws the same dice again. */
+  onRollAgain?: () => void;
 }
 
 /** One chat line: a plain message, a whisper or a dice roll. */
-export function ChatMessage({ message, color, isNew }: Props) {
+export function ChatMessage({ message, color, isNew, onRollAgain }: Props) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const animateDice = isNew && !reduceMotion;
@@ -66,6 +69,11 @@ export function ChatMessage({ message, color, isNew }: Props) {
             <p className="roll-notation">{roll.notation}</p>
             <span className="sr-only">{t("chat.rollSummary", { notation: roll.notation, total: roll.total })}</span>
             <DiceRoll roll={roll} animate={animateDice} />
+            {onRollAgain && (
+              <Button variant="secondary" size="sm" onClick={onRollAgain}>
+                {t("chat.rollAgain")}
+              </Button>
+            )}
           </>
         ) : (
           <p className="msg-text">{message.content}</p>

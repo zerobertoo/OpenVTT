@@ -6,7 +6,7 @@ import { AppError } from "./errors.ts";
 import type { Viewer } from "./tokens.ts";
 
 const HISTORY_LIMIT = 100;
-const ROLL_COMMAND = /^\/(?:r|roll)\s+(.+)$/i;
+const ROLL_COMMAND = /^\/(r|roll|gr|gmroll)\s+(.+)$/i;
 
 interface MessageRow {
   id: string;
@@ -42,7 +42,7 @@ export function canReadMessage(message: MessageDto, viewer: Viewer): boolean {
 export class ChatService {
   constructor(private db: Db) {}
 
-  /** `/r 2d6+3` becomes a roll; anything else is chat (or a whisper when `toUserId` is set). */
+  /** `/r 2d6+3` becomes a roll (`/gr` a private one); anything else is chat (or a whisper when `toUserId` is set). */
   send(
     worldId: string,
     sender: { userId: string; displayName: string; role: Viewer["role"] },
@@ -62,7 +62,7 @@ export class ChatService {
     let kind: MessageKind = input.toUserId ? "whisper" : "chat";
     if (rollMatch) {
       try {
-        roll = rollDice(rollMatch[1]!, (sides) => randomInt(1, sides + 1));
+        roll = rollDice(rollMatch[2]!, (sides) => randomInt(1, sides + 1));
       } catch (error) {
         if (error instanceof DiceError) throw new AppError("roll_invalid");
         throw error;
@@ -76,7 +76,8 @@ export class ChatService {
       senderName: sender.displayName,
       kind,
       toUserId: input.toUserId,
-      gmOnly: input.gmOnly,
+      // /gr is a roll only the game master and the roller can read.
+      gmOnly: input.gmOnly || (rollMatch?.[1]?.toLowerCase().startsWith("g") ?? false),
       content: input.content,
       roll,
       createdAt: Date.now(),
