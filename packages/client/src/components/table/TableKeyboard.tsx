@@ -10,7 +10,8 @@ interface Props {
   scene: SceneDto | null;
   /** The selected tokens the person may move. */
   movableTokens: TokenDto[];
-  onMove: (tokenId: string, x: number, y: number) => void;
+  /** Every token moved by one key press, so they undo together. */
+  onMove: (moves: { token: TokenDto; x: number; y: number }[]) => void;
   onRotate: (degrees: number) => void;
   onRemove: () => void;
   /** Game master only; they resolve to false when there was nothing to undo or redo. */
@@ -67,9 +68,10 @@ export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove
         case "remove":
           return onRemove();
         case "move": {
-          if (!scene || movableTokens.length === 0) return;
+          if (!scene || movableTokens.length === 0 || scene.lockedLayers.includes("tokens")) return;
           event.preventDefault();
           let landed: { name: string; x: number; y: number } | null = null;
+          const moves: { token: TokenDto; x: number; y: number }[] = [];
           for (const token of movableTokens) {
             const span = token.size * scene.gridSize;
             let x = Math.min(Math.max(0, token.x + action.dx * scene.gridSize), Math.max(0, scene.width - span));
@@ -82,9 +84,10 @@ export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove
               y = center.y - span / 2;
             }
             if (x === token.x && y === token.y) continue;
-            onMove(token.id, x, y);
+            moves.push({ token, x, y });
             landed = { name: token.name, x, y };
           }
+          if (moves.length) onMove(moves);
           // Only a single token is announced by name; a group would be noise.
           if (!landed || movableTokens.length > 1) return;
           setAnnouncement(

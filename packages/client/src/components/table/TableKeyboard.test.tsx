@@ -73,14 +73,14 @@ describe("TableKeyboard", () => {
     render(<Harness movableToken={token} onMove={onMove} />);
 
     await userEvent.keyboard("{ArrowRight}");
-    expect(onMove).toHaveBeenCalledWith("t1", 140, 70);
+    expect(onMove).toHaveBeenCalledWith([{ token, x: 140, y: 70 }]);
     expect(screen.getByRole("status")).toHaveTextContent("Goblin moved to column 3, row 2");
 
     onMove.mockClear();
     await userEvent.keyboard("{ArrowUp}{ArrowUp}");
     // The second step would leave the map, so only the first one moves.
     expect(onMove).toHaveBeenCalledTimes(2);
-    expect(onMove).toHaveBeenLastCalledWith("t1", 70, 0);
+    expect(onMove).toHaveBeenLastCalledWith([{ token, x: 70, y: 0 }]);
   });
 
   it("does nothing for a token the person cannot control", async () => {

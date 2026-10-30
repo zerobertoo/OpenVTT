@@ -246,10 +246,7 @@ export function Table({ worldId, user }: Props) {
           <TableKeyboard
             scene={scene}
             movableTokens={movableTokens}
-            onMove={(tokenId, x, y) => {
-              const token = state.tokens.find((tk) => tk.id === tokenId);
-              if (token) actions.moveToken(token, x, y);
-            }}
+            onMove={actions.moveTokens}
             onRotate={rotateSelection}
             onRemove={removeSelection}
             onUndo={isGm ? useUndo.getState().undo : undefined}
