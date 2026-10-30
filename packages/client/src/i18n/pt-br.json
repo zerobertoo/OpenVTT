@@ -9,7 +9,22 @@
     "notifications": "Notificações"
   },
   "asset": { "choose": "Escolher imagem", "change": "Trocar imagem", "remove": "Remover imagem", "formats": "PNG, JPG ou WebP" },
+  "selection": {
+    "label": "Tokens selecionados",
+    "count_one": "{{count}} token selecionado",
+    "count_other": "{{count}} tokens selecionados",
+    "rotateLeft": "Girar à esquerda",
+    "rotateRight": "Girar à direita",
+    "clear": "Desmarcar",
+    "deleteTitle_one": "Apagar {{count}} token?",
+    "deleteTitle_other": "Apagar {{count}} tokens?",
+    "deleteBody": "Eles somem do mapa para todos. Isso não pode ser desfeito."
+  },
   "shortcuts": {
+    "selectMany": "Adicionar ou tirar um token da seleção",
+    "selectBox": "Arrastar uma caixa sobre o fundo para selecionar vários tokens",
+    "turn": "Girar os tokens selecionados",
+    "remove": "Apagar os tokens selecionados (mestre)",
     "title": "Atalhos de teclado",
     "intro": "Funcionam em qualquer lugar da mesa, menos enquanto você digita.",
     "select": "Ferramenta de seleção",

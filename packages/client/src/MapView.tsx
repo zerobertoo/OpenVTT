@@ -15,9 +15,13 @@ interface Props {
   scene: SceneDto | null;
   tokens: TokenDto[];
   tool: MapTool;
-  selectedTokenId: string | null;
+  selectedTokenIds: string[];
   canControl: (token: TokenDto) => boolean;
   onSelect: (tokenId: string | null) => void;
+  /** Shift+click: adds or removes one token from the selection. */
+  onToggle: (tokenId: string) => void;
+  /** Shift+drag box: replaces the selection. */
+  onSelectMany: (tokenIds: string[]) => void;
   /** Called while dragging (throttled) and once on drop with the snapped position. */
   onMove: (tokenId: string, x: number, y: number) => void;
   /** What this player can see; null shows the whole map (the game master, or a scene without vision). */
@@ -173,6 +177,8 @@ export function MapView(props: Props) {
     function bindInteractions(app: Application, world: Container, ruler: Graphics, label: Text) {
       let panning: { x: number; y: number } | null = null;
       let rulerStart: { x: number; y: number } | null = null;
+      // Shift+drag on the background draws a box; the tokens whose center falls inside get selected.
+      let boxStart: { x: number; y: number } | null = null;
       const toWorld = (e: FederatedPointerEvent) => world.toLocal(e.global);
 
       app.stage.on("pointerdown", (e) => {
@@ -181,6 +187,10 @@ export function MapView(props: Props) {
           return props_().onPing(point.x, point.y, e.shiftKey);
         }
         const p = props_().tool;
+        if (p === "select" && e.button === 0 && e.shiftKey && e.target === app.stage) {
+          const start = toWorld(e);
+          return void (boxStart = start);
+        }
         if (e.button === 1 || e.button === 2 || (p === "select" && e.target === app.stage)) {
           panning = { x: e.global.x - world.x, y: e.global.y - world.y };
           if (p === "select" && e.button === 0) props_().onSelect(null);
@@ -191,6 +201,13 @@ export function MapView(props: Props) {
       app.stage.on("pointermove", (e) => {
         if (panning) {
           world.position.set(e.global.x - panning.x, e.global.y - panning.y);
+        } else if (boxStart) {
+          const end = toWorld(e);
+          ruler
+            .clear()
+            .rect(Math.min(boxStart.x, end.x), Math.min(boxStart.y, end.y), Math.abs(end.x - boxStart.x), Math.abs(end.y - boxStart.y))
+            .fill({ color: 0x66d9ff, alpha: 0.15 })
+            .stroke({ width: 2 / world.scale.x, color: 0x66d9ff });
         } else if (rulerStart) {
           const end = toWorld(e);
           const scene = props_().scene;
@@ -205,8 +222,24 @@ export function MapView(props: Props) {
           label.position.set(end.x + 8 / world.scale.x, end.y + 8 / world.scale.x);
         }
       });
-      const stop = () => {
+      const stop = (e: FederatedPointerEvent) => {
         panning = null;
+        if (boxStart) {
+          const end = toWorld(e);
+          const [x1, x2] = [Math.min(boxStart.x, end.x), Math.max(boxStart.x, end.x)];
+          const [y1, y2] = [Math.min(boxStart.y, end.y), Math.max(boxStart.y, end.y)];
+          boxStart = null;
+          ruler.clear();
+          const { scene, tokens } = props_();
+          if (scene) {
+            const inside = tokens.filter((tk) => {
+              if (tk.sceneId !== scene.id) return false;
+              const half = (tk.size * scene.gridSize) / 2;
+              return tk.x + half >= x1 && tk.x + half <= x2 && tk.y + half >= y1 && tk.y + half <= y2;
+            });
+            props_().onSelectMany(inside.map((tk) => tk.id));
+          }
+        }
         if (rulerStart) {
           // Ruler stays visible until the next measurement or tool change.
           rulerStart = null;
@@ -443,7 +476,7 @@ export function MapView(props: Props) {
     function syncTokens() {
       const e = engine.current;
       if (!e) return;
-      const { tokens, scene, selectedTokenId } = props_();
+      const { tokens, scene, selectedTokenIds } = props_();
       const visible = tokens.filter((t) => t.sceneId === scene?.id);
       const keep = new Set(visible.map((t) => t.id));
       for (const [id, view] of e.tokenViews)
@@ -458,7 +491,7 @@ export function MapView(props: Props) {
           e.tokenViews.set(token.id, view);
           e.tokenLayer.addChild(view);
         }
-        drawToken(view, token, scene!.gridSize, token.id === selectedTokenId);
+        drawToken(view, token, scene!.gridSize, selectedTokenIds.includes(token.id));
       }
     }
 
@@ -466,48 +499,60 @@ export function MapView(props: Props) {
       const view = new Container();
       view.eventMode = "static";
       view.cursor = "pointer";
-      let drag: { dx: number; dy: number; lastSent: number } | null = null;
+      // Dragging a selected token drags the whole selection (the ones this person may move) by the same distance.
+      let drag: { startX: number; startY: number; lastSent: number; members: { token: TokenDto; view: Container }[] } | null = null;
       view.on("pointerdown", (e) => {
         // Alt+click pings, even on top of a token: let it reach the stage.
         if (props_().tool !== "select" || e.button !== 0 || e.altKey) return;
         e.stopPropagation();
-        props_().onSelect(token.id);
+        // Shift+click adds the token to the selection or takes it out; it never starts a drag.
+        if (e.shiftKey) return props_().onToggle(token.id);
+        const selected = props_().selectedTokenIds;
+        const ids = selected.includes(token.id) ? selected : [token.id];
+        if (ids !== selected) props_().onSelect(token.id);
         const current = currentToken(token.id);
         if (!current || !props_().canControl(current)) return;
+        const members = ids.flatMap((id) => {
+          const member = currentToken(id);
+          const memberView = engine.current!.tokenViews.get(id);
+          return member && memberView && props_().canControl(member) ? [{ token: member, view: memberView }] : [];
+        });
         const local = engine.current!.world.toLocal(e.global);
-        drag = { dx: local.x - current.x, dy: local.y - current.y, lastSent: 0 };
+        drag = { startX: local.x, startY: local.y, lastSent: 0, members };
       });
       view.on("globalpointermove", (e) => {
         if (!drag) return;
         if (pinching) return void (drag = null);
         const scene = props_().scene;
-        const current = currentToken(token.id);
-        if (!scene || !current) return;
+        if (!scene) return;
         const local = engine.current!.world.toLocal(e.global);
-        const x = local.x - drag.dx;
-        const y = local.y - drag.dy;
-        view.position.set(x + (current.size * scene.gridSize) / 2, y + (current.size * scene.gridSize) / 2);
-        const now = performance.now();
-        if (now - drag.lastSent > DRAG_SEND_INTERVAL_MS) {
-          drag.lastSent = now;
-          props_().onMove(token.id, x, y);
+        const dx = local.x - drag.startX;
+        const dy = local.y - drag.startY;
+        const send = performance.now() - drag.lastSent > DRAG_SEND_INTERVAL_MS;
+        if (send) drag.lastSent = performance.now();
+        for (const member of drag.members) {
+          const half = (member.token.size * scene.gridSize) / 2;
+          member.view.position.set(member.token.x + dx + half, member.token.y + dy + half);
+          if (send) props_().onMove(member.token.id, member.token.x + dx, member.token.y + dy);
         }
       });
       const drop = () => {
         const scene = props_().scene;
-        const current = currentToken(token.id);
-        if (!drag || !scene || !current) return void (drag = null);
+        if (!drag || !scene) return void (drag = null);
+        const { members } = drag;
         drag = null;
-        const half = (current.size * scene.gridSize) / 2;
-        let x = view.x - half;
-        let y = view.y - half;
-        if (scene.gridType === "square") {
-          x = Math.round(x / scene.gridSize) * scene.gridSize;
-          y = Math.round(y / scene.gridSize) * scene.gridSize;
+        for (const member of members) {
+          const half = (member.token.size * scene.gridSize) / 2;
+          let x = member.view.x - half;
+          let y = member.view.y - half;
+          if (scene.gridType === "square") {
+            x = Math.round(x / scene.gridSize) * scene.gridSize;
+            y = Math.round(y / scene.gridSize) * scene.gridSize;
+          }
+          member.view.position.set(x + half, y + half);
+          props_().onMove(member.token.id, x, y);
+          popScale(app.ticker, member.view, 1.15, 240);
         }
-        view.position.set(x + half, y + half);
-        props_().onMove(token.id, x, y);
-        popScale(app.ticker, view, 1.15, 240);
       };
       view.on("pointerup", drop);
       view.on("pointerupoutside", drop);
@@ -560,7 +605,7 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     syncAll.current();
-  }, [props.scene, props.tokens, props.selectedTokenId, props.layers, props.vision]);
+  }, [props.scene, props.tokens, props.selectedTokenIds, props.layers, props.vision]);
 
   // Zoom keys arrive through the table store; zooming keeps the middle of the view where it is.
   const viewCommand = useTableUi((ui) => ui.viewCommand);

@@ -23,7 +23,10 @@ interface TableUiState {
   tab: TableTab;
   drawerOpen: boolean;
   tool: MapTool;
+  /** The token the panels edit: the one clicked last. */
   selectedTokenId: string | null;
+  /** Every selected token (always includes `selectedTokenId`); several at once move, turn or go together. */
+  selectedTokenIds: string[];
   /** Scene the game master is looking at; null follows the active scene. */
   gmViewSceneId: string | null;
   /** Which overlays the game master sees on the map. */
@@ -45,6 +48,9 @@ interface TableUiState {
   toggleDrawer: () => void;
   setTool: (tool: MapTool) => void;
   selectToken: (tokenId: string | null) => void;
+  /** Adds the token to the selection, or takes it out when it is already there. */
+  toggleToken: (tokenId: string) => void;
+  selectTokens: (tokenIds: string[]) => void;
   viewScene: (sceneId: string | null) => void;
   /** Back to defaults, called when a table opens so one world never leaks into the next. */
   reset: () => void;
@@ -55,6 +61,7 @@ const initialState = {
   drawerOpen: true,
   tool: "select",
   selectedTokenId: null,
+  selectedTokenIds: [] as string[],
   gmViewSceneId: null,
   layers: DEFAULT_LAYERS,
   viewAsUserId: null,
@@ -74,7 +81,15 @@ export const useTableUi = create<TableUiState>((set) => ({
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
   setTool: (tool) => set({ tool }),
-  selectToken: (selectedTokenId) => set({ selectedTokenId }),
+  selectToken: (selectedTokenId) => set({ selectedTokenId, selectedTokenIds: selectedTokenId ? [selectedTokenId] : [] }),
+  toggleToken: (tokenId) =>
+    set((state) => {
+      const selectedTokenIds = state.selectedTokenIds.includes(tokenId)
+        ? state.selectedTokenIds.filter((id) => id !== tokenId)
+        : [...state.selectedTokenIds, tokenId];
+      return { selectedTokenIds, selectedTokenId: selectedTokenIds.at(-1) ?? null };
+    }),
+  selectTokens: (selectedTokenIds) => set({ selectedTokenIds, selectedTokenId: selectedTokenIds.at(-1) ?? null }),
   viewScene: (gmViewSceneId) => set({ gmViewSceneId }),
   reset: () => set(initialState),
 }));

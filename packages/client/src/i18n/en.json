@@ -9,7 +9,22 @@
     "notifications": "Notifications"
   },
   "asset": { "choose": "Choose image", "change": "Change image", "remove": "Remove image", "formats": "PNG, JPG or WebP" },
+  "selection": {
+    "label": "Selected tokens",
+    "count_one": "{{count}} token selected",
+    "count_other": "{{count}} tokens selected",
+    "rotateLeft": "Turn left",
+    "rotateRight": "Turn right",
+    "clear": "Deselect",
+    "deleteTitle_one": "Delete {{count}} token?",
+    "deleteTitle_other": "Delete {{count}} tokens?",
+    "deleteBody": "They disappear from the map for everyone. This cannot be undone."
+  },
   "shortcuts": {
+    "selectMany": "Add or remove a token from the selection",
+    "selectBox": "Drag a box over the background to select several tokens",
+    "turn": "Turn the selected tokens",
+    "remove": "Delete the selected tokens (game master)",
     "title": "Keyboard shortcuts",
     "intro": "These work anywhere on the table except while typing.",
     "select": "Select tool",

@@ -8,7 +8,11 @@ export type ShortcutAction =
   | { type: "diceTray" }
   | { type: "view"; kind: "zoomIn" | "zoomOut" | "fit" }
   /** Move the selected token by whole cells; each axis is -1, 0 or 1. */
-  | { type: "move"; dx: number; dy: number };
+  | { type: "move"; dx: number; dy: number }
+  /** Turn the selected tokens by this many degrees. */
+  | { type: "rotate"; degrees: number }
+  /** Delete the selected tokens (the game master is asked to confirm). */
+  | { type: "remove" };
 
 const ARROWS: Record<string, { dx: number; dy: number }> = {
   ArrowLeft: { dx: -1, dy: 0 },
@@ -49,6 +53,12 @@ export function actionForKey(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "met
       return { type: "togglePanels" };
     case "d":
       return { type: "diceTray" };
+    case "[":
+      return { type: "rotate", degrees: -45 };
+    case "]":
+      return { type: "rotate", degrees: 45 };
+    case "delete":
+      return { type: "remove" };
     case "?":
       return { type: "help" };
     case "escape":

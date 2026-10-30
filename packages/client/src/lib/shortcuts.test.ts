@@ -26,6 +26,12 @@ describe("actionForKey", () => {
     expect(press("ArrowDown")).toEqual({ type: "move", dx: 0, dy: 1 });
   });
 
+  it("maps turning and deleting the selection", () => {
+    expect(press("[")).toEqual({ type: "rotate", degrees: -45 });
+    expect(press("]")).toEqual({ type: "rotate", degrees: 45 });
+    expect(press("Delete")).toEqual({ type: "remove" });
+  });
+
   it("leaves browser shortcuts and unknown keys alone", () => {
     expect(press("r", { ctrlKey: true })).toBeNull();
     expect(press("p", { metaKey: true })).toBeNull();

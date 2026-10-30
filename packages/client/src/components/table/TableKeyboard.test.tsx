@@ -46,7 +46,15 @@ function Harness({ movableToken, onMove }: { movableToken: TokenDto | null; onMo
   return (
     <>
       <input aria-label="Chat box" />
-      <TableKeyboard scene={scene} movableToken={movableToken} onMove={onMove} helpOpen={helpOpen} onHelpOpenChange={setHelpOpen} />
+      <TableKeyboard
+        scene={scene}
+        movableTokens={movableToken ? [movableToken] : []}
+        onMove={onMove}
+        onRotate={() => undefined}
+        onRemove={() => undefined}
+        helpOpen={helpOpen}
+        onHelpOpenChange={setHelpOpen}
+      />
     </>
   );
 }

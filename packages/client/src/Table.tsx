@@ -11,9 +11,11 @@ import { Drawer } from "./components/table/Drawer";
 import { MapLayersMenu } from "./components/table/MapLayersMenu";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
+import { SelectionBar } from "./components/table/SelectionBar";
 import { EmptyMap } from "./components/table/TableGuide";
 import { TableKeyboard } from "./components/table/TableKeyboard";
 import { TitleChip } from "./components/table/TitleChip";
+import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
 import { AccountBox } from "./components/world/AccountBox";
 import { MapView } from "./MapView";
@@ -40,12 +42,14 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, gmViewSceneId, layers, viewAsUserId, diceTrayOpen } = useTableUi();
-  const { setTab, toggleDrawer, setTool, selectToken, viewScene, reset, setDiceTrayOpen, setLayer, setViewAs } = useTableUi.getState();
+  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, layers, viewAsUserId, diceTrayOpen } = useTableUi();
+  const { setTab, toggleDrawer, setTool, selectToken, toggleToken, selectTokens, viewScene, reset, setDiceTrayOpen, setLayer, setViewAs } =
+    useTableUi.getState();
 
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
   useEffect(() => reset, [worldId, reset]);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
 
   // A connection that stays down may mean the person lost access (removed, world deleted, session ended),
   // not only a bad network. Re-checking makes the router show the right screen instead of retrying forever.
@@ -96,6 +100,16 @@ export function Table({ worldId, user }: Props) {
     : state.activeSceneId;
   const scene = state.scenes.find((s) => s.id === viewSceneId) ?? null;
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
+  // Tokens that vanished (deleted, out of sight) silently leave the selection.
+  const selectedTokens = state.tokens.filter((tk) => selectedTokenIds.includes(tk.id));
+  const movableTokens = selectedTokens.filter(canControl);
+  const rotateSelection = (degrees: number) => {
+    for (const token of movableTokens)
+      void api.updateToken(token.id, { rotation: (((token.rotation + degrees) % 360) + 360) % 360 }).catch(() => undefined);
+  };
+  const removeSelection = () => {
+    if (isGm && selectedTokens.length > 0) setConfirmingRemoval(true);
+  };
 
   const tabs: TableTab[] = isGm ? ["chat", "tokens", "sheets", "scenes", "settings"] : ["chat", "tokens", "sheets", "settings"];
 
@@ -137,9 +151,11 @@ export function Table({ worldId, user }: Props) {
               scene={scene}
               tokens={state.tokens}
               tool={tool}
-              selectedTokenId={selectedTokenId}
+              selectedTokenIds={selectedTokenIds}
               canControl={canControl}
               onSelect={selectToken}
+              onToggle={toggleToken}
+              onSelectMany={selectTokens}
               onMove={move}
               vision={state.vision}
               layers={viewAs ? PLAYER_LAYERS : layers}
@@ -155,10 +171,36 @@ export function Table({ worldId, user }: Props) {
           <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
           <TableKeyboard
             scene={scene}
-            movableToken={selectedToken && canControl(selectedToken) ? selectedToken : null}
+            movableTokens={movableTokens}
             onMove={move}
+            onRotate={rotateSelection}
+            onRemove={removeSelection}
             helpOpen={helpOpen}
             onHelpOpenChange={setHelpOpen}
+          />
+          {selectedTokens.length > 1 && (
+            <SelectionBar
+              count={selectedTokens.length}
+              canRotate={movableTokens.length > 0}
+              canDelete={isGm}
+              onRotate={rotateSelection}
+              onDelete={removeSelection}
+              onClear={() => selectToken(null)}
+            />
+          )}
+          <ConfirmDialog
+            open={confirmingRemoval}
+            onOpenChange={setConfirmingRemoval}
+            title={t("selection.deleteTitle", { count: selectedTokens.length })}
+            description={t("selection.deleteBody")}
+            confirmLabel={t("common.delete")}
+            cancelLabel={t("common.cancel")}
+            tone="danger"
+            onConfirm={() => {
+              setConfirmingRemoval(false);
+              for (const token of selectedTokens) void api.deleteToken(token.id).catch(() => undefined);
+              selectToken(null);
+            }}
           />
           <MapToolbar
             tool={tool}
