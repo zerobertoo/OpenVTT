@@ -96,6 +96,42 @@ export interface LightDto {
   shadows: boolean;
 }
 
+export const DRAWING_KINDS = ["free", "line", "arrow", "rect", "circle", "text", "note"] as const;
+export type DrawingKind = (typeof DRAWING_KINDS)[number];
+/** `gm` drawings (and every note pin) are never sent to players. */
+export const DRAWING_LAYERS = ["background", "objects", "gm"] as const;
+export type DrawingLayer = (typeof DRAWING_LAYERS)[number];
+
+/** A mark on the map. `points` is flat `[x1, y1, x2, y2, ...]` in map pixels; shapes use the first two points. */
+export interface DrawingDto {
+  id: string;
+  authorId: string | null;
+  kind: DrawingKind;
+  layer: DrawingLayer;
+  points: number[];
+  color: string;
+  /** Words of a text or a note pin; empty for shapes. */
+  text: string;
+}
+
+export const MAX_SCENE_DRAWINGS = 2000;
+export const createDrawingSchema = z
+  .object({
+    kind: z.enum(DRAWING_KINDS),
+    layer: z.enum(DRAWING_LAYERS).default("objects"),
+    points: z
+      .array(z.number().finite().min(-16384).max(16384))
+      .min(2)
+      .max(4000)
+      .refine((p) => p.length % 2 === 0),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .default("#ffc914"),
+    text: z.string().trim().max(500).default(""),
+  })
+  .refine((d) => (d.kind === "text" || d.kind === "note" ? d.text.length > 0 : true));
+
 export interface SceneDto {
   id: string;
   name: string;
@@ -123,6 +159,8 @@ export interface SceneDto {
   visionEnabled: boolean;
   /** How far a token sees, in grid cells, before light or walls are considered. */
   visionRadius: number;
+  /** Players never receive the `gm` layer. */
+  drawings: DrawingDto[];
 }
 
 export interface TokenDto {

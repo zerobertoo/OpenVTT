@@ -62,7 +62,7 @@ Behind a reverse proxy, allow bodies at least as large as the video limit and lo
 
 In the Scenes tab, **Import map** reads a Universal VTT file (`.dd2vtt`, `.uvtt`) or the `.json` of a Foundry-style export together with the picture or video it came with, or just a picture or video (a name like `map_28x38.png` sets the grid). Files named `Name_0`, `Name_1` become the floors of one map. The dialog explains which Dungeon Alchemist options to pick. Walls, doors and lights are visible to the game master only; with fog of war on, players receive just the area their tokens can see.
 
-Limits (no new server settings): the map data file is read in the browser up to 100 MiB, a scene keeps up to 20,000 wall segments and 1,000 lights, an embedded picture follows the 15 MiB image limit and a video follows `OPENVTT_MAX_VIDEO_BYTES`. The map picture itself is not hidden by fog: it is darkened on screen, so keep secrets out of the image if players are not to see them.
+Limits (no new server settings): the map data file is read in the browser up to 100 MiB, a scene keeps up to 20,000 wall segments, 1,000 lights and 2,000 drawings, an embedded picture follows the 15 MiB image limit and a video follows `OPENVTT_MAX_VIDEO_BYTES`. The map picture itself is not hidden by fog: it is darkened on screen, so keep secrets out of the image if players are not to see them.
 
 A forgotten password is reset by the administrator through `POST /api/admin/reset-password` (no email server involved).
 

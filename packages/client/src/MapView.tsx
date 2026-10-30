@@ -1,18 +1,19 @@
-import type { SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
+import type { DrawingDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
 import { Application, Container, type FederatedPointerEvent, Graphics, Sprite, Text, Texture, type Ticker, VideoSource } from "pixi.js";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "./api";
 import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
+import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
-import { type MapLayers, useTableUi } from "./tableStore";
+import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
-export type MapTool = "select" | "ruler";
+export type MapTool = "select" | "ruler" | "draw";
 
 interface Props {
   scene: SceneDto | null;
@@ -38,6 +39,12 @@ interface Props {
   formatDistance: (cells: number) => string;
   rulerShape: RulerShape;
   diagonalRule: DiagonalRule;
+  /** What the draw tool places. */
+  draw: DrawSettings;
+  onDraw: (drawing: Pick<DrawingDto, "kind" | "layer" | "points" | "color" | "text">) => void;
+  /** Only called for drawings `canErase` accepts. */
+  onErase: (drawingId: string) => void;
+  canErase: (drawing: DrawingDto) => boolean;
 }
 
 const MIN_ZOOM = 0.1;
@@ -121,6 +128,7 @@ export function MapView(props: Props) {
     background: Container;
     grid: Graphics;
     mapData: Container;
+    drawingLayers: Record<DrawingDto["layer"], Container>;
     fog: Graphics;
     fogHole: Graphics;
     tokenLayer: Container;
@@ -156,9 +164,24 @@ export function MapView(props: Props) {
         const fogHole = new Graphics();
         fog.setMask({ mask: fogHole, inverse: true });
         const tokenLayer = new Container();
+        // Background marks sit under the grid, object marks under the tokens, the game master's above them.
+        const drawingLayers = { background: new Container(), objects: new Container(), gm: new Container() };
+        for (const layer of Object.values(drawingLayers)) layer.eventMode = "none";
         const ruler = new Graphics();
         const rulerLabel = new Text({ text: "", style: { fill: 0xffffff, fontSize: 16, stroke: { color: 0x000000, width: 4 } } });
-        world.addChild(background, grid, mapData, tokenLayer, fog, fogHole, ruler, rulerLabel);
+        world.addChild(
+          background,
+          drawingLayers.background,
+          grid,
+          mapData,
+          drawingLayers.objects,
+          tokenLayer,
+          drawingLayers.gm,
+          fog,
+          fogHole,
+          ruler,
+          rulerLabel,
+        );
         app.stage.addChild(world);
         app.stage.eventMode = "static";
         app.stage.hitArea = app.screen;
@@ -168,6 +191,7 @@ export function MapView(props: Props) {
           background,
           grid,
           mapData,
+          drawingLayers,
           fog,
           fogHole,
           tokenLayer,
@@ -193,6 +217,8 @@ export function MapView(props: Props) {
       let rulerStart: { x: number; y: number } | null = null;
       // Shift+drag on the background draws a box; the tokens whose center falls inside get selected.
       let boxStart: { x: number; y: number } | null = null;
+      // Points of the mark being drawn; shapes keep only the start and the latest point.
+      let sketch: number[] | null = null;
       const toWorld = (e: FederatedPointerEvent) => world.toLocal(e.global);
 
       app.stage.on("pointerdown", (e) => {
@@ -210,9 +236,32 @@ export function MapView(props: Props) {
           if (p === "select" && e.button === 0) props_().onSelect(null);
         } else if (p === "ruler" && e.button === 0) {
           rulerStart = toWorld(e);
+        } else if (p === "draw" && e.button === 0) {
+          const point = toWorld(e);
+          const { draw, scene } = props_();
+          if (!scene) return;
+          if (draw.kind === "erase") {
+            const target = drawingAt(scene.drawings.filter(props_().canErase), point, 10 / world.scale.x);
+            if (target) props_().onErase(target.id);
+          } else if (draw.kind === "text" || draw.kind === "note") {
+            if (draw.text.trim())
+              props_().onDraw({ kind: draw.kind, layer: draw.layer, points: [point.x, point.y], color: draw.color, text: draw.text });
+          } else sketch = [point.x, point.y];
         }
       });
       app.stage.on("pointermove", (e) => {
+        if (sketch) {
+          const point = toWorld(e);
+          const { draw, scene } = props_();
+          if (draw.kind === "free") {
+            const [lastX, lastY] = sketch.slice(-2) as [number, number];
+            // A point every few screen pixels is plenty, and keeps long strokes under the server's limit.
+            if (Math.hypot(point.x - lastX, point.y - lastY) * world.scale.x >= 4 && sketch.length < 3998) sketch.push(point.x, point.y);
+          } else sketch = [sketch[0]!, sketch[1]!, point.x, point.y];
+          ruler.clear();
+          if (draw.kind !== "erase") renderShape(ruler, { kind: draw.kind, points: sketch, color: draw.color }, scene?.gridSize ?? 70);
+          return;
+        }
         if (panning) {
           world.position.set(e.global.x - panning.x, e.global.y - panning.y);
         } else if (boxStart) {
@@ -256,6 +305,14 @@ export function MapView(props: Props) {
       });
       const stop = (e: FederatedPointerEvent) => {
         panning = null;
+        if (sketch) {
+          const points = sketch;
+          sketch = null;
+          ruler.clear();
+          const { draw } = props_();
+          const long = points.length >= 4 && Math.hypot(points.at(-2)! - points[0]!, points.at(-1)! - points[1]!) * world.scale.x >= 3;
+          if (long && draw.kind !== "erase") props_().onDraw({ kind: draw.kind, layer: draw.layer, points, color: draw.color, text: "" });
+        }
         if (boxStart) {
           const end = toWorld(e);
           const [x1, x2] = [Math.min(boxStart.x, end.x), Math.max(boxStart.x, end.x)];
@@ -299,6 +356,7 @@ export function MapView(props: Props) {
             pinching = true;
             panning = null;
             rulerStart = null;
+            sketch = null;
             twoFingers = currentTwoFingers();
           }
           if (pinching) e.stopPropagation();
@@ -385,7 +443,18 @@ export function MapView(props: Props) {
       void syncScene();
       syncTokens();
       syncFog();
+      syncDrawings();
     };
+
+    function syncDrawings() {
+      const e = engine.current;
+      if (!e) return;
+      const { scene, layers } = props_();
+      for (const layer of Object.values(e.drawingLayers)) layer.removeChildren().forEach((c) => c.destroy({ children: true }));
+      if (!scene) return;
+      e.drawingLayers.gm.visible = layers.gmDrawings;
+      for (const drawing of scene.drawings) e.drawingLayers[drawing.layer].addChild(drawingView(drawing, scene.gridSize));
+    }
 
     async function syncScene() {
       const e = engine.current;
@@ -486,6 +555,43 @@ export function MapView(props: Props) {
       e.mapData.addChild(lights, walls, doors);
     }
 
+    /** A text label, a note pin with its words, or a shape. */
+    function drawingView(drawing: DrawingDto, gridSize: number): Container {
+      const [x, y] = drawing.points as [number, number];
+      if (drawing.kind === "text" || drawing.kind === "note") {
+        const view = new Container();
+        view.position.set(x, y);
+        const color = hexToNumber(drawing.color);
+        const label = new Text({
+          text: drawing.text,
+          style: {
+            fill: color,
+            fontSize: Math.max(14, gridSize / 2.6),
+            fontWeight: "600",
+            stroke: { color: 0x000000, width: 4 },
+            wordWrap: true,
+            wordWrapWidth: gridSize * 6,
+          },
+        });
+        if (drawing.kind === "note") {
+          // A pin with the note under it.
+          view.addChild(
+            new Graphics()
+              .circle(0, 0, Math.max(8, gridSize / 6))
+              .fill(color)
+              .stroke({ width: 3, color: 0x000000 }),
+          );
+          label.anchor.set(0.5, 0);
+          label.position.set(0, Math.max(10, gridSize / 5));
+        } else label.anchor.set(0, 0.5);
+        view.addChild(label);
+        return view;
+      }
+      const shape = new Graphics();
+      renderShape(shape, drawing, gridSize);
+      return shape;
+    }
+
     /** Darkens everything a player cannot see right now; the polygons come from the server, which never sends walls. */
     function syncFog() {
       const e = engine.current;
@@ -496,6 +602,31 @@ export function MapView(props: Props) {
       if (!scene || !vision || vision.sceneId !== scene.id) return;
       e.fog.rect(0, 0, scene.width, scene.height).fill({ color: 0x000000, alpha: 0.94 });
       for (const polygon of vision.polygons) if (polygon.length >= 6) e.fogHole.poly(polygon).fill(0xffffff);
+    }
+
+    /** Draws a line-based mark into `g`; also used for the preview while the pointer is down. */
+    function renderShape(g: Graphics, drawing: Pick<DrawingDto, "kind" | "points" | "color">, gridSize: number) {
+      const p = drawing.points;
+      const stroke = {
+        width: Math.max(3, gridSize / 20),
+        color: hexToNumber(drawing.color),
+        cap: "round" as const,
+        join: "round" as const,
+      };
+      if (p.length < 4) return;
+      const [x1, y1, x2, y2] = [p[0]!, p[1]!, p.at(-2)!, p.at(-1)!];
+      if (drawing.kind === "rect") g.rect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1)).stroke(stroke);
+      else if (drawing.kind === "circle") g.circle(x1, y1, Math.hypot(x2 - x1, y2 - y1)).stroke(stroke);
+      else {
+        g.moveTo(x1, y1);
+        if (drawing.kind === "free") for (let i = 2; i < p.length; i += 2) g.lineTo(p[i]!, p[i + 1]!);
+        else g.lineTo(x2, y2);
+        if (drawing.kind === "arrow") {
+          const [left, right] = arrowHead({ x: x1, y: y1 }, { x: x2, y: y2 }, Math.max(14, gridSize / 3));
+          g.moveTo(left.x, left.y).lineTo(x2, y2).lineTo(right.x, right.y);
+        }
+        g.stroke(stroke);
+      }
     }
 
     /** Starts loading an animated background; it plays at once unless the person prefers reduced motion. */

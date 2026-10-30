@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import type { WorldStateDto } from "@openvtt/shared";
 import { expect, type Page } from "@playwright/test";
 
 const TEST_PASSWORD = "e2e-test-password";
@@ -38,3 +39,23 @@ export async function expectNoAxeViolations(page: Page) {
     .join("\n");
   expect(summary).toBe("");
 }
+
+/** The first world snapshot the socket sends this page's user; tokens and drawings have no REST listing. */
+export function worldState(page: Page, worldId: string) {
+  return page.evaluate(
+    (id) =>
+      new Promise<WorldStateDto>((resolve) => {
+        const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?world=${id}`);
+        socket.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.type !== "world.state") return;
+          socket.close();
+          resolve(message.state);
+        };
+      }),
+    worldId,
+  );
+}
+
+/** The id in a `/world/<id>` page address. */
+export const worldIdOf = (page: Page) => page.url().split("/world/")[1]!.split(/[/?#]/)[0]!;

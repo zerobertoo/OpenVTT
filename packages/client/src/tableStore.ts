@@ -1,4 +1,4 @@
-import type { PingDto } from "@openvtt/shared";
+import type { DrawingKind, DrawingLayer, PingDto } from "@openvtt/shared";
 import { create } from "zustand";
 import type { MapTool } from "./MapView";
 
@@ -13,11 +13,22 @@ export interface MapLayers {
   /** The disc each light reaches; off by default because maps with baked lighting already show it. */
   lightRange: boolean;
   grid: boolean;
+  /** Drawings and note pins on the game master's own layer. */
+  gmDrawings: boolean;
 }
 
-export const DEFAULT_LAYERS: MapLayers = { walls: true, doors: true, lights: true, lightRange: false, grid: true };
+export const DEFAULT_LAYERS: MapLayers = { walls: true, doors: true, lights: true, lightRange: false, grid: true, gmDrawings: true };
 /** What a player sees: the map and the grid, none of the game master's overlays. */
-export const PLAYER_LAYERS: MapLayers = { walls: false, doors: false, lights: false, lightRange: false, grid: true };
+export const PLAYER_LAYERS: MapLayers = { walls: false, doors: false, lights: false, lightRange: false, grid: true, gmDrawings: false };
+
+/** What the draw tool places next; `erase` removes the mark under the pointer instead. */
+export interface DrawSettings {
+  kind: DrawingKind | "erase";
+  color: string;
+  /** Words for the next text or note pin. */
+  text: string;
+  layer: DrawingLayer;
+}
 
 interface TableUiState {
   tab: TableTab;
@@ -44,6 +55,8 @@ interface TableUiState {
   /** Whether the overview map shows in the corner. */
   minimapOpen: boolean;
   toggleMinimap: () => void;
+  draw: DrawSettings;
+  setDraw: (draw: Partial<DrawSettings>) => void;
   /** Whether the dice tray is open over the map. */
   diceTrayOpen: boolean;
   setDiceTrayOpen: (open: boolean) => void;
@@ -72,6 +85,7 @@ const initialState = {
   ping: null,
   minimapOpen: true,
   diceTrayOpen: false,
+  draw: { kind: "free", color: "#ffc914", text: "", layer: "objects" } as DrawSettings,
 } as const;
 
 /** Local UI state of the table. Server state lives in `useWorldState`, REST data in TanStack Query. */
@@ -83,6 +97,7 @@ export const useTableUi = create<TableUiState>((set) => ({
   showPing: (ping) => set((state) => ({ ping: { ...ping, id: (state.ping?.id ?? 0) + 1 } })),
   toggleMinimap: () => set((state) => ({ minimapOpen: !state.minimapOpen })),
   setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
+  setDraw: (draw) => set((state) => ({ draw: { ...state.draw, ...draw } })),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
   setTool: (tool) => set({ tool }),

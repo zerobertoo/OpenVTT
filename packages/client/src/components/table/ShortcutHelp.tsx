@@ -4,6 +4,7 @@ import { Dialog } from "../ui/dialog";
 const SHORTCUTS = [
   { keys: ["V"], label: "shortcuts.select" },
   { keys: ["R"], label: "shortcuts.ruler" },
+  { keys: ["B"], label: "shortcuts.draw" },
   { keys: ["←", "↑", "→", "↓"], label: "shortcuts.move" },
   { keys: ["Esc"], label: "shortcuts.deselect" },
   { keys: ["+", "-"], label: "shortcuts.zoom" },

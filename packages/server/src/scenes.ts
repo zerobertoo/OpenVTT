@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { createSceneSchema, LightDto, SceneDto, updateSceneSchema, WallDto } from "@openvtt/shared";
+import type { createSceneSchema, DrawingDto, LightDto, SceneDto, updateSceneSchema, WallDto } from "@openvtt/shared";
 import type { z } from "zod";
 import type { AssetService } from "./assets.ts";
 import { type Db, transaction } from "./db.ts";
@@ -46,6 +46,17 @@ interface LightRow {
   shadows: number;
 }
 
+interface DrawingRow {
+  id: string;
+  scene_id: string;
+  author_id: string | null;
+  kind: DrawingDto["kind"];
+  layer: DrawingDto["layer"];
+  points: string;
+  color: string;
+  text: string;
+}
+
 const SELECT_SCENE = "SELECT scenes.*, assets.mime AS asset_mime FROM scenes LEFT JOIN assets ON assets.id = scenes.asset_id";
 
 const toWall = (r: WallRow): WallDto => ({ id: r.id, x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, kind: r.kind, open: r.open === 1 });
@@ -59,7 +70,17 @@ const toLight = (r: LightRow): LightDto => ({
   shadows: r.shadows === 1,
 });
 
-const toDto = (r: SceneRow, walls: WallDto[], lights: LightDto[]): SceneDto => ({
+export const toDrawing = (r: DrawingRow): DrawingDto => ({
+  id: r.id,
+  authorId: r.author_id,
+  kind: r.kind,
+  layer: r.layer,
+  points: JSON.parse(r.points) as number[],
+  color: r.color,
+  text: r.text,
+});
+
+const toDto = (r: SceneRow, walls: WallDto[], lights: LightDto[], drawings: DrawingDto[]): SceneDto => ({
   id: r.id,
   name: r.name,
   assetId: r.asset_id,
@@ -77,10 +98,16 @@ const toDto = (r: SceneRow, walls: WallDto[], lights: LightDto[]): SceneDto => (
   floor: r.floor,
   visionEnabled: r.vision_enabled === 1,
   visionRadius: r.vision_radius,
+  drawings,
 });
 
-/** What a player may see of a scene: walls and lights stay with the game master until per-player vision exists. */
-export const withoutHiddenMapData = (scene: SceneDto): SceneDto => ({ ...scene, walls: [], lights: [] });
+/** What a player may see of a scene: walls, lights and the game master's drawing layer stay with the game master. */
+export const withoutHiddenMapData = (scene: SceneDto): SceneDto => ({
+  ...scene,
+  walls: [],
+  lights: [],
+  drawings: scene.drawings.filter((d) => d.layer !== "gm"),
+});
 
 export class SceneService {
   constructor(
@@ -94,8 +121,16 @@ export class SceneService {
     const ids = rows.map((r) => r.id);
     const walls = this.db.prepare(`SELECT * FROM walls WHERE scene_id IN (${marks}) ORDER BY rowid`).all(...ids) as unknown as WallRow[];
     const lights = this.db.prepare(`SELECT * FROM lights WHERE scene_id IN (${marks}) ORDER BY rowid`).all(...ids) as unknown as LightRow[];
+    const drawings = this.db
+      .prepare(`SELECT * FROM drawings WHERE scene_id IN (${marks}) ORDER BY rowid`)
+      .all(...ids) as unknown as DrawingRow[];
     return rows.map((r) =>
-      toDto(r, walls.filter((w) => w.scene_id === r.id).map(toWall), lights.filter((l) => l.scene_id === r.id).map(toLight)),
+      toDto(
+        r,
+        walls.filter((w) => w.scene_id === r.id).map(toWall),
+        lights.filter((l) => l.scene_id === r.id).map(toLight),
+        drawings.filter((d) => d.scene_id === r.id).map(toDrawing),
+      ),
     );
   }
 

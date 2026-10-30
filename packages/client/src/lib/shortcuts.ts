@@ -54,6 +54,8 @@ export function actionForKey(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "met
       return { type: "tool", tool: "select" };
     case "r":
       return { type: "tool", tool: "ruler" };
+    case "b":
+      return { type: "tool", tool: "draw" };
     case "p":
       return { type: "togglePanels" };
     case "d":

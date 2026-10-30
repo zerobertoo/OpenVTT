@@ -40,7 +40,8 @@
     "fit": "Fit the whole map in view",
     "panels": "Show or hide the panels",
     "help": "Show this list",
-    "moved": "{{name}} moved to column {{column}}, row {{row}}"
+    "moved": "{{name}} moved to column {{column}}, row {{row}}",
+    "draw": "Draw tool"
   },
   "guide": {
     "title": "How a table works",
@@ -68,15 +69,8 @@
       "text": "Type a message, or /r 1d20 to roll dice for everyone to see.",
       "action": "Open Chat"
     },
-    "playerMove": {
-      "title": "Move your token",
-      "text": "Drag it on the map, or select it and use the arrow keys."
-    },
-    "playerSheet": {
-      "title": "Open your sheet",
-      "text": "Your character sheet lives in the Sheets tab.",
-      "action": "Open Sheets"
-    }
+    "playerMove": { "title": "Move your token", "text": "Drag it on the map, or select it and use the arrow keys." },
+    "playerSheet": { "title": "Open your sheet", "text": "Your character sheet lives in the Sheets tab.", "action": "Open Sheets" }
   },
   "states": {
     "loadFailed": "We could not load this.",
@@ -184,7 +178,8 @@
     "minimap": "Overview map",
     "playVideo": "Play map animation",
     "pauseVideo": "Pause map animation",
-    "videoUnsupported": "This browser cannot play the map video, so the map is shown without it."
+    "videoUnsupported": "This browser cannot play the map video, so the map is shown without it.",
+    "draw": "Draw"
   },
   "chat": {
     "title": "Chat",
@@ -217,7 +212,8 @@
     "lightRange": "Light range",
     "grid": "Grid",
     "previewOverrides": "While previewing a player, overlays are hidden.",
-    "baked": "This map already has its lighting drawn in the image, so the light range is off by default."
+    "baked": "This map already has its lighting drawn in the image, so the light range is off by default.",
+    "gmDrawings": "Your drawings and notes"
   },
   "scene": {
     "title": "Scenes",
@@ -412,5 +408,28 @@
     "internal_error": "Something went wrong on the server.",
     "network": "Could not reach the server.",
     "video_unsupported": "This browser cannot play that video. WebM (VP9) or MP4 (H.264) usually work."
+  },
+  "draw": {
+    "options": "Drawing options",
+    "kind": "What to draw",
+    "kinds": {
+      "free": "Freehand",
+      "line": "Line",
+      "arrow": "Arrow",
+      "rect": "Rectangle",
+      "circle": "Circle",
+      "text": "Text",
+      "note": "Note pin (only you see it)",
+      "erase": "Eraser"
+    },
+    "color": "Color",
+    "text": "Words to place",
+    "textHint": "Type, then click the map",
+    "layer": "Layer",
+    "layers": { "background": "Background", "objects": "Objects", "gm": "Game master only" },
+    "clearMine": "Erase my drawings",
+    "clearAll": "Erase all drawings",
+    "clearTitle": "Erase every drawing on this scene?",
+    "clearBody": "Drawings, texts and note pins of everybody on this scene are removed."
   }
 }

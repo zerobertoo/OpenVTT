@@ -25,6 +25,7 @@ const scene: SceneDto = {
   floor: 0,
   visionEnabled: false,
   visionRadius: 12,
+  drawings: [],
 };
 const token: TokenDto = {
   id: "t1",

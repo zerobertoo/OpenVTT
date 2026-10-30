@@ -41,6 +41,12 @@ const PATHS = {
       <path d="M8 11l2 2M11 8l2 2M14 5l2 2" />
     </>
   ),
+  draw: (
+    <>
+      <path d="M4 20l1-5L16 4l4 4L9 19z" />
+      <path d="M13.5 6.5l4 4" />
+    </>
+  ),
   dice: (
     <>
       <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />

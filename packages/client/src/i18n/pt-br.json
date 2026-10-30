@@ -40,7 +40,8 @@
     "fit": "Enquadrar o mapa inteiro",
     "panels": "Mostrar ou ocultar os painéis",
     "help": "Mostrar esta lista",
-    "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}"
+    "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}",
+    "draw": "Ferramenta de desenho"
   },
   "guide": {
     "title": "Como funciona uma mesa",
@@ -68,15 +69,8 @@
       "text": "Escreva uma mensagem, ou /r 1d20 para rolar dados que todos veem.",
       "action": "Abrir Chat"
     },
-    "playerMove": {
-      "title": "Mova seu token",
-      "text": "Arraste no mapa, ou selecione e use as setas do teclado."
-    },
-    "playerSheet": {
-      "title": "Abra sua ficha",
-      "text": "Sua ficha de personagem fica na aba Fichas.",
-      "action": "Abrir Fichas"
-    }
+    "playerMove": { "title": "Mova seu token", "text": "Arraste no mapa, ou selecione e use as setas do teclado." },
+    "playerSheet": { "title": "Abra sua ficha", "text": "Sua ficha de personagem fica na aba Fichas.", "action": "Abrir Fichas" }
   },
   "states": {
     "loadFailed": "Não foi possível carregar isto.",
@@ -184,7 +178,8 @@
     "minimap": "Mapa miniatura",
     "playVideo": "Reproduzir animação do mapa",
     "pauseVideo": "Pausar animação do mapa",
-    "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele."
+    "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele.",
+    "draw": "Desenhar"
   },
   "chat": {
     "title": "Chat",
@@ -217,7 +212,8 @@
     "lightRange": "Alcance das luzes",
     "grid": "Grade",
     "previewOverrides": "Ao ver como jogador, as camadas ficam ocultas.",
-    "baked": "Este mapa já traz a iluminação desenhada na imagem, por isso o alcance das luzes vem desligado."
+    "baked": "Este mapa já traz a iluminação desenhada na imagem, por isso o alcance das luzes vem desligado.",
+    "gmDrawings": "Seus desenhos e notas"
   },
   "scene": {
     "title": "Cenas",
@@ -412,5 +408,28 @@
     "internal_error": "Algo deu errado no servidor.",
     "network": "Não foi possível falar com o servidor.",
     "video_unsupported": "Este navegador não consegue reproduzir esse vídeo. WebM (VP9) ou MP4 (H.264) costumam funcionar."
+  },
+  "draw": {
+    "options": "Opções de desenho",
+    "kind": "O que desenhar",
+    "kinds": {
+      "free": "À mão livre",
+      "line": "Linha",
+      "arrow": "Seta",
+      "rect": "Retângulo",
+      "circle": "Círculo",
+      "text": "Texto",
+      "note": "Pin de nota (só você vê)",
+      "erase": "Borracha"
+    },
+    "color": "Cor",
+    "text": "Texto a colocar",
+    "textHint": "Digite e clique no mapa",
+    "layer": "Camada",
+    "layers": { "background": "Fundo", "objects": "Objetos", "gm": "Só o mestre" },
+    "clearMine": "Apagar meus desenhos",
+    "clearAll": "Apagar todos os desenhos",
+    "clearTitle": "Apagar todos os desenhos desta cena?",
+    "clearBody": "Desenhos, textos e pins de nota de todos nesta cena são removidos."
   }
 }

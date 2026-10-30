@@ -5,7 +5,9 @@ import { Readable } from "node:stream";
 import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData } from "@openvtt/sdk";
 import {
   buildUvtt,
+  createDrawingSchema,
   lightInputSchema,
+  MAX_SCENE_DRAWINGS,
   MAX_SCENE_LIGHTS,
   MAX_SCENE_WALLS,
   MAX_UPLOAD_BYTES,
@@ -58,6 +60,7 @@ const worldFileSchema = z.object({
         floor: z.number().int().min(-20).max(50).default(0),
         visionEnabled: z.boolean().default(false),
         visionRadius: z.number().finite().min(1).max(200).default(12),
+        drawings: z.array(createDrawingSchema).max(MAX_SCENE_DRAWINGS).default([]),
       }),
     )
     .max(500),
@@ -125,7 +128,8 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     // Fails with a normal error response (before any byte is sent) if a file went missing from disk.
     for (const record of records) statSync(s.assets.path(record));
     const assets = records.map((record) => ({ id: record.id, file: `assets/${record.fileName}` }));
-    const scenes = s.scenes.list(worldId);
+    // Authors are accounts, which never leave the server.
+    const scenes = s.scenes.list(worldId).map((sc) => ({ ...sc, drawings: sc.drawings.map(({ id: _id, authorId: _a, ...d }) => d) }));
     const sceneIds = new Set(scenes.map((sc) => sc.id));
     const gmView = { userId: "", role: "gm" as const };
     const tokens = s.tokens
@@ -249,6 +253,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
         }
         for (const sc of file.scenes) {
           const created = s.scenes.create(worldId, { ...sc, assetId: sc.assetId ? idMap.get(sc.assetId)! : null });
+          for (const drawing of sc.drawings) s.drawings.insertImported(created.id, drawing);
           idMap.set(sc.id, created.id);
         }
         for (const a of file.actors) {

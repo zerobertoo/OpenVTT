@@ -154,6 +154,19 @@ ALTER TABLE tokens ADD COLUMN hp_max INTEGER;
 ALTER TABLE tokens ADD COLUMN conditions TEXT NOT NULL DEFAULT '[]';
 ALTER TABLE tokens ADD COLUMN show_name INTEGER NOT NULL DEFAULT 0;
 `,
+  `
+CREATE TABLE drawings (
+  id TEXT PRIMARY KEY,
+  scene_id TEXT NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
+  author_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL,
+  layer TEXT NOT NULL,
+  points TEXT NOT NULL,
+  color TEXT NOT NULL,
+  text TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX drawings_scene ON drawings (scene_id);
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

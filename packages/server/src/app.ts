@@ -8,6 +8,7 @@ import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_VIDEO_TYPES,
   createActorSchema,
+  createDrawingSchema,
   createSceneSchema,
   createTokenSchema,
   createWorldSchema,
@@ -293,6 +294,39 @@ export function buildApp(options: AppOptions) {
     if (!worldId) throw new AppError("not_found");
     requireGm(req, worldId);
     s.scenes.remove(req.params.id, worldId);
+    hub.broadcastState(worldId);
+    return { ok: true };
+  });
+
+  // ---- drawings -----------------------------------------------------------------------------
+
+  app.post<{ Params: { id: string } }>("/api/scenes/:id/drawings", async (req) => {
+    const worldId = s.scenes.worldIdOf(req.params.id);
+    if (!worldId) throw new AppError("not_found");
+    const { viewer } = requireMember(req, worldId);
+    const input = createDrawingSchema.parse(req.body);
+    // A player asking about a scene they cannot see learns nothing about it.
+    const activeSceneId = s.scenes.activeSceneId(worldId);
+    if (viewer.role !== "gm" && req.params.id !== activeSceneId) throw new AppError("not_found");
+    const id = s.drawings.create(req.params.id, viewer, activeSceneId, input);
+    hub.broadcastState(worldId);
+    return { id };
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/drawings/:id", async (req) => {
+    const found = s.drawings.find(req.params.id);
+    if (!found) throw new AppError("not_found");
+    const { viewer } = requireMember(req, found.worldId);
+    s.drawings.remove(req.params.id, viewer);
+    hub.broadcastState(found.worldId);
+    return { ok: true };
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/scenes/:id/drawings", async (req) => {
+    const worldId = s.scenes.worldIdOf(req.params.id);
+    if (!worldId) throw new AppError("not_found");
+    const { viewer } = requireMember(req, worldId);
+    s.drawings.clear(req.params.id, viewer);
     hub.broadcastState(worldId);
     return { ok: true };
   });

@@ -55,6 +55,9 @@ export const api = {
   createScene: (worldId: string, body: object) => post<SceneDto>(`/api/worlds/${worldId}/scenes`, body),
   updateScene: (sceneId: string, body: object) => patch<SceneDto>(`/api/scenes/${sceneId}`, body),
   deleteScene: (sceneId: string) => del(`/api/scenes/${sceneId}`),
+  createDrawing: (sceneId: string, body: object) => post<{ id: string }>(`/api/scenes/${sceneId}/drawings`, body),
+  deleteDrawing: (drawingId: string) => del(`/api/drawings/${drawingId}`),
+  clearDrawings: (sceneId: string) => del(`/api/scenes/${sceneId}/drawings`),
   setDoorOpen: (sceneId: string, wallId: string, open: boolean) => post(`/api/scenes/${sceneId}/doors/${wallId}`, { open }),
 
   createToken: (worldId: string, body: object) => post<TokenDto>(`/api/worlds/${worldId}/tokens`, body),

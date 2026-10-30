@@ -4,7 +4,7 @@ import { Icon } from "../../icons";
 import type { MapTool } from "../../MapView";
 import { ToolbarChoices } from "../ui/toolbar";
 
-const TOOLS = ["select", "ruler"] as const satisfies readonly MapTool[];
+const TOOLS = ["select", "ruler", "draw"] as const satisfies readonly MapTool[];
 
 interface Props {
   tool: MapTool;

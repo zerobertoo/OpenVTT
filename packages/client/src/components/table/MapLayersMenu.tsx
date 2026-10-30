@@ -17,7 +17,7 @@ interface Props {
   onViewAsChange: (userId: string | null) => void;
 }
 
-const LAYER_LABELS = ["walls", "doors", "lights", "lightRange", "grid"] as const satisfies readonly (keyof MapLayers)[];
+const LAYER_LABELS = ["walls", "doors", "lights", "lightRange", "grid", "gmDrawings"] as const satisfies readonly (keyof MapLayers)[];
 
 /** Game master only: which overlays are drawn on the map, and a preview of what one player sees. */
 export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUserId, onViewAsChange }: Props) {
@@ -62,7 +62,7 @@ export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUse
           <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("layers.overlays")}</legend>
           {LAYER_LABELS.map((layer) => {
             // Overlays that need map data are pointless on a scene without any.
-            const needsData = layer !== "grid" && !hasMapData;
+            const needsData = layer !== "grid" && layer !== "gmDrawings" && !hasMapData;
             return (
               <Field key={layer} label={t(`layers.${layer}`)} inline>
                 {(control) => (

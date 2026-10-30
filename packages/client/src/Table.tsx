@@ -8,6 +8,7 @@ import { TableLoading } from "./components/screens/TableLoading";
 import { DiceOverlay } from "./components/table/DiceOverlay";
 import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
+import { DrawOptions } from "./components/table/DrawOptions";
 import { MapLayersMenu } from "./components/table/MapLayersMenu";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
@@ -44,7 +45,8 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, layers, viewAsUserId, diceTrayOpen } = useTableUi();
+  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, layers, viewAsUserId, diceTrayOpen, draw } =
+    useTableUi();
   const { setTab, toggleDrawer, setTool, selectToken, toggleToken, selectTokens, viewScene, reset, setDiceTrayOpen, setLayer, setViewAs } =
     useTableUi.getState();
 
@@ -168,6 +170,10 @@ export function Table({ worldId, user }: Props) {
               formatDistance={(cells) => format.distance(cells, scene)}
               rulerShape={rulerShape}
               diagonalRule={diagonalRule}
+              draw={draw}
+              onDraw={(drawing) => void api.createDrawing(scene.id, drawing).catch(() => undefined)}
+              onErase={(drawingId) => void api.deleteDrawing(drawingId).catch(() => undefined)}
+              canErase={(drawing) => isGm || drawing.authorId === user.id}
             />
           ) : (
             <EmptyMap isGm={isGm} />
@@ -185,6 +191,7 @@ export function Table({ worldId, user }: Props) {
             onHelpOpenChange={setHelpOpen}
           />
           {tool === "ruler" && <RulerOptions scene={scene} />}
+          {tool === "draw" && scene && <DrawOptions isGm={isGm} onClear={() => void api.clearDrawings(scene.id).catch(() => undefined)} />}
           {selectedTokens.length > 1 && (
             <SelectionBar
               count={selectedTokens.length}

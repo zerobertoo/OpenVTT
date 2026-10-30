@@ -24,6 +24,7 @@ const scene: SceneDto = {
   floor: 0,
   visionEnabled: false,
   visionRadius: 12,
+  drawings: [],
 };
 
 const setup = (overrides: Partial<Parameters<typeof SceneCard>[0]> = {}) => {
