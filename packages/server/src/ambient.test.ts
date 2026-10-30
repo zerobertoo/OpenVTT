@@ -24,6 +24,9 @@ it("accepts mp3 and ogg uploads, plays one for the table and refuses audio as a 
   expect(scene.statusCode).toBe(400);
   const image = (await upload(app, gm.cookie, world.id, PNG)).json();
   expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/ambient`, { assetId: image.id, playing: true })).statusCode).toBe(400);
+  // A refused request leaves nothing in the game master's log.
+  const log = (await call(app, gm.cookie, "GET", `/api/worlds/${world.id}/audit`)).json() as { action: string }[];
+  expect(log.filter((e) => e.action.startsWith("music."))).toEqual([]);
   expect((await call(app, bob.cookie, "PUT", `/api/worlds/${world.id}/ambient`, { assetId: ogg.id, playing: true })).statusCode).toBe(403);
   expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/ambient`, { assetId: ogg.id, playing: true })).statusCode).toBe(200);
 

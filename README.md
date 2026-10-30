@@ -49,7 +49,7 @@ Environment variables:
 | `OPENVTT_DB` | `data/openvtt.db` | SQLite file; assets and installed systems are stored next to it |
 | `OPENVTT_SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
 | `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video or music file (MP3, Ogg) accepted; images stay capped at 15 MiB |
-| `OPENVTT_BACKUP_INTERVAL_HOURS` | off | Copies the database into `backups/` next to it every this many hours |
+| `OPENVTT_BACKUP_INTERVAL_HOURS` | off | Copies the database into `backups/` next to it every this many hours (at most 504, three weeks) |
 | `OPENVTT_BACKUP_KEEP` | `7` | How many of those copies are kept; older ones are deleted |
 
 ### Backup and restore

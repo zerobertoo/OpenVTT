@@ -53,6 +53,8 @@ export const SESSION_COOKIE = "openvtt_session";
 
 /** Upload cap for an installable rule-system package (the unpacked limit is much lower). */
 const MAX_SYSTEM_ZIP_BYTES = 8 * 1024 * 1024;
+// Timers longer than about 24 days overflow and fire at once.
+const MAX_BACKUP_INTERVAL_HOURS = 24 * 21;
 
 export interface AppOptions {
   dbPath: string;
@@ -88,7 +90,7 @@ export function buildApp(options: AppOptions) {
         } catch (error) {
           app.log.error(error);
         }
-      }, options.backupIntervalHours * 3_600_000)
+      }, Math.min(options.backupIntervalHours, MAX_BACKUP_INTERVAL_HOURS) * 3_600_000)
     : undefined;
   app.addHook("onClose", async () => {
     clearInterval(backupTimer);
@@ -411,8 +413,8 @@ export function buildApp(options: AppOptions) {
   app.put<{ Params: { id: string } }>("/api/worlds/:id/ambient", async (req) => {
     const { user } = requireGm(req, req.params.id);
     const { assetId, playing } = setAmbientSchema.parse(req.body);
-    s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     if (!s.assets.belongsToWorld(assetId, req.params.id, "audio")) throw new AppError("asset_invalid");
+    s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     s.worlds.setAmbient(req.params.id, assetId, playing);
     hub.broadcastState(req.params.id);
     return { ok: true };

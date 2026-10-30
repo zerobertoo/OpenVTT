@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
@@ -27,6 +27,18 @@ it("runs on a timer inside the server when asked to", async () => {
   const app = buildApp({ dbPath: join(dir, "live.db"), backupIntervalHours: 1, backupKeep: 3 });
   vi.advanceTimersByTime(2 * 3_600_000);
   expect(readdirSync(join(dir, "backups")).length).toBeGreaterThanOrEqual(1);
+  await app.close();
+  vi.useRealTimers();
+});
+
+it("caps an interval too long for a timer instead of running it at once", async () => {
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  const dir = mkdtempSync(join(tmpdir(), "openvtt-backup-"));
+  const app = buildApp({ dbPath: join(dir, "live.db"), backupIntervalHours: 1000 });
+  vi.advanceTimersByTime(3_600_000);
+  expect(existsSync(join(dir, "backups"))).toBe(false);
+  vi.advanceTimersByTime(24 * 21 * 3_600_000);
+  expect(readdirSync(join(dir, "backups"))).toHaveLength(1);
   await app.close();
   vi.useRealTimers();
 });
