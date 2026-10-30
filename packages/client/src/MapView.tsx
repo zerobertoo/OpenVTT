@@ -160,6 +160,9 @@ export function MapView(props: Props) {
     tokenViews: Map<string, Container>;
     fitted: string | null;
     video: VideoBackground | null;
+    /** What is drawn now, so syncs caused by token moves skip rebuilding them. */
+    shownDrawings: SceneDto["drawings"] | null;
+    shownGrid: string;
   } | null>(null);
   const minimap = useRef<HTMLCanvasElement>(null);
   const minimapOpen = useTableUi((ui) => ui.minimapOpen && ui.view !== "tv");
@@ -223,6 +226,8 @@ export function MapView(props: Props) {
           tokenViews: new Map(),
           fitted: null,
           video: null,
+          shownDrawings: null,
+          shownGrid: "",
         };
         bindInteractions(app, world, ruler, rulerLabel);
         useTableUi.setState({ mapCenter: () => world.toLocal({ x: app.screen.width / 2, y: app.screen.height / 2 }) });
@@ -485,12 +490,15 @@ export function MapView(props: Props) {
       const e = engine.current;
       if (!e) return;
       const { scene, layers } = props_();
-      for (const layer of Object.values(e.drawingLayers)) layer.removeChildren().forEach((c) => c.destroy({ children: true }));
-      if (!scene) return;
       e.drawingLayers.gm.visible = layers.gmDrawings;
       e.drawingLayers.background.visible = e.background.visible = layers.background;
       e.drawingLayers.objects.visible = layers.objects;
       e.tokenLayer.visible = layers.tokens;
+      const drawings = scene?.drawings ?? null;
+      if (drawings === e.shownDrawings) return;
+      e.shownDrawings = drawings;
+      for (const layer of Object.values(e.drawingLayers)) layer.removeChildren().forEach((c) => c.destroy({ children: true }));
+      if (!scene) return;
       for (const drawing of scene.drawings) {
         const view = drawingView(drawing, scene.gridSize);
         view.cullable = true;
@@ -503,11 +511,14 @@ export function MapView(props: Props) {
       const scene = props_().scene;
       if (!e) return;
       e.background.removeChildren().forEach((c) => c.destroy());
-      e.grid.clear();
       e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
       e.ruler.clear();
       e.rulerLabel.text = "";
-      if (!scene) return void disposeVideo(e);
+      if (!scene) {
+        e.grid.clear();
+        e.shownGrid = "";
+        return void disposeVideo(e);
+      }
       const sceneId = scene.id;
       if (scene.assetId && scene.assetKind === "video") {
         if (e.video?.assetId !== scene.assetId) {
@@ -539,17 +550,21 @@ export function MapView(props: Props) {
         disposeVideo(e);
         e.background.addChild(new Graphics().rect(0, 0, scene.width, scene.height).fill(0x2a2d34));
       }
-      e.grid.clear();
-      if (scene.gridType === "square") {
-        for (let x = 0; x <= scene.width; x += scene.gridSize) e.grid.moveTo(x, 0).lineTo(x, scene.height);
-        for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
-        e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
-      }
-      const hex = hexOrientationOf(scene.gridType);
-      if (hex) {
-        for (const center of hexCentersIn(scene.width, scene.height, scene.gridSize, hex))
-          e.grid.poly(hexCorners(center, scene.gridSize, hex));
-        e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
+      const gridKey = `${scene.gridType} ${scene.gridSize} ${scene.width} ${scene.height}`;
+      if (gridKey !== e.shownGrid) {
+        e.shownGrid = gridKey;
+        e.grid.clear();
+        if (scene.gridType === "square") {
+          for (let x = 0; x <= scene.width; x += scene.gridSize) e.grid.moveTo(x, 0).lineTo(x, scene.height);
+          for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
+          e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
+        }
+        const hex = hexOrientationOf(scene.gridType);
+        if (hex) {
+          for (const center of hexCentersIn(scene.width, scene.height, scene.gridSize, hex))
+            e.grid.poly(hexCorners(center, scene.gridSize, hex));
+          e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
+        }
       }
       e.grid.visible = props_().layers.grid;
       drawMapData(e, scene, props_().layers);
