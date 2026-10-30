@@ -1,4 +1,4 @@
-import type { ActorDto, MemberDto, TokenDto } from "@openvtt/shared";
+import { type ActorDto, type MemberDto, TOKEN_CONDITIONS, type TokenDto } from "@openvtt/shared";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AssetPicker } from "../ui/asset-picker";
@@ -51,8 +51,77 @@ export function TokenEditor({ token, players, actors, isGm, onPatch, onUpload, o
         )}
       </Field>
 
+      {!isGm && token.hp !== null && token.hpMax !== null && (
+        <Field label={t("token.hp", { max: token.hpMax })}>
+          {(control) => (
+            <Input
+              {...control}
+              type="number"
+              min={-9999}
+              max={99999}
+              step={1}
+              defaultValue={token.hp ?? ""}
+              onBlur={(e) => e.target.value !== "" && Number(e.target.value) !== token.hp && onPatch({ hp: Math.round(Number(e.target.value)) })}
+            />
+          )}
+        </Field>
+      )}
+
+      <fieldset className="m-0 grid grid-cols-2 gap-x-3 gap-y-1.5 border-0 p-0">
+        <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("token.conditions")}</legend>
+        {TOKEN_CONDITIONS.map((id) => (
+          <Field key={id} label={t(`condition.${id}`)} inline>
+            {(control) => (
+              <Checkbox
+                {...control}
+                defaultChecked={token.conditions.includes(id)}
+                onChange={(e) =>
+                  onPatch({ conditions: e.target.checked ? [...token.conditions, id] : token.conditions.filter((c) => c !== id) })
+                }
+              />
+            )}
+          </Field>
+        ))}
+      </fieldset>
+
       {isGm && (
         <>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("token.hpCurrent")}>
+              {(control) => (
+                <Input
+                  {...control}
+                  type="number"
+                  min={-9999}
+                  max={99999}
+                  defaultValue={token.hp ?? ""}
+                  onBlur={(e) => {
+                    const hp = e.target.value === "" ? null : Math.round(Number(e.target.value));
+                    if (hp !== token.hp) onPatch({ hp, ...(hp !== null && token.hpMax === null ? { hpMax: Math.max(hp, 1) } : {}) });
+                  }}
+                />
+              )}
+            </Field>
+            <Field label={t("token.hpMax")}>
+              {(control) => (
+                <Input
+                  {...control}
+                  type="number"
+                  min={1}
+                  max={99999}
+                  defaultValue={token.hpMax ?? ""}
+                  onBlur={(e) => {
+                    const hpMax = e.target.value === "" ? null : Math.max(1, Math.round(Number(e.target.value)));
+                    if (hpMax !== token.hpMax) onPatch({ hpMax, ...(hpMax === null ? { hp: null } : token.hp === null ? { hp: hpMax } : {}) });
+                  }}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={t("token.showName")} inline>
+            {(control) => <Switch {...control} defaultChecked={token.showName} onChange={(e) => onPatch({ showName: e.target.checked })} />}
+          </Field>
+
           <Field label={t("token.name")}>
             {(control) => (
               <Input

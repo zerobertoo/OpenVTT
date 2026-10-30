@@ -140,7 +140,33 @@ export interface TokenDto {
   hidden: boolean;
   actorId: string | null;
   controllerIds: string[];
+  /** Current and maximum hit points; both null when the token has no health bar. Only the game master and the token's controllers receive them. */
+  hp: number | null;
+  hpMax: number | null;
+  /** Ids from `TOKEN_CONDITIONS`, visible to everyone who sees the token. */
+  conditions: string[];
+  /** Whether the name is written under the token on the map. */
+  showName: boolean;
 }
+
+/** Status effects a token can carry; the interface translates and draws them. */
+export const TOKEN_CONDITIONS = [
+  "blinded",
+  "charmed",
+  "deafened",
+  "frightened",
+  "grappled",
+  "incapacitated",
+  "invisible",
+  "paralyzed",
+  "poisoned",
+  "prone",
+  "restrained",
+  "stunned",
+  "unconscious",
+  "concentrating",
+  "dead",
+] as const;
 
 export type MessageKind = "chat" | "roll" | "whisper";
 
@@ -311,6 +337,10 @@ const tokenFields = {
   hidden: z.boolean(),
   actorId: z.string().uuid().nullable(),
   controllerIds: z.array(z.string().uuid()).max(20),
+  hp: z.number().int().min(-9999).max(99999).nullable(),
+  hpMax: z.number().int().min(1).max(99999).nullable(),
+  conditions: z.array(z.enum(TOKEN_CONDITIONS)).max(TOKEN_CONDITIONS.length),
+  showName: z.boolean(),
 };
 export const createTokenSchema = z.object({
   sceneId: z.string().uuid(),
@@ -323,10 +353,14 @@ export const createTokenSchema = z.object({
   actorId: tokenFields.actorId.default(null),
   assetId: tokenFields.assetId.default(null),
   controllerIds: tokenFields.controllerIds.default([]),
+  hp: tokenFields.hp.default(null),
+  hpMax: tokenFields.hpMax.default(null),
+  conditions: tokenFields.conditions.default([]),
+  showName: tokenFields.showName.default(false),
 });
 export const updateTokenSchema = z.object(tokenFields).partial();
 /** Fields a non-GM controller may change on their own tokens. */
-export const PLAYER_EDITABLE_TOKEN_FIELDS = ["x", "y", "rotation"] as const;
+export const PLAYER_EDITABLE_TOKEN_FIELDS = ["x", "y", "rotation", "hp", "conditions"] as const;
 
 export const sendMessageSchema = z.object({
   content: z.string().trim().min(1).max(2000),

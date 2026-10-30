@@ -20,6 +20,10 @@ const goblin: TokenDto = {
   hidden: true,
   actorId: null,
   controllerIds: [],
+  hp: null,
+  hpMax: null,
+  conditions: [],
+  showName: false,
 };
 const hero: TokenDto = { ...goblin, id: "t2", name: "Hero", hidden: false, color: "#3366aa" };
 const players: MemberDto[] = [{ userId: "u2", displayName: "Grace", color: "#336699", role: "player", online: true }];

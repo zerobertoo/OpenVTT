@@ -22,6 +22,10 @@ interface TokenRow {
   asset_id: string | null;
   hidden: number;
   actor_id: string | null;
+  hp: number | null;
+  hp_max: number | null;
+  conditions: string;
+  show_name: number;
 }
 
 export class TokenService {
@@ -49,7 +53,16 @@ export class TokenService {
       hidden: row.hidden === 1,
       actorId: row.actor_id,
       controllerIds: this.controllers(row.id),
+      hp: row.hp,
+      hpMax: row.hp_max,
+      conditions: JSON.parse(row.conditions) as string[],
+      showName: row.show_name === 1,
     };
+  }
+
+  /** What a viewer may be told about a token: hit points are for the game master and the token's controllers only. */
+  forViewer(token: TokenDto, viewer: Viewer): TokenDto {
+    return this.canControl(token, viewer) ? token : { ...token, hp: null, hpMax: null };
   }
 
   /** Token plus the world it belongs to, or null. */
@@ -65,7 +78,10 @@ export class TokenService {
     const rows = this.db
       .prepare("SELECT t.* FROM tokens t JOIN scenes s ON s.id = t.scene_id WHERE s.world_id = ? ORDER BY t.rowid")
       .all(worldId) as unknown as TokenRow[];
-    return rows.map((r) => this.toDto(r)).filter((t) => this.canSee(t, viewer, activeSceneId));
+    return rows
+      .map((r) => this.toDto(r))
+      .filter((t) => this.canSee(t, viewer, activeSceneId))
+      .map((t) => this.forViewer(t, viewer));
   }
 
   canSee(token: TokenDto, viewer: Viewer, activeSceneId: string | null): boolean {
@@ -85,10 +101,25 @@ export class TokenService {
     transaction(this.db, () => {
       this.db
         .prepare(
-          `INSERT INTO tokens (id, scene_id, name, x, y, size, rotation, color, asset_id, hidden, actor_id)
-           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+          `INSERT INTO tokens (id, scene_id, name, x, y, size, rotation, color, asset_id, hidden, actor_id, hp, hp_max, conditions, show_name)
+           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(id, input.sceneId, input.name, input.x, input.y, input.size, input.color, input.assetId, input.hidden ? 1 : 0, input.actorId);
+        .run(
+          id,
+          input.sceneId,
+          input.name,
+          input.x,
+          input.y,
+          input.size,
+          input.color,
+          input.assetId,
+          input.hidden ? 1 : 0,
+          input.actorId,
+          input.hp,
+          input.hpMax,
+          JSON.stringify(input.conditions),
+          input.showName ? 1 : 0,
+        );
       this.setControllers(id, input.controllerIds);
     });
     return this.find(id)!.token;
@@ -102,10 +133,26 @@ export class TokenService {
     transaction(this.db, () => {
       this.db
         .prepare(
-          `UPDATE tokens SET name = ?, x = ?, y = ?, size = ?, rotation = ?, color = ?, asset_id = ?, hidden = ?, actor_id = ?
+          `UPDATE tokens SET name = ?, x = ?, y = ?, size = ?, rotation = ?, color = ?, asset_id = ?, hidden = ?, actor_id = ?,
+             hp = ?, hp_max = ?, conditions = ?, show_name = ?
            WHERE id = ?`,
         )
-        .run(next.name, next.x, next.y, next.size, next.rotation, next.color, next.assetId, next.hidden ? 1 : 0, next.actorId, tokenId);
+        .run(
+          next.name,
+          next.x,
+          next.y,
+          next.size,
+          next.rotation,
+          next.color,
+          next.assetId,
+          next.hidden ? 1 : 0,
+          next.actorId,
+          next.hp,
+          next.hpMax,
+          JSON.stringify(next.conditions),
+          next.showName ? 1 : 0,
+          tokenId,
+        );
       if (patch.controllerIds) this.setControllers(tokenId, patch.controllerIds);
     });
     return this.find(tokenId)!.token;

@@ -7,6 +7,7 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { closeVideo, openVideo } from "./lib/media";
+import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type MapLayers, useTableUi } from "./tableStore";
 
 export type MapTool = "select" | "ruler";
@@ -562,6 +563,40 @@ export function MapView(props: Props) {
 
     const currentToken = (id: string) => props_().tokens.find((t) => t.id === id);
 
+    /** Health bar, name and condition badges around a token; counter-rotated so they stay upright and out of the way of clicks. */
+    function drawStatus(token: TokenDto, px: number, gridSize: number): Container {
+      const status = new Container();
+      status.eventMode = "none";
+      status.rotation = -((token.rotation * Math.PI) / 180);
+      let belowY = px / 2 + 2;
+      if (token.hp !== null && token.hpMax !== null) {
+        const width = px * 0.9;
+        const height = Math.max(5, gridSize / 10);
+        const ratio = healthRatio(token.hp, token.hpMax);
+        const bar = new Graphics().roundRect(-width / 2, belowY, width, height, height / 2).fill({ color: 0x000000, alpha: 0.7 });
+        if (ratio > 0) bar.roundRect(-width / 2, belowY, Math.max(height, width * ratio), height, height / 2).fill({ color: healthColor(ratio) });
+        status.addChild(bar);
+        belowY += height + 2;
+      }
+      if (token.showName) {
+        const name = new Text({
+          text: token.name,
+          style: { fill: 0xffffff, fontSize: Math.max(12, gridSize / 4.5), fontWeight: "600", stroke: { color: 0x000000, width: 4 } },
+        });
+        name.anchor.set(0.5, 0);
+        name.position.set(0, belowY);
+        status.addChild(name);
+      }
+      const badge = Math.max(16, gridSize / 3.4);
+      token.conditions.slice(0, 4).forEach((id, i, shown) => {
+        const glyph = new Text({ text: CONDITION_GLYPHS[id as keyof typeof CONDITION_GLYPHS] ?? "", style: { fontSize: badge * 0.85 } });
+        glyph.anchor.set(0.5);
+        glyph.position.set((i - (shown.length - 1) / 2) * badge, -px / 2 - badge * 0.2);
+        status.addChild(glyph);
+      });
+      return status;
+    }
+
     function drawToken(view: Container, token: TokenDto, gridSize: number, selected: boolean) {
       const px = token.size * gridSize;
       view.removeChildren().forEach((c) => c.destroy());
@@ -571,6 +606,7 @@ export function MapView(props: Props) {
       const body = new Graphics().circle(0, 0, px / 2 - 2).fill({ color: hexToNumber(token.color), alpha: token.hidden ? 0.45 : 1 });
       body.stroke({ width: selected ? 4 : 2, color: selected ? 0xffffff : 0x000000 });
       view.addChild(body);
+      view.addChild(drawStatus(token, px, gridSize));
       if (token.assetId) {
         const assetId = token.assetId;
         void loadTexture(assetId).then((texture) => {

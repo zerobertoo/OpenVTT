@@ -9,6 +9,7 @@ import {
   MAX_SCENE_LIGHTS,
   MAX_SCENE_WALLS,
   MAX_UPLOAD_BYTES,
+  TOKEN_CONDITIONS,
   type UserDto,
   wallInputSchema,
 } from "@openvtt/shared";
@@ -75,6 +76,11 @@ const worldFileSchema = z.object({
         assetId: id.nullable(),
         hidden: z.boolean(),
         actorId: id.nullable(),
+        // Added after the first release: older files omit them.
+        hp: z.number().int().nullable().default(null),
+        hpMax: z.number().int().min(1).nullable().default(null),
+        conditions: z.array(z.enum(TOKEN_CONDITIONS)).default([]),
+        showName: z.boolean().default(false),
       }),
     )
     .max(20000),

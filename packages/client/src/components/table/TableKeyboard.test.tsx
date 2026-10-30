@@ -39,6 +39,10 @@ const token: TokenDto = {
   hidden: false,
   actorId: null,
   controllerIds: [],
+  hp: null,
+  hpMax: null,
+  conditions: [],
+  showName: false,
 };
 
 function Harness({ movableToken, onMove }: { movableToken: TokenDto | null; onMove: () => void }) {

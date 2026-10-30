@@ -148,6 +148,12 @@ CREATE TABLE IF NOT EXISTS combatants (
   score REAL NOT NULL
 );
 `,
+  `
+ALTER TABLE tokens ADD COLUMN hp INTEGER;
+ALTER TABLE tokens ADD COLUMN hp_max INTEGER;
+ALTER TABLE tokens ADD COLUMN conditions TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE tokens ADD COLUMN show_name INTEGER NOT NULL DEFAULT 0;
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */
