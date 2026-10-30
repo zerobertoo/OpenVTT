@@ -7,11 +7,9 @@ import type { Viewer } from "./tokens.ts";
 
 type DrawingInput = z.infer<typeof createDrawingSchema>;
 
-/** Drawings, arrows, texts and the game master's note pins on a scene. */
 export class DrawingService {
   constructor(private db: Db) {}
 
-  /** The scene and world a drawing belongs to, or null. */
   find(drawingId: string): { sceneId: string; worldId: string; authorId: string | null; layer: DrawingDto["layer"] } | null {
     const row = this.db
       .prepare("SELECT d.scene_id, d.author_id, d.layer, s.world_id FROM drawings d JOIN scenes s ON s.id = d.scene_id WHERE d.id = ?")
@@ -42,7 +40,6 @@ export class DrawingService {
     return id;
   }
 
-  /** Imported drawings have no author. */
   insertImported(sceneId: string, input: DrawingInput) {
     this.db
       .prepare("INSERT INTO drawings (id, scene_id, author_id, kind, layer, points, color, text) VALUES (?, ?, NULL, ?, ?, ?, ?, ?)")
@@ -57,7 +54,6 @@ export class DrawingService {
       );
   }
 
-  /** The game master erases anything; everybody else only what they drew themselves. */
   remove(drawingId: string, viewer: Viewer) {
     const found = this.find(drawingId);
     // A player is never told that a game master drawing exists.
@@ -67,7 +63,6 @@ export class DrawingService {
     this.db.prepare("DELETE FROM drawings WHERE id = ?").run(drawingId);
   }
 
-  /** Clears the scene for the game master, or only the viewer's own drawings for anyone else. */
   clear(sceneId: string, viewer: Viewer) {
     const locked = JSON.stringify(this.lockedLayers(sceneId));
     const unlocked = "layer NOT IN (SELECT value FROM json_each(?))";

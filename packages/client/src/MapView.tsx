@@ -40,7 +40,6 @@ interface Props {
   formatDistance: (cells: number) => string;
   rulerShape: RulerShape;
   diagonalRule: DiagonalRule;
-  /** What the draw tool places. */
   draw: DrawSettings;
   onDraw: (drawing: Pick<DrawingDto, "kind" | "layer" | "points" | "color" | "text">) => void;
   /** Only called for drawings `canErase` accepts. */
@@ -572,7 +571,6 @@ export function MapView(props: Props) {
       e.mapData.addChild(lights, walls, doors);
     }
 
-    /** A text label, a note pin with its words, or a shape. */
     function drawingView(drawing: DrawingDto, gridSize: number): Container {
       const [x, y] = drawing.points as [number, number];
       if (drawing.kind === "text" || drawing.kind === "note") {
@@ -591,7 +589,6 @@ export function MapView(props: Props) {
           },
         });
         if (drawing.kind === "note") {
-          // A pin with the note under it.
           view.addChild(
             new Graphics()
               .circle(0, 0, Math.max(8, gridSize / 6))
@@ -763,7 +760,6 @@ export function MapView(props: Props) {
           }
           const hex = hexOrientationOf(scene.gridType);
           if (hex) {
-            // The token's center goes to the middle of a hex.
             const center = snapToHex({ x: x + half, y: y + half }, scene.gridSize, hex);
             x = center.x - half;
             y = center.y - half;

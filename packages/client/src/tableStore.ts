@@ -49,7 +49,6 @@ export const PLAYER_LAYERS: MapLayers = {
 export interface DrawSettings {
   kind: DrawingKind | "erase";
   color: string;
-  /** Words for the next text or note pin. */
   text: string;
   layer: DrawingLayer;
 }

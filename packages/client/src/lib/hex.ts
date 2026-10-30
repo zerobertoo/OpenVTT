@@ -13,7 +13,6 @@ export function hexCenter(q: number, r: number, size: number, orientation: HexOr
     : { x: ((size * SQRT3) / 2) * q, y: size * (r + q / 2) };
 }
 
-/** Axial coordinates of the hex containing `p`. */
 export function hexAt(p: Point, size: number, orientation: HexOrientation): { q: number; r: number } {
   const step = (size * SQRT3) / 2;
   const [q, r] = orientation === "pointy" ? [p.x / size - p.y / step / 2, p.y / step] : [p.x / step, p.y / size - p.x / step / 2];
@@ -31,7 +30,6 @@ export const snapToHex = (p: Point, size: number, orientation: HexOrientation): 
   return hexCenter(q, r, size, orientation);
 };
 
-/** Steps between the hexes under two points. */
 export function hexDistance(a: Point, b: Point, size: number, orientation: HexOrientation): number {
   const from = hexAt(a, size, orientation);
   const to = hexAt(b, size, orientation);
@@ -50,7 +48,6 @@ export function hexCorners(center: Point, size: number, orientation: HexOrientat
   }).flat();
 }
 
-/** Centers of every hex that touches a `width` × `height` map. */
 export function hexCentersIn(width: number, height: number, size: number, orientation: HexOrientation): Point[] {
   const out: Point[] = [];
   const step = (size * SQRT3) / 2;

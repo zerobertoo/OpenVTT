@@ -126,7 +126,6 @@ export class Hub {
     if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId)) throw new AppError("not_found");
     if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
     const scene = this.s.scenes.get(token.sceneId)!;
-    // Locked tokens stay put for everybody until the game master unlocks the layer.
     if (scene.lockedLayers.includes("tokens")) return this.publishToken(conn.worldId, token, token);
     const x = Math.min(Math.max(msg.x, 0), scene.width);
     const y = Math.min(Math.max(msg.y, 0), scene.height);

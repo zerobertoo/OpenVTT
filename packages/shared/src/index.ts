@@ -258,7 +258,6 @@ export interface HandoutDto {
   id: string;
   title: string;
   body: string;
-  /** Only the game master receives it; players get an empty list. */
   audience: string[];
 }
 
@@ -275,7 +274,6 @@ export const handoutInputSchema = z.object({
 /** No defaults, so a partial update never wipes what is stored. */
 export const updateHandoutSchema = z.object(handoutFields).partial();
 
-/** An uploaded file of the world, for the game master's library. */
 export interface AssetSummaryDto {
   id: string;
   mime: string;
@@ -300,7 +298,6 @@ export interface WorldStateDto {
   vision: VisionDto | null;
   /** Null while no combat is running. */
   combat: CombatDto | null;
-  /** Journal entries the recipient may read. */
   handouts: HandoutDto[];
   /** What the game master plays for the whole table; null when nothing was picked. */
   ambient: AmbientDto | null;

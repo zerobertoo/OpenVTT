@@ -37,7 +37,6 @@ export function distanceToDrawing(drawing: Pick<DrawingDto, "kind" | "points">, 
   }
 }
 
-/** The topmost drawing within `tolerance` pixels of `p`. */
 export function drawingAt<T extends Pick<DrawingDto, "kind" | "points">>(drawings: T[], p: Point, tolerance: number): T | null {
   for (let i = drawings.length - 1; i >= 0; i--) if (distanceToDrawing(drawings[i]!, p) <= tolerance) return drawings[i]!;
   return null;

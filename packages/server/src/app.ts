@@ -239,7 +239,6 @@ export function buildApp(options: AppOptions) {
     return { id: asset.id, mime: asset.mime };
   });
 
-  // The game master's library: every file uploaded to the world, newest first.
   app.get<{ Params: { id: string } }>("/api/worlds/:id/assets", async (req) => {
     requireGm(req, req.params.id);
     return s.assets.listFor(req.params.id);

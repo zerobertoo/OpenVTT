@@ -44,7 +44,6 @@ describe("drawings and note pins", () => {
     expect(bobState.scenes[0]!.drawings.map((d) => d.kind)).toEqual(["arrow"]);
     expect(JSON.stringify(bobState)).not.toContain("lich");
     expect(JSON.stringify(bobState)).not.toContain("abcdef");
-    // Export is the game master's; players get nothing out of it.
     expect((await call(app, bob.cookie, "GET", `/api/worlds/${world.id}/export`)).statusCode).toBe(403);
   });
 
@@ -65,7 +64,6 @@ describe("drawings and note pins", () => {
     // A hidden note answers as if it did not exist.
     expect((await call(app, bob.cookie, "DELETE", `/api/drawings/${gmNote.id}`)).statusCode).toBe(404);
     expect((await call(app, bob.cookie, "DELETE", `/api/drawings/${own.id}`)).statusCode).toBe(200);
-    // Clearing as a player removes only that player's marks.
     await call(app, bob.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "line", points: [0, 0, 9, 9] });
     await call(app, bob.cookie, "DELETE", `/api/scenes/${scene.id}/drawings`);
     expect((await stateOf(gm.cookie)).scenes[0]!.drawings).toHaveLength(2);
@@ -124,7 +122,6 @@ describe("locked layers", () => {
     expect((await call(app, bob.cookie, "DELETE", `/api/drawings/${mark.id}`)).statusCode).toBe(403);
     await call(app, gm.cookie, "DELETE", `/api/scenes/${scene.id}/drawings`);
     expect((await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 70 })).statusCode).toBe(403);
-    // The background layer is still open.
     expect(
       (await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "line", layer: "background", points: [0, 0, 1, 1] }))
         .statusCode,

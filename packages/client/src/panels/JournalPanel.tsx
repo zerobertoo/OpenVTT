@@ -16,7 +16,6 @@ interface Props {
   isGm: boolean;
 }
 
-/** Handouts and journal entries in markdown; the game master writes them and picks who reads each one. */
 export function JournalPanel({ state, isGm }: Props) {
   const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -112,7 +111,6 @@ function HandoutEditor({ handout, state, onDone }: { handout: HandoutDto; state:
   const players = state.members.filter((m) => m.role === "player");
   const toggle = (userId: string, on: boolean) => setAudience((a) => (on ? [...a, userId] : a.filter((id) => id !== userId)));
 
-  // Library pictures are inserted where the cursor is.
   const insertImage = (assetId: string) => {
     const at = bodyRef.current?.selectionStart ?? body.length;
     setBody(`${body.slice(0, at)}![](asset:${assetId})${body.slice(at)}`);
@@ -175,7 +173,6 @@ function HandoutEditor({ handout, state, onDone }: { handout: HandoutDto; state:
 /** The editor that is open, if any, so the library can insert into it. */
 const insertImageRef: { current: ((assetId: string) => void) | null } = { current: null };
 
-/** Every file uploaded to the world, with a way to add more and to place pictures into a handout. */
 function AssetLibrary({ worldId, canInsert }: { worldId: string; canInsert: boolean }) {
   const { t } = useTranslation();
   const [assets, setAssets] = useState<AssetSummaryDto[] | null>(null);

@@ -11,7 +11,6 @@ interface PopoverProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   className?: string;
-  /** Accessible name of the panel, which screen readers announce as a dialog. */
   label?: string;
 }
 

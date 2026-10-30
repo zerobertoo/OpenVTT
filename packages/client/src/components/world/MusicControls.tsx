@@ -8,7 +8,6 @@ import { Field } from "../ui/field";
 import { FileButton } from "../ui/file-button";
 import { Select } from "../ui/input";
 
-/** Game master: upload music or ambience and play one track, looping, for the whole table. */
 export function MusicControls({ worldId, ambient }: { worldId: string; ambient: AmbientDto | null }) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();

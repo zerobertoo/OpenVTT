@@ -9,17 +9,14 @@ import { Input, Select } from "../ui/input";
 interface Props {
   isGm: boolean;
   lockedLayers: MapLayer[];
-  /** Erases the scene for the game master, or the person's own marks for anyone else. */
   onClear: () => void;
 }
 
-/** Shown above the map tools while drawing: what to place, its color and words, and the layer (game master). */
 export function DrawOptions({ isGm, lockedLayers, onClear }: Props) {
   const { t } = useTranslation();
   const draw = useTableUi((ui) => ui.draw);
   const setDraw = useTableUi((ui) => ui.setDraw);
   const [confirming, setConfirming] = useState(false);
-  // Note pins are the game master's own notes.
   const kinds = [...DRAWING_KINDS.filter((k) => isGm || k !== "note"), "erase"] as const;
   const needsText = draw.kind === "text" || draw.kind === "note";
   const locked = draw.kind !== "erase" && lockedLayers.includes(draw.kind === "note" ? "gm" : draw.layer);

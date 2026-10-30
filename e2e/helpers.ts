@@ -57,5 +57,4 @@ export function worldState(page: Page, worldId: string) {
   );
 }
 
-/** The id in a `/world/<id>` page address. */
 export const worldIdOf = (page: Page) => page.url().split("/world/")[1]!.split(/[/?#]/)[0]!;

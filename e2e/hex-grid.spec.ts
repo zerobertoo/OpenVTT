@@ -20,7 +20,6 @@ test("a scene switches to a hex grid and tokens moved by keyboard land on hex ce
   await expect.poll(async () => (await worldState(page, worldId)).scenes[0]?.gridType).toBe("hexPointy");
   await expectNoAxeViolations(page);
 
-  // Select the token from its list, then step it right and down.
   await page.getByRole("tab", { name: "Tokens" }).click();
   await page.getByRole("button", { name: /Scout/ }).first().click();
   await page.getByRole("application").focus();

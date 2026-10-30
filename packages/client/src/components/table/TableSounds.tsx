@@ -7,7 +7,6 @@ import { chime } from "../../lib/sound";
 import { Button } from "../ui/button";
 import { toast } from "../ui/toast";
 
-/** "Your turn" and whisper alerts, and the table music the game master plays. */
 export function TableSounds({ state, userId }: { state: WorldStateDto; userId: string }) {
   const { t } = useTranslation();
   const turnTokenId = state.combat?.turnTokenId ?? null;

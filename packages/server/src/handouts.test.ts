@@ -48,7 +48,6 @@ it("keeps writing, the asset library and the export with the game master", async
   expect((await stateOf(bob.cookie)).handouts[0]).toMatchObject({ title: "Notes", body: "keep me" });
   expect((await call(app, bob.cookie, "PATCH", `/api/handouts/${id}`, { audience: ["*"] })).statusCode).toBe(403);
   expect((await call(app, bob.cookie, "DELETE", `/api/handouts/${id}`)).statusCode).toBe(403);
-  // Sharing with someone outside the world is refused.
   expect((await call(app, gm.cookie, "PATCH", `/api/handouts/${id}`, { audience: [crypto.randomUUID()] })).statusCode).toBe(404);
 
   await upload(app, gm.cookie, world.id, PNG);

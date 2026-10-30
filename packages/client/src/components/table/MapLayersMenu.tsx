@@ -18,7 +18,6 @@ interface Props {
   onLockChange: (lockedLayers: MapLayer[]) => void;
 }
 
-/** Which switch shows each map layer. */
 const LAYER_VISIBILITY = { background: "background", objects: "objects", tokens: "tokens", gm: "gmDrawings" } as const satisfies Record<
   MapLayer,
   keyof MapLayers

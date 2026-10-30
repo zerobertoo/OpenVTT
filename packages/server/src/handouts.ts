@@ -18,7 +18,6 @@ type HandoutInput = z.infer<typeof handoutInputSchema>;
 /** `audience` is `["*"]` for everyone, a list of user ids, or empty for the game master alone. */
 const canRead = (audience: string[], viewer: Viewer) => viewer.role === "gm" || audience.includes("*") || audience.includes(viewer.userId);
 
-/** Journal entries and handouts in markdown, shown to the people the game master picks. */
 export class HandoutService {
   constructor(private db: Db) {}
 
