@@ -2,7 +2,8 @@ services:
   openvtt:
     build: .
     ports:
-      - "3000:3000"
+      # Host port; set OPENVTT_HOST_PORT in a .env file if 3000 is taken.
+      - "${OPENVTT_HOST_PORT:-3000}:3000"
     volumes:
       # The database, uploaded maps (images and videos) and installed systems all live here.
       - openvtt-data:/data

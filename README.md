@@ -27,6 +27,10 @@ docker compose up -d --build
 
 Open http://localhost:3000. Data (database, uploaded maps, installed systems) lives in the `openvtt-data` volume; back it up by copying that volume. Behind an HTTPS reverse proxy, set `OPENVTT_SECURE_COOKIES=1` (see `compose.yaml`) and make sure the proxy forwards WebSocket upgrades on `/ws`.
 
+### Behind Dokploy (Traefik)
+
+Use `compose.dokploy.yaml`, which publishes no host port, so it works even when port 3000 is taken. Set the Compose Path to `./compose.dokploy.yaml`, then in the Domains tab choose the `openvtt` service, container port `3000`, and enable HTTPS. Traefik forwards WebSocket upgrades on `/ws` by default. For plain Docker with a busy port, set `OPENVTT_HOST_PORT` in a `.env` file instead.
+
 ## Running from source
 
 Requires Node.js 24+ (uses the built-in `node:sqlite`) and pnpm 9.
