@@ -1,45 +1,48 @@
 # Roadmap
 
-Planned work that is not built yet. Nothing here is a promise or a date; it records what was decided so it is not lost.
+What is built, and what is still planned. Nothing here is a promise or a date; it records what was decided so it is not lost.
 
-## Map import and export
+## Built
 
-Goal: bring maps made in external tools into a scene with as little manual setup as possible, so a map from Dungeon Alchemist (or similar) arrives with its grid size and, later, its walls and lights.
+**Maps**
 
-Rule: formats are implemented from their public specifications or from sample files only. No code is copied from other virtual tabletops.
+- Scenes from images, animated videos (WebM, MP4), Universal VTT files (`.dd2vtt`, `.uvtt`), Foundry-style scene JSON and images with the grid in the file name; several floors of one map imported together.
+- Square and hex grids (pointy or flat top), adjusted visually over the map; distances in metric, imperial or the scene's own units.
+- Walls, doors and lights, drawn for the game master; tokens cannot walk through walls or closed doors.
+- Fog of war from vision computed on the server (players only receive what their tokens see), and "view as player" for the game master.
+- Export of a scene as Universal VTT.
+- Drawings, arrows, shapes, text and private note pins for the game master.
+- Map layers (background, objects, tokens, game master only) that can be hidden and locked.
+- Ruler with line, circle, cone and rectangle shapes and diagonal rules; ping and "look here"; overview map.
 
-| Format | What it carries | Priority | Notes |
-|---|---|---|---|
-| Plain image (PNG, JPG, WebP) | Picture only | Done | Already supported when creating a scene. Grid size and distance are typed by hand. |
-| Universal VTT (`.dd2vtt`, `.uvtt`) | Image, grid size in pixels, walls and doors (line of sight), lights | 1st | Common exchange format; exported by Dungeon Alchemist, Dungeondraft and others. Step 1 reads image and grid; step 2 stores walls, doors and lights on the scene. |
-| Dungeon Alchemist export | Image and, depending on the export option, Universal VTT or a Foundry-style scene file | 1st | Covered by the two rows around it; verify the current export options against the tool before building. |
-| Foundry-style scene JSON | Image reference, grid, walls, lights | 2nd | Public JSON shape. Read-only import, from sample files. |
-| Image with grid in the file name or sidecar | Image plus a hint such as `map_30x20.png` | 3rd | Cheap fallback for packs that publish grid size in the name. |
-| Export of an OpenVTT scene | Image, grid, walls, lights | 3rd | Export as Universal VTT so maps can leave as easily as they arrive. |
+**Tokens and play**
 
-Planned steps:
+- Tokens with pictures, health bars, conditions and names; multi-select with box or Shift+click, batch turn and delete; many images imported as tokens at once.
+- Initiative order with turns and rounds, hidden tokens left out for players, and a "your turn" chime and notice.
+- Chat with rolls (`/r`, `/gr`), whispers (`/w`), advantage and disadvantage, roll again, history with the arrow keys; dice tray and 2D or 3D dice over the table.
+- Character and NPC sheets defined by rules-system packages; a compendium of monsters and items per system, dragged onto the map.
+- Journal of markdown handouts shared with chosen players; a library of the world's uploads.
+- Table music from uploaded MP3 or Ogg files, with a volume per person.
+- Undo and redo of the game master's map changes (moves, turns, deletions, drawings, compendium placements).
 
-1. **Import dialog in the Scenes tab.** Accept an image or a Universal VTT file, read grid size and distance, fill the new-scene form, let the game master confirm.
-2. **Scene model.** Add optional walls, doors and lights to the scene data and to the world file format (`docs/world-file-format.md`).
-3. **Walls on the map.** Draw walls and doors in the map view; block token movement and the ruler where it makes sense.
-4. **Vision and lighting.** Per-player line of sight and light sources, using the imported walls and lights.
-5. **Export** to Universal VTT.
+**People and data**
 
-Open questions:
+- Roles: game master, assistant game master, player and observer; invites that expire or allow a number of uses; mute and remove members; a log of game master actions.
+- World export and import as one zip; session log download in markdown, per reader.
+- Scheduled database copies inside the server and documented restore steps.
 
-- Maximum file size, since Universal VTT files embed the image as base64.
-- Which Dungeon Alchemist export options to document for users.
+**Interface**
 
-## Client architecture
+- Keyboard shortcuts for everything on the table (`?` lists them), focus mode, a map-only TV view, resizable side panels, touch gestures.
+- English and Brazilian Portuguese; high contrast, larger text and accent color choices; first-session tour.
+- Performance: off-screen culling on the map, a capped texture cache, no drawing in hidden tabs, a virtualized chat.
 
-Decided direction, to be done after the visual redesign settles (separate commits):
+## Planned or open
 
-- **TanStack Router** in place of the hand-written `usePath`: typed route params, and lazy-loaded routes so the table (PixiJS, `motion`) is not part of the login bundle.
-- **TanStack Query** for REST data (worlds, systems, a world's system info) in place of ad-hoc `useEffect` fetches. The live table state keeps coming from the WebSocket hook, not from Query.
-- Not planned: TanStack Start (the app is a self-hosted SPA served by the Fastify server), TanStack Form (forms are small and uncontrolled) and TanStack Table.
-- Revisit TanStack Virtual if chat history gets long enough to need windowing.
+- **Undo coverage.** Undo covers map changes made from the map (moves, turns, deletions, drawings, compendium). Scene settings, walls edited in bulk, sheets and handouts are not undoable yet.
+- **Compendium.** Only the D&D 5e SRD package ships entries, and only a small set. Items are tokens without a sheet; a richer item model (inventory on sheets) would need a template field for it.
+- **Map import.** Fantasy Grounds XML, AboveVTT and Roll20 JSON are not supported (no public specifications); revisit with samples and public docs. Wall and door shapes of Dungeon Alchemist exports are still unverified against real files with walls.
+- **3D dice physics** beyond the current throw, and token animations beyond the first pass.
+- **Client architecture.** Revisit TanStack Router lazy routes once the sign-in bundle nears its budget again (it is close: about 213 of 215 KB gzip).
 
-## Interface
-
-- 3D dice with physics for chat rolls (the current redesign ships animated dice without physics).
-- Token and ruler animations in the map view beyond the first pass.
+Not planned: auras (until systems give tokens ranges), macros and a hotbar (revisit with the compendium), print or PDF sheets beyond the browser's print stylesheet, scene transitions.
