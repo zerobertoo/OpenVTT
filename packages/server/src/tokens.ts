@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { createTokenSchema, TokenDto, updateTokenSchema, WorldRole } from "@openvtt/shared";
+import type { createTokenSchema, TableRole, TokenDto, updateTokenSchema } from "@openvtt/shared";
 import type { z } from "zod";
 import type { AssetService } from "./assets.ts";
 import { type Db, transaction } from "./db.ts";
@@ -7,7 +7,7 @@ import { AppError } from "./errors.ts";
 
 export interface Viewer {
   userId: string;
-  role: WorldRole;
+  role: TableRole;
 }
 
 interface TokenRow {

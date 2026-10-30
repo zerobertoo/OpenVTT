@@ -1,4 +1,4 @@
-import type { WorldStateDto } from "@openvtt/shared";
+import { tableRole, type WorldStateDto } from "@openvtt/shared";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "../../api";
@@ -10,7 +10,8 @@ import { toast } from "../ui/toast";
 export function TableSounds({ state, userId }: { state: WorldStateDto; userId: string }) {
   const { t } = useTranslation();
   const turnTokenId = state.combat?.turnTokenId ?? null;
-  const myTurn = state.yourRole !== "gm" && state.tokens.some((tk) => tk.id === turnTokenId && tk.controllerIds.includes(userId));
+  const myTurn =
+    tableRole(state.yourRole) !== "gm" && state.tokens.some((tk) => tk.id === turnTokenId && tk.controllerIds.includes(userId));
 
   useEffect(() => {
     if (!myTurn) return;

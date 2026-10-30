@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { DiceError, type RollResult, rollDice } from "@openvtt/sdk";
-import type { MessageDto, MessageKind } from "@openvtt/shared";
+import { type MessageDto, type MessageKind, tableRole, type WorldRole } from "@openvtt/shared";
 import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";
 import type { Viewer } from "./tokens.ts";
@@ -50,11 +50,11 @@ export class ChatService {
   ): MessageDto {
     if (input.toUserId !== null) {
       const recipient = this.db.prepare("SELECT role FROM members WHERE world_id = ? AND user_id = ?").get(worldId, input.toUserId) as
-        | { role: Viewer["role"] }
+        | { role: WorldRole }
         | undefined;
       if (!recipient) throw new AppError("not_found");
       // Whispers are GM ↔ player only (PRD 6.4).
-      if (sender.role !== "gm" && recipient.role !== "gm") throw new AppError("forbidden");
+      if (sender.role !== "gm" && tableRole(recipient.role) !== "gm") throw new AppError("forbidden");
     }
 
     const rollMatch = ROLL_COMMAND.exec(input.content);

@@ -30,7 +30,7 @@ function WorldRow({ world }: { world: WorldSummaryDto }) {
       <span className="grid min-w-0 flex-1 gap-1">
         <strong className="break-words">{world.name}</strong>
         <span>
-          <Badge tone={world.role === "gm" ? "accent" : "neutral"}>{t(world.role === "gm" ? "worlds.roleGm" : "worlds.rolePlayer")}</Badge>
+          <Badge tone={world.role === "gm" ? "accent" : "neutral"}>{t(`members.roles.${world.role}`)}</Badge>
         </span>
       </span>
       <Button onClick={() => navigate({ to: "/world/$worldId", params: { worldId: world.id } })}>

@@ -1,5 +1,5 @@
 import type { ActorType } from "@openvtt/sdk";
-import type { WorldStateDto } from "@openvtt/shared";
+import type { AuditEntryDto, WorldStateDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -88,17 +88,55 @@ function TemplateEditor({ worldId }: { worldId: string }) {
   );
 }
 
+function ActionLog({ worldId }: { worldId: string }) {
+  const { t, i18n } = useTranslation();
+  const [entries, setEntries] = useState<AuditEntryDto[] | null>(null);
+  const { run, error } = useAction();
+  return (
+    <details onToggle={(e) => e.currentTarget.open && void run(async () => setEntries(await api.auditLog(worldId)))}>
+      <summary className="cursor-pointer font-semibold">{t("members.actionLog")}</summary>
+      <ErrorMessage error={error} />
+      {entries?.length === 0 && <p className="m-0 text-ink-2 text-sm">{t("members.actionLogEmpty")}</p>}
+      <ol className="m-0 mt-2 grid list-none gap-1 p-0 text-sm">
+        {entries?.map((entry) => (
+          <li key={`${entry.createdAt}-${entry.action}-${entry.detail}`}>
+            <time className="text-ink-2" dateTime={new Date(entry.createdAt).toISOString()}>
+              {new Date(entry.createdAt).toLocaleString(i18n.language)}
+            </time>{" "}
+            <strong>{entry.actorName}</strong> {t(`members.actions.${entry.action.replace(".", "_")}`, { defaultValue: entry.action })}
+            {entry.detail && `: ${entry.detail}`}
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
+
 export function SettingsPanel({ state }: { state: WorldStateDto }) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const { data: system } = useWorldSystem(state.id);
-  const isGm = state.yourRole === "gm";
+  const isGm = state.yourRole === "gm" || state.yourRole === "assistant";
+  const isOwner = state.yourRole === "gm";
+  const manage = useAction();
 
   return (
     <section aria-label={t("settings.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
       <h3>{t("table.members")}</h3>
-      <MemberList members={state.members} />
+      <MemberList
+        members={state.members}
+        manage={
+          isOwner
+            ? {
+                onRoleChange: (userId, role) => void manage.run(() => api.updateMember(state.id, userId, { role })),
+                onMuteChange: (userId, muted) => void manage.run(() => api.updateMember(state.id, userId, { muted })),
+                onKick: (userId) => void manage.run(() => api.kickMember(state.id, userId)),
+              }
+            : undefined
+        }
+      />
+      <ErrorMessage error={manage.error} />
       {system && (
         <p className="m-0 break-words text-ink-2 text-sm">
           {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
@@ -112,11 +150,15 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
       )}
       {isGm && (
         <>
-          <InviteLink
-            link={inviteLink}
-            creating={pending}
-            onCreate={() => run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id)).code}`))}
-          />
+          {isOwner && (
+            <InviteLink
+              link={inviteLink}
+              creating={pending}
+              onCreate={(options) =>
+                run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id, options)).code}`))
+              }
+            />
+          )}
           <a
             className="justify-self-start font-semibold text-accent-text underline underline-offset-[3px]"
             href={api.exportUrl(state.id)}
@@ -126,6 +168,7 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
           </a>
           <ErrorMessage error={error} />
           <MusicControls worldId={state.id} ambient={state.ambient} />
+          <ActionLog worldId={state.id} />
           <TemplateEditor worldId={state.id} />
         </>
       )}

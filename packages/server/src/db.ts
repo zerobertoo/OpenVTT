@@ -189,6 +189,34 @@ CREATE INDEX handouts_world ON handouts (world_id);
 ALTER TABLE worlds ADD COLUMN ambient_asset_id TEXT REFERENCES assets(id) ON DELETE SET NULL;
 ALTER TABLE worlds ADD COLUMN ambient_playing INTEGER NOT NULL DEFAULT 0;
 `,
+  // Nothing references members, so the table can be rebuilt to widen its role CHECK.
+  `
+CREATE TABLE members_new (
+  world_id TEXT NOT NULL REFERENCES worlds(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  display_name TEXT NOT NULL,
+  color TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('gm', 'assistant', 'player', 'observer')),
+  muted INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (world_id, user_id)
+);
+INSERT INTO members_new (world_id, user_id, display_name, color, role) SELECT world_id, user_id, display_name, color, role FROM members;
+DROP TABLE members;
+ALTER TABLE members_new RENAME TO members;
+ALTER TABLE invites ADD COLUMN expires_at INTEGER;
+ALTER TABLE invites ADD COLUMN max_uses INTEGER;
+ALTER TABLE invites ADD COLUMN uses INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE invites ADD COLUMN role TEXT NOT NULL DEFAULT 'player';
+CREATE TABLE audit_log (
+  id INTEGER PRIMARY KEY,
+  world_id TEXT NOT NULL REFERENCES worlds(id) ON DELETE CASCADE,
+  actor_name TEXT NOT NULL,
+  action TEXT NOT NULL,
+  detail TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX audit_log_world ON audit_log (world_id, created_at);
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

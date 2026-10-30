@@ -41,11 +41,15 @@ export function ChatPanel({ state, userId }: { state: WorldStateDto; userId: str
           />
         ))}
       </ul>
-      <ChatComposer
-        recipients={recipients}
-        error={error}
-        onSend={async (message) => Boolean(await run(() => api.sendMessage(state.id, message)))}
-      />
+      {can.isObserver || state.members.find((m) => m.userId === userId)?.muted ? (
+        <p className="m-0 text-ink-2 text-sm">{t(can.isObserver ? "members.observerChat" : "members.mutedChat")}</p>
+      ) : (
+        <ChatComposer
+          recipients={recipients}
+          error={error}
+          onSend={async (message) => Boolean(await run(() => api.sendMessage(state.id, message)))}
+        />
+      )}
       <a className="justify-self-start text-sm text-accent-text underline underline-offset-[3px]" href={api.logUrl(state.id)} download>
         {t("chat.exportLog")}
       </a>

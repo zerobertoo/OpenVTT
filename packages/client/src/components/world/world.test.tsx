@@ -8,8 +8,8 @@ import { InviteLink } from "./InviteLink";
 import { MemberList } from "./MemberList";
 
 const members: MemberDto[] = [
-  { userId: "u1", displayName: "Ada", color: "#3366aa", role: "gm", online: true },
-  { userId: "u2", displayName: "Grace", color: "#aa6633", role: "player", online: false },
+  { userId: "u1", displayName: "Ada", color: "#3366aa", role: "gm", online: true, muted: false },
+  { userId: "u2", displayName: "Grace", color: "#aa6633", role: "player", online: false, muted: false },
 ];
 
 const stubClipboard = (writeText: () => Promise<void>) =>

@@ -84,8 +84,7 @@ export function Table({ worldId, user }: Props) {
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
 
   // The preview only makes sense for a player who is still in the world.
-  const previewedPlayer =
-    state?.yourRole === "gm" ? state.members.find((m) => m.role === "player" && m.userId === viewAsUserId) : undefined;
+  const previewedPlayer = can.isGm ? state?.members.find((m) => m.role === "player" && m.userId === viewAsUserId) : undefined;
   const viewAs = previewedPlayer?.userId ?? null;
   // The server forgets the preview when the socket drops, so it is asked for again on every (re)connect.
   useEffect(() => {
@@ -232,6 +231,7 @@ export function Table({ worldId, user }: Props) {
           <MapToolbar
             tool={tool}
             onToolChange={setTool}
+            canDraw={!can.isObserver}
             diceTrayOpen={diceTrayOpen}
             onToggleDiceTray={() => setDiceTrayOpen(!diceTrayOpen)}
             layersMenu={

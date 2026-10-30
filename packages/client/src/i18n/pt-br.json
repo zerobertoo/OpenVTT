@@ -127,8 +127,6 @@
     "created": "Mundo criado",
     "moreTitle": "Trazer algo de fora",
     "open": "Abrir",
-    "roleGm": "Mestre",
-    "rolePlayer": "Jogador",
     "import": "Importar arquivo de mundo (.zip)",
     "installSystem": "Instalar pacote de sistema de regras (.zip, admin)"
   },
@@ -143,7 +141,14 @@
     "copy": "Copiar link",
     "copied": "Link de convite copiado",
     "copyFailed": "Não foi possível copiar o link",
-    "copyFailedHint": "Selecione o link e copie à mão."
+    "copyFailedHint": "Selecione o link e copie à mão.",
+    "expires": "Expira",
+    "never": "Nunca",
+    "hours_one": "Em {{count}} hora",
+    "hours_other": "Em {{count}} horas",
+    "uses": "Usos",
+    "unlimited": "Ilimitados",
+    "joinAs": "Entra como"
   },
   "table": {
     "members": "Membros",
@@ -477,5 +482,35 @@
     "play": "Tocar para todos",
     "stop": "Parar a música",
     "upload": "Enviar MP3 ou Ogg"
+  },
+  "members": {
+    "roles": { "gm": "Mestre", "assistant": "Mestre assistente", "player": "Jogador", "observer": "Observador" },
+    "roleOf": "Papel de {{name}}",
+    "muted": "silenciado",
+    "mute": "Silenciar",
+    "unmute": "Liberar chat",
+    "kick": "Remover do mundo",
+    "kickTitle": "Remover {{name}} deste mundo?",
+    "kickBody": "A pessoa perde o acesso na hora. Os tokens e fichas dela ficam, sem dono. Ela só volta com um novo convite.",
+    "observerChat": "Observadores leem o chat, mas não escrevem nele.",
+    "mutedChat": "O mestre silenciou você neste mundo.",
+    "actionLog": "Registro de ações do mestre",
+    "actionLogEmpty": "Nada registrado ainda.",
+    "actions": {
+      "invite_create": "criou um convite",
+      "member_role": "mudou um papel",
+      "member_mute": "silenciou",
+      "member_unmute": "liberou o chat de",
+      "member_kick": "removeu",
+      "scene_create": "criou a cena",
+      "scene_delete": "excluiu a cena",
+      "scene_activate": "mostrou a cena",
+      "token_delete": "excluiu o token",
+      "actor_delete": "excluiu a ficha",
+      "handout_delete": "excluiu um texto",
+      "drawings_clear": "apagou os desenhos de",
+      "music_play": "tocou a música",
+      "music_stop": "parou a música"
+    }
   }
 }

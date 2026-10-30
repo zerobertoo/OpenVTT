@@ -25,7 +25,11 @@ export const ERROR_CODES = [
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
 export type InstallationRole = "admin" | "user";
-export type WorldRole = "gm" | "player";
+/** `gm` owns the world; an `assistant` runs the table like the game master but cannot manage members; an `observer` only watches. */
+export type WorldRole = "gm" | "assistant" | "player" | "observer";
+/** What a role may see and do at the table: assistants count as game masters there, observers as players. */
+export type TableRole = "gm" | "player";
+export const tableRole = (role: WorldRole): TableRole => (role === "gm" || role === "assistant" ? "gm" : "player");
 
 export const usernameSchema = z
   .string()
@@ -66,6 +70,33 @@ export interface MemberDto {
   color: string;
   role: WorldRole;
   online: boolean;
+  /** A muted member cannot write in the chat. */
+  muted: boolean;
+}
+
+export const createInviteSchema = z.object({
+  expiresInHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 30)
+    .nullable()
+    .default(null),
+  maxUses: z.number().int().min(1).max(100).nullable().default(null),
+  role: z.enum(["player", "observer"]).default("player"),
+});
+
+export const updateMemberSchema = z.object({
+  role: z.enum(["assistant", "player", "observer"]).optional(),
+  muted: z.boolean().optional(),
+});
+
+/** One thing the game master or an assistant did, for the world's action log. */
+export interface AuditEntryDto {
+  actorName: string;
+  action: string;
+  detail: string;
+  createdAt: number;
 }
 
 export const GRID_TYPES = ["square", "hexPointy", "hexFlat", "none"] as const;

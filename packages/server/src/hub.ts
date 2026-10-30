@@ -3,9 +3,9 @@ import {
   type MessageDto,
   pathIsBlocked,
   type ServerMessage,
+  type TableRole,
   type TokenDto,
   type VisionDto,
-  type WorldRole,
   type WorldStateDto,
   WS_PATH,
 } from "@openvtt/shared";
@@ -125,6 +125,7 @@ export class Hub {
     const { token } = found;
     if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId)) throw new AppError("not_found");
     if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
+    if (this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId) === "observer") throw new AppError("forbidden");
     const scene = this.s.scenes.get(token.sceneId)!;
     if (scene.lockedLayers.includes("tokens")) return this.publishToken(conn.worldId, token, token);
     const x = Math.min(Math.max(msg.x, 0), scene.width);
@@ -143,6 +144,7 @@ export class Hub {
 
   /** Relays a ping on the active scene to everyone; only the game master can ask the others to look at it. */
   private ping(conn: Connection, msg: { x: number; y: number; focus?: boolean }) {
+    if (this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId) === "observer") return;
     const now = Date.now();
     if (now - conn.lastPingAt < PING_MIN_INTERVAL_MS) return;
     conn.lastPingAt = now;
@@ -162,7 +164,7 @@ export class Hub {
   /** The game master previews a player's sight; anyone who is not a player of this world is ignored. */
   private previewAs(conn: Connection, userId: string | null) {
     if (conn.viewer.role !== "gm") throw new AppError("forbidden");
-    const target = userId && this.s.worlds.roleOf(conn.worldId, userId) === "player" ? userId : null;
+    const target = userId && this.s.worlds.memberRoleOf(conn.worldId, userId) === "player" ? userId : null;
     if (target === conn.viewAs) return;
     conn.viewAs = target;
     this.sendState(conn);
@@ -223,7 +225,7 @@ export class Hub {
       id: world.id,
       name: world.name,
       systemId: world.systemId,
-      yourRole: viewer.role,
+      yourRole: this.s.worlds.memberRoleOf(worldId, viewer.userId) ?? viewer.role,
       activeSceneId,
       members: this.s.worlds.members(worldId, online),
       scenes: viewer.role === "gm" ? allScenes : allScenes.filter((sc) => sc.id === activeSceneId).map(withoutHiddenMapData),
@@ -239,7 +241,7 @@ export class Hub {
 
   private sendState(conn: Connection) {
     // Role is re-read so a role change can never keep stale privileges on an open socket.
-    const role: WorldRole | null = this.s.worlds.roleOf(conn.worldId, conn.viewer.userId);
+    const role: TableRole | null = this.s.worlds.roleOf(conn.worldId, conn.viewer.userId);
     if (!role) return conn.socket.close();
     conn.viewer.role = role;
     if (role !== "gm") conn.viewAs = null;

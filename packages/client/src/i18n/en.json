@@ -127,8 +127,6 @@
     "created": "World created",
     "moreTitle": "Bring something in",
     "open": "Open",
-    "roleGm": "Game master",
-    "rolePlayer": "Player",
     "import": "Import a world file (.zip)",
     "installSystem": "Install a rules system package (.zip, admin)"
   },
@@ -143,7 +141,14 @@
     "copy": "Copy link",
     "copied": "Invite link copied",
     "copyFailed": "Could not copy the link",
-    "copyFailedHint": "Select the link and copy it by hand."
+    "copyFailedHint": "Select the link and copy it by hand.",
+    "expires": "Expires",
+    "never": "Never",
+    "hours_one": "In {{count}} hour",
+    "hours_other": "In {{count}} hours",
+    "uses": "Uses",
+    "unlimited": "Unlimited",
+    "joinAs": "Joins as"
   },
   "table": {
     "members": "Members",
@@ -477,5 +482,35 @@
     "play": "Play for everyone",
     "stop": "Stop the music",
     "upload": "Upload MP3 or Ogg"
+  },
+  "members": {
+    "roles": { "gm": "Game master", "assistant": "Assistant game master", "player": "Player", "observer": "Observer" },
+    "roleOf": "Role of {{name}}",
+    "muted": "muted",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "kick": "Remove from world",
+    "kickTitle": "Remove {{name}} from this world?",
+    "kickBody": "They lose access at once. Their tokens and sheets stay, without an owner. They can come back only with a new invite.",
+    "observerChat": "Observers read the chat but cannot write in it.",
+    "mutedChat": "The game master muted you in this world.",
+    "actionLog": "Game master action log",
+    "actionLogEmpty": "Nothing recorded yet.",
+    "actions": {
+      "invite_create": "created an invite",
+      "member_role": "changed a role",
+      "member_mute": "muted",
+      "member_unmute": "unmuted",
+      "member_kick": "removed",
+      "scene_create": "created the scene",
+      "scene_delete": "deleted the scene",
+      "scene_activate": "showed the scene",
+      "token_delete": "deleted the token",
+      "actor_delete": "deleted the sheet",
+      "handout_delete": "deleted a handout",
+      "drawings_clear": "erased the drawings of",
+      "music_play": "started the music",
+      "music_stop": "stopped the music"
+    }
   }
 }

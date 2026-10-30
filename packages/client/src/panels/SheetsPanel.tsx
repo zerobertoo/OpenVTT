@@ -1,5 +1,5 @@
 import type { SheetValue } from "@openvtt/sdk";
-import type { WorldStateDto } from "@openvtt/shared";
+import { tableRole, type WorldStateDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,7 +23,7 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const isGm = state.yourRole === "gm";
+  const isGm = tableRole(state.yourRole) === "gm";
 
   // The server rebuilds `state.actors` on every change, including template edits by the GM.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `state.actors` is the trigger, not a value read inside

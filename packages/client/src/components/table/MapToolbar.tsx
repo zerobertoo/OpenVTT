@@ -9,6 +9,7 @@ const TOOLS = ["select", "ruler", "draw"] as const satisfies readonly MapTool[];
 interface Props {
   tool: MapTool;
   onToolChange: (tool: MapTool) => void;
+  canDraw: boolean;
   diceTrayOpen: boolean;
   onToggleDiceTray: () => void;
   /** The game master's layers menu; players have none. */
@@ -16,7 +17,7 @@ interface Props {
 }
 
 /** Bottom-centre map tools, and the buttons that open the dice tray and the layers menu next to them. */
-export function MapToolbar({ tool, onToolChange, diceTrayOpen, onToggleDiceTray, layersMenu }: Props) {
+export function MapToolbar({ tool, onToolChange, canDraw, diceTrayOpen, onToggleDiceTray, layersMenu }: Props) {
   const { t } = useTranslation();
   return (
     <div className="dock flex items-stretch gap-2">
@@ -24,7 +25,11 @@ export function MapToolbar({ tool, onToolChange, diceTrayOpen, onToggleDiceTray,
         label={t("map.tools")}
         value={tool}
         onValueChange={onToolChange}
-        choices={TOOLS.map((id) => ({ value: id, label: t(`map.${id}`), icon: <Icon name={id} /> }))}
+        choices={TOOLS.filter((id) => canDraw || id !== "draw").map((id) => ({
+          value: id,
+          label: t(`map.${id}`),
+          icon: <Icon name={id} />,
+        }))}
       />
       <button
         type="button"

@@ -26,7 +26,7 @@ const goblin: TokenDto = {
   showName: false,
 };
 const hero: TokenDto = { ...goblin, id: "t2", name: "Hero", hidden: false, color: "#3366aa" };
-const players: MemberDto[] = [{ userId: "u2", displayName: "Grace", color: "#336699", role: "player", online: true }];
+const players: MemberDto[] = [{ userId: "u2", displayName: "Grace", color: "#336699", role: "player", online: true, muted: false }];
 const actors: ActorDto[] = [{ id: "a1", type: "npc", name: "Goblin sheet", ownerId: null, data: {} }];
 
 describe("TokenList", () => {

@@ -6,9 +6,9 @@ import { InviteLink } from "./InviteLink";
 import { MemberList } from "./MemberList";
 
 const members: MemberDto[] = [
-  { userId: "u1", displayName: "Ada", color: "#3366aa", role: "gm", online: true },
-  { userId: "u2", displayName: "Grace", color: "#aa6633", role: "player", online: false },
-  { userId: "u3", displayName: "Linus", color: "#448855", role: "player", online: true },
+  { userId: "u1", displayName: "Ada", color: "#3366aa", role: "gm", online: true, muted: false },
+  { userId: "u2", displayName: "Grace", color: "#aa6633", role: "player", online: false, muted: false },
+  { userId: "u3", displayName: "Linus", color: "#448855", role: "player", online: true, muted: false },
 ];
 
 const meta = { title: "Panels/World", tags: ["autodocs"] } satisfies Meta;

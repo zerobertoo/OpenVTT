@@ -45,7 +45,7 @@ export const EditorAsGameMaster: Story = {
     <div className="w-80">
       <TokenEditor
         token={goblin}
-        players={[{ userId: "u2", displayName: "Grace", color: "#336699", role: "player", online: true }]}
+        players={[{ userId: "u2", displayName: "Grace", color: "#336699", role: "player", online: true, muted: false }]}
         actors={[{ id: "a1", type: "npc", name: "Goblin sheet", ownerId: null, data: {} }]}
         isGm
         onPatch={() => {}}

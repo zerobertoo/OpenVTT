@@ -10,6 +10,7 @@ import {
   ALLOWED_VIDEO_TYPES,
   createActorSchema,
   createDrawingSchema,
+  createInviteSchema,
   createSceneSchema,
   createTokenSchema,
   createWorldSchema,
@@ -24,9 +25,11 @@ import {
   sendMessageSchema,
   setAmbientSchema,
   setCombatantSchema,
+  tableRole,
   type UserDto,
   updateActorSchema,
   updateHandoutSchema,
+  updateMemberSchema,
   updateProfileSchema,
   updateSceneSchema,
   updateTokenSchema,
@@ -105,10 +108,22 @@ export function buildApp(options: AppOptions) {
   /** Authenticated member of the world; non-members get `forbidden` (never confirming the world exists). */
   const requireMember = (req: FastifyRequest, worldId: string) => {
     const user = requireUser(req);
-    const role = s.worlds.roleOf(worldId, user.id);
-    if (!role) throw new AppError("forbidden");
-    const viewer: Viewer = { userId: user.id, role };
-    return { user, viewer };
+    const memberRole = s.worlds.memberRoleOf(worldId, user.id);
+    if (!memberRole) throw new AppError("forbidden");
+    const viewer: Viewer = { userId: user.id, role: tableRole(memberRole) };
+    return { user, viewer, memberRole };
+  };
+  /** Observers only watch: anything that changes the table is refused to them. */
+  const requireParticipant = (req: FastifyRequest, worldId: string) => {
+    const ctx = requireMember(req, worldId);
+    if (ctx.memberRole === "observer") throw new AppError("forbidden");
+    return ctx;
+  };
+  /** Member management belongs to the world's owner, not to assistants. */
+  const requireOwner = (req: FastifyRequest, worldId: string) => {
+    const ctx = requireMember(req, worldId);
+    if (ctx.memberRole !== "gm") throw new AppError("forbidden");
+    return ctx;
   };
   const requireGm = (req: FastifyRequest, worldId: string) => {
     const ctx = requireMember(req, worldId);
@@ -195,10 +210,13 @@ export function buildApp(options: AppOptions) {
 
   app.patch<{ Params: { id: string } }>("/api/worlds/:id", async (req) => {
     const worldId = req.params.id;
-    requireGm(req, worldId);
+    const { user } = requireGm(req, worldId);
     const patch = updateWorldSchema.parse(req.body);
     if (patch.name) s.worlds.rename(worldId, patch.name);
-    if (patch.activeSceneId !== undefined) s.scenes.setActive(worldId, patch.activeSceneId);
+    if (patch.activeSceneId !== undefined) {
+      s.scenes.setActive(worldId, patch.activeSceneId);
+      s.worlds.audit(worldId, user.id, "scene.activate", patch.activeSceneId ? (s.scenes.get(patch.activeSceneId)?.name ?? "") : "");
+    }
     if (patch.templateOverrides) s.actors.setTemplateOverrides(worldId, patch.templateOverrides);
     hub.broadcastState(worldId);
     return { ok: true };
@@ -210,7 +228,37 @@ export function buildApp(options: AppOptions) {
   });
 
   app.post<{ Params: { id: string } }>("/api/worlds/:id/invites", async (req) => {
-    return { code: s.worlds.createInvite(requireUser(req), req.params.id) };
+    const user = requireUser(req);
+    const code = s.worlds.createInvite(user, req.params.id, createInviteSchema.parse(req.body ?? {}));
+    s.worlds.audit(req.params.id, user.id, "invite.create");
+    return { code };
+  });
+
+  app.patch<{ Params: { id: string; userId: string } }>("/api/worlds/:id/members/:userId", async (req) => {
+    const { user } = requireOwner(req, req.params.id);
+    const patch = updateMemberSchema.parse(req.body);
+    const target = s.worlds.member(req.params.id, req.params.userId);
+    s.worlds.updateMember(req.params.id, req.params.userId, patch);
+    if (patch.role) s.worlds.audit(req.params.id, user.id, "member.role", `${target?.displayName}: ${patch.role}`);
+    if (patch.muted !== undefined)
+      s.worlds.audit(req.params.id, user.id, patch.muted ? "member.mute" : "member.unmute", target?.displayName);
+    hub.broadcastState(req.params.id);
+    return { ok: true };
+  });
+
+  app.delete<{ Params: { id: string; userId: string } }>("/api/worlds/:id/members/:userId", async (req) => {
+    const { user } = requireOwner(req, req.params.id);
+    const target = s.worlds.member(req.params.id, req.params.userId);
+    s.worlds.kick(req.params.id, req.params.userId);
+    s.worlds.audit(req.params.id, user.id, "member.kick", target?.displayName);
+    // The kicked person's socket finds no membership on this broadcast and is closed.
+    hub.broadcastState(req.params.id);
+    return { ok: true };
+  });
+
+  app.get<{ Params: { id: string } }>("/api/worlds/:id/audit", async (req) => {
+    requireGm(req, req.params.id);
+    return s.worlds.auditLog(req.params.id);
   });
 
   app.post<{ Params: { code: string } }>("/api/invites/:code/join", async (req) => {
@@ -273,8 +321,9 @@ export function buildApp(options: AppOptions) {
   // ---- scenes -------------------------------------------------------------------------------
 
   app.post<{ Params: { id: string } }>("/api/worlds/:id/scenes", async (req) => {
-    requireGm(req, req.params.id);
+    const { user } = requireGm(req, req.params.id);
     const scene = s.scenes.create(req.params.id, createSceneSchema.parse(req.body));
+    s.worlds.audit(req.params.id, user.id, "scene.create", scene.name);
     hub.broadcastState(req.params.id);
     return scene;
   });
@@ -301,7 +350,8 @@ export function buildApp(options: AppOptions) {
   app.delete<{ Params: { id: string } }>("/api/scenes/:id", async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
-    requireGm(req, worldId);
+    const { user } = requireGm(req, worldId);
+    s.worlds.audit(worldId, user.id, "scene.delete", s.scenes.get(req.params.id)?.name);
     s.scenes.remove(req.params.id, worldId);
     hub.broadcastState(worldId);
     return { ok: true };
@@ -312,7 +362,7 @@ export function buildApp(options: AppOptions) {
   app.post<{ Params: { id: string } }>("/api/scenes/:id/drawings", async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
-    const { viewer } = requireMember(req, worldId);
+    const { viewer } = requireParticipant(req, worldId);
     const input = createDrawingSchema.parse(req.body);
     // A player asking about a scene they cannot see learns nothing about it.
     const activeSceneId = s.scenes.activeSceneId(worldId);
@@ -325,7 +375,7 @@ export function buildApp(options: AppOptions) {
   app.delete<{ Params: { id: string } }>("/api/drawings/:id", async (req) => {
     const found = s.drawings.find(req.params.id);
     if (!found) throw new AppError("not_found");
-    const { viewer } = requireMember(req, found.worldId);
+    const { viewer } = requireParticipant(req, found.worldId);
     s.drawings.remove(req.params.id, viewer);
     hub.broadcastState(found.worldId);
     return { ok: true };
@@ -334,8 +384,9 @@ export function buildApp(options: AppOptions) {
   app.delete<{ Params: { id: string } }>("/api/scenes/:id/drawings", async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
-    const { viewer } = requireMember(req, worldId);
+    const { viewer, user } = requireParticipant(req, worldId);
     s.drawings.clear(req.params.id, viewer);
+    if (viewer.role === "gm") s.worlds.audit(worldId, user.id, "drawings.clear", s.scenes.get(req.params.id)?.name);
     hub.broadcastState(worldId);
     return { ok: true };
   });
@@ -343,8 +394,9 @@ export function buildApp(options: AppOptions) {
   // ---- table music --------------------------------------------------------------------------
 
   app.put<{ Params: { id: string } }>("/api/worlds/:id/ambient", async (req) => {
-    requireGm(req, req.params.id);
+    const { user } = requireGm(req, req.params.id);
     const { assetId, playing } = setAmbientSchema.parse(req.body);
+    s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     if (!s.assets.belongsToWorld(assetId, req.params.id, "audio")) throw new AppError("asset_invalid");
     s.worlds.setAmbient(req.params.id, assetId, playing);
     hub.broadcastState(req.params.id);
@@ -372,7 +424,8 @@ export function buildApp(options: AppOptions) {
   app.delete<{ Params: { id: string } }>("/api/handouts/:id", async (req) => {
     const worldId = s.handouts.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
-    requireGm(req, worldId);
+    const { user } = requireGm(req, worldId);
+    s.worlds.audit(worldId, user.id, "handout.delete");
     s.handouts.remove(req.params.id);
     hub.broadcastState(worldId);
     return { ok: true };
@@ -390,7 +443,7 @@ export function buildApp(options: AppOptions) {
   app.patch<{ Params: { id: string } }>("/api/tokens/:id", async (req) => {
     const found = s.tokens.find(req.params.id);
     if (!found) throw new AppError("not_found");
-    const { viewer } = requireMember(req, found.worldId);
+    const { viewer } = requireParticipant(req, found.worldId);
     const patch = updateTokenSchema.parse(req.body);
     if (!s.tokens.canSee(found.token, viewer, s.scenes.activeSceneId(found.worldId))) throw new AppError("not_found");
     if (!s.tokens.canControl(found.token, viewer)) throw new AppError("forbidden");
@@ -412,7 +465,8 @@ export function buildApp(options: AppOptions) {
   app.delete<{ Params: { id: string } }>("/api/tokens/:id", async (req) => {
     const found = s.tokens.find(req.params.id);
     if (!found) throw new AppError("not_found");
-    requireGm(req, found.worldId);
+    const { user } = requireGm(req, found.worldId);
+    s.worlds.audit(found.worldId, user.id, "token.delete", found.token.name);
     const wasCombatant = s.combat.isCombatant(found.token.id);
     s.tokens.remove(found.token.id);
     hub.publishTokenRemoved(found.worldId, found.token);
@@ -455,9 +509,10 @@ export function buildApp(options: AppOptions) {
 
   app.post<{ Params: { id: string } }>("/api/worlds/:id/messages", async (req) => {
     const worldId = req.params.id;
-    const { user, viewer } = requireMember(req, worldId);
+    const { user, viewer } = requireParticipant(req, worldId);
     const input = sendMessageSchema.parse(req.body);
     const member = s.worlds.member(worldId, user.id)!;
+    if (member.muted) throw new AppError("forbidden");
     const message = s.chat.send(worldId, { userId: user.id, displayName: member.displayName, role: viewer.role }, input);
     hub.publishMessage(worldId, message);
     return message;
@@ -484,7 +539,7 @@ export function buildApp(options: AppOptions) {
   app.patch<{ Params: { id: string } }>("/api/actors/:id", async (req) => {
     const actor = s.actors.find(req.params.id);
     if (!actor) throw new AppError("not_found");
-    const { viewer } = requireMember(req, actor.worldId);
+    const { viewer } = requireParticipant(req, actor.worldId);
     const updated = s.actors.update(actor.id, viewer, updateActorSchema.parse(req.body));
     hub.broadcastState(actor.worldId);
     return updated;
@@ -493,7 +548,8 @@ export function buildApp(options: AppOptions) {
   app.delete<{ Params: { id: string } }>("/api/actors/:id", async (req) => {
     const actor = s.actors.find(req.params.id);
     if (!actor) throw new AppError("not_found");
-    requireGm(req, actor.worldId);
+    const { user } = requireGm(req, actor.worldId);
+    s.worlds.audit(actor.worldId, user.id, "actor.delete", actor.name);
     s.actors.remove(actor.id);
     hub.broadcastState(actor.worldId);
     return { ok: true };
