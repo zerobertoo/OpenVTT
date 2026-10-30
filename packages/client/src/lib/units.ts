@@ -7,7 +7,7 @@ export interface MeasurePrefs {
   metersPerFoot: number;
 }
 
-export const DEFAULT_MEASURE_PREFS: MeasurePrefs = { system: "scene", metersPerFoot: 0.3 };
+export const DEFAULT_MEASURE_PREFS: MeasurePrefs = { system: "metric", metersPerFoot: 0.3 };
 
 const FEET_PER_MILE = 5280;
 

@@ -11,6 +11,7 @@ import { Drawer } from "./components/table/Drawer";
 import { MapLayersMenu } from "./components/table/MapLayersMenu";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
+import { RulerOptions } from "./components/table/RulerOptions";
 import { SelectionBar } from "./components/table/SelectionBar";
 import { EmptyMap } from "./components/table/TableGuide";
 import { TableKeyboard } from "./components/table/TableKeyboard";
@@ -24,6 +25,7 @@ import { ScenePanel } from "./panels/ScenePanel";
 import { SettingsPanel } from "./panels/SettingsPanel";
 import { SheetsPanel } from "./panels/SheetsPanel";
 import { TokenPanel } from "./panels/TokenPanel";
+import { usePreferences } from "./lib/preferences";
 import { queryKeys } from "./queries";
 import { PLAYER_LAYERS, type TableTab, useTableUi } from "./tableStore";
 import { useAction } from "./ui";
@@ -49,6 +51,8 @@ export function Table({ worldId, user }: Props) {
   // Each world starts with a clean UI: no selected token, chat tab, panels open.
   useEffect(() => reset, [worldId, reset]);
   const [helpOpen, setHelpOpen] = useState(false);
+  const rulerShape = usePreferences((p) => p.rulerShape);
+  const diagonalRule = usePreferences((p) => p.diagonalRule);
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
 
   // A connection that stays down may mean the person lost access (removed, world deleted, session ended),
@@ -162,6 +166,8 @@ export function Table({ worldId, user }: Props) {
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
               onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus })}
               formatDistance={(cells) => format.distance(cells, scene)}
+              rulerShape={rulerShape}
+              diagonalRule={diagonalRule}
             />
           ) : (
             <EmptyMap isGm={isGm} />
@@ -178,6 +184,7 @@ export function Table({ worldId, user }: Props) {
             helpOpen={helpOpen}
             onHelpOpenChange={setHelpOpen}
           />
+          {tool === "ruler" && <RulerOptions scene={scene} />}
           {selectedTokens.length > 1 && (
             <SelectionBar
               count={selectedTokens.length}

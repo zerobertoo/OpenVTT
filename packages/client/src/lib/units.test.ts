@@ -5,8 +5,12 @@ const metric = { ...DEFAULT_MEASURE_PREFS, system: "metric" as const };
 const imperial = { ...DEFAULT_MEASURE_PREFS, system: "imperial" as const };
 
 describe("convertDistance", () => {
-  it("leaves the scene's own unit alone by default", () => {
-    expect(convertDistance(15, "ft", DEFAULT_MEASURE_PREFS)).toEqual({ value: 15, unit: "ft" });
+  it("shows metric by default", () => {
+    expect(convertDistance(15, "ft", DEFAULT_MEASURE_PREFS)).toEqual({ value: 4.5, unit: "m" });
+  });
+
+  it("leaves the scene's own unit alone when asked", () => {
+    expect(convertDistance(15, "ft", { ...DEFAULT_MEASURE_PREFS, system: "scene" })).toEqual({ value: 15, unit: "ft" });
   });
 
   it("uses the table convention of 5 ft = 1.5 m, and the exact factor when asked", () => {

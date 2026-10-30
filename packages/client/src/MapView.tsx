@@ -7,6 +7,7 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { closeVideo, openVideo } from "./lib/media";
+import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type MapLayers, useTableUi } from "./tableStore";
 
@@ -34,6 +35,8 @@ interface Props {
   onPing: (x: number, y: number, focus: boolean) => void;
   /** Formats the ruler label; receives distance in grid cells. */
   formatDistance: (cells: number) => string;
+  rulerShape: RulerShape;
+  diagonalRule: DiagonalRule;
 }
 
 const MIN_ZOOM = 0.1;
@@ -211,14 +214,30 @@ export function MapView(props: Props) {
             .stroke({ width: 2 / world.scale.x, color: 0x66d9ff });
         } else if (rulerStart) {
           const end = toWorld(e);
-          const scene = props_().scene;
-          ruler
-            .clear()
-            .moveTo(rulerStart.x, rulerStart.y)
-            .lineTo(end.x, end.y)
-            .stroke({ width: 3 / world.scale.x, color: 0xffc914 });
-          const cells = scene ? Math.hypot(end.x - rulerStart.x, end.y - rulerStart.y) / scene.gridSize : 0;
-          label.text = props_().formatDistance(cells);
+          const { scene, rulerShape, diagonalRule, formatDistance } = props_();
+          const line = { width: 3 / world.scale.x, color: 0xffc914 };
+          const area = { color: 0xffc914, alpha: 0.18 };
+          const dx = end.x - rulerStart.x;
+          const dy = end.y - rulerStart.y;
+          const cellsOf = (pixels: number) => (scene ? pixels / scene.gridSize : 0);
+          ruler.clear();
+          if (rulerShape === "circle") {
+            ruler.circle(rulerStart.x, rulerStart.y, Math.hypot(dx, dy)).fill(area).stroke(line);
+            ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
+            label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
+          } else if (rulerShape === "cone") {
+            ruler.poly(conePoints(rulerStart, end).flatMap((p) => [p.x, p.y])).fill(area).stroke(line);
+            label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
+          } else if (rulerShape === "rectangle") {
+            ruler.rect(Math.min(rulerStart.x, end.x), Math.min(rulerStart.y, end.y), Math.abs(dx), Math.abs(dy)).fill(area).stroke(line);
+            label.text = `${formatDistance(cellsOf(Math.abs(dx)))} × ${formatDistance(cellsOf(Math.abs(dy)))}`;
+          } else {
+            ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
+            // The diagonal rules count whole grid steps, so they only apply on a square grid.
+            const cells =
+              scene?.gridType === "square" ? lineCells(dx, dy, scene.gridSize, diagonalRule) : cellsOf(Math.hypot(dx, dy));
+            label.text = formatDistance(cells);
+          }
           label.scale.set(1 / world.scale.x);
           label.position.set(end.x + 8 / world.scale.x, end.y + 8 / world.scale.x);
         }

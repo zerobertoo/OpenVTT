@@ -162,6 +162,13 @@
     "reconnected": "Back at the table"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Sheets", "scenes": "Scenes", "settings": "World" },
+  "ruler": {
+    "options": "Ruler options",
+    "shape": "Shape",
+    "diagonal": "Diagonals",
+    "shapes": { "line": "Line", "circle": "Circle", "cone": "Cone", "rectangle": "Rectangle" },
+    "diagonals": { "exact": "Straight line", "alternating": "5-10-5 (every second diagonal counts double)", "simple": "Every step counts one" }
+  },
   "map": {
     "tools": "Map tools",
     "select": "Select",

@@ -162,6 +162,13 @@
     "reconnected": "De volta à mesa"
   },
   "tabs": { "chat": "Chat", "tokens": "Tokens", "sheets": "Fichas", "scenes": "Cenas", "settings": "Mundo" },
+  "ruler": {
+    "options": "Opções da régua",
+    "shape": "Forma",
+    "diagonal": "Diagonais",
+    "shapes": { "line": "Linha", "circle": "Círculo", "cone": "Cone", "rectangle": "Retângulo" },
+    "diagonals": { "exact": "Linha reta", "alternating": "5-10-5 (a cada duas diagonais, uma conta dobrado)", "simple": "Cada passo conta um" }
+  },
   "map": {
     "tools": "Ferramentas do mapa",
     "select": "Selecionar",

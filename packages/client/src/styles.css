@@ -181,6 +181,7 @@ output { font-weight: 800; font-size: 1.1rem; }
 .title-chip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .title-chip .status { color: var(--dice); font-size: 0.85rem; }
 .dock { position: absolute; bottom: 1rem; left: calc((100% - var(--drawer-space, 0px)) / 2); transform: translateX(-50%); }
+.ruler-options { position: absolute; bottom: 6.6rem; left: calc((100% - var(--drawer-space, 0px)) / 2); transform: translateX(-50%); max-width: calc(100% - 2rem); }
 .map-hint { position: absolute; left: 0.9rem; bottom: 1rem; margin: 0; max-width: 16rem; padding: 0.4rem 0.8rem; font-size: 0.78rem; color: var(--on-chrome-2); background: color-mix(in srgb, var(--chrome) 85%, transparent); border-radius: var(--radius); }
 .online-chip { top: 0.9rem; right: calc(var(--drawer-space, 0px) + 0.9rem); padding: 0.3rem 0.75rem 0.3rem 0.5rem; font-size: 0.85rem; color: var(--on-chrome-2); }
 .drawer-toggle { position: absolute; top: 0.9rem; right: 0.9rem; z-index: 3; box-shadow: var(--shadow-chrome); }
@@ -242,6 +243,7 @@ output { font-weight: 800; font-size: 1.1rem; }
   .drawer-panel { padding: 0.8rem; }
   .drawer-toggle { top: auto; right: 1.2rem; }
   .dock { top: 4.2rem; bottom: auto; left: 0.9rem; transform: none; }
+  .ruler-options { top: 9.4rem; bottom: auto; left: 0.9rem; transform: none; }
   .map-hint, .online-chip { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
