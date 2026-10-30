@@ -68,7 +68,9 @@ export interface MemberDto {
   online: boolean;
 }
 
-export type GridType = "square" | "none";
+export const GRID_TYPES = ["square", "hexPointy", "hexFlat", "none"] as const;
+/** Hex grids use the cell size as the distance between neighboring hex centers. */
+export type GridType = (typeof GRID_TYPES)[number];
 
 export type WallKind = "wall" | "door";
 
@@ -337,7 +339,7 @@ const sceneFields = {
   assetId: z.string().uuid().nullable(),
   width: z.number().int().min(1).max(MAX_MAP_DIMENSION),
   height: z.number().int().min(1).max(MAX_MAP_DIMENSION),
-  gridType: z.enum(["square", "none"]),
+  gridType: z.enum(GRID_TYPES),
   gridSize: z.number().int().min(10).max(500),
   gridDistance: z.number().positive().max(1000),
   distanceUnit: z.string().trim().max(10),

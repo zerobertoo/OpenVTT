@@ -9,6 +9,8 @@ assets/<uuid>.<png|jpg|webp>
 
 `world.json` has `format: "openvtt-world"` and `version: 1`, plus the world settings (name, system id, sheet template overrides, active scene), `assets`, `scenes`, `actors`, `tokens` and `messages`. Ids inside the file only link records to each other; importing assigns fresh ids.
 
+A scene's `gridType` is `square`, `hexPointy`, `hexFlat` or `none`; on hex grids `gridSize` is the distance between the centers of two neighboring hexes.
+
 Each scene may carry `walls` (segments `x1,y1,x2,y2` in map pixels, `kind` `wall` or `door`, `open` for doors), `lights` (`x`, `y` in pixels, `radius` in grid cells, `intensity`, `color` as `#rrggbb`, `shadows`), `bakedLighting`, and `floorGroup` / `floor` for maps imported as several floors. All are optional: files written before they existed still import, with empty lists. Importers ignore unknown fields.
 
 Each scene may also carry `drawings`: `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `text` or `note`), `layer` (`background`, `objects` or `gm`), `points` (flat `[x1, y1, x2, y2, ...]` in map pixels), `color` (`#rrggbb`) and `text`. Who drew them is not exported. Notes always land on the `gm` layer. A scene may list `lockedLayers` (`background`, `objects`, `tokens`, `gm`).

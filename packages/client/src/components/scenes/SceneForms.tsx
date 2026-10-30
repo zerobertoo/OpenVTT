@@ -13,6 +13,8 @@ function GridTypeSelect({ defaultValue }: { defaultValue: string }) {
       {(control) => (
         <Select {...control} name="gridType" defaultValue={defaultValue}>
           <option value="square">{t("scene.gridSquare")}</option>
+          <option value="hexPointy">{t("scene.gridHexPointy")}</option>
+          <option value="hexFlat">{t("scene.gridHexFlat")}</option>
           <option value="none">{t("scene.gridNone")}</option>
         </Select>
       )}

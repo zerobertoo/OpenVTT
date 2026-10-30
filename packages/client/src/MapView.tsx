@@ -7,6 +7,7 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
+import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
@@ -296,8 +297,14 @@ export function MapView(props: Props) {
             label.text = `${formatDistance(cellsOf(Math.abs(dx)))} × ${formatDistance(cellsOf(Math.abs(dy)))}`;
           } else {
             ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-            // The diagonal rules count whole grid steps, so they only apply on a square grid.
-            const cells = scene?.gridType === "square" ? lineCells(dx, dy, scene.gridSize, diagonalRule) : cellsOf(Math.hypot(dx, dy));
+            // The diagonal rules count whole grid steps, so they only apply on a square grid; a hex grid counts hexes.
+            const hex = scene ? hexOrientationOf(scene.gridType) : null;
+            const cells =
+              scene?.gridType === "square"
+                ? lineCells(dx, dy, scene.gridSize, diagonalRule)
+                : hex && scene
+                  ? hexDistance(rulerStart, end, scene.gridSize, hex)
+                  : cellsOf(Math.hypot(dx, dy));
             label.text = formatDistance(cells);
           }
           label.scale.set(1 / world.scale.x);
@@ -505,6 +512,12 @@ export function MapView(props: Props) {
       if (scene.gridType === "square") {
         for (let x = 0; x <= scene.width; x += scene.gridSize) e.grid.moveTo(x, 0).lineTo(x, scene.height);
         for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
+        e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
+      }
+      const hex = hexOrientationOf(scene.gridType);
+      if (hex) {
+        for (const center of hexCentersIn(scene.width, scene.height, scene.gridSize, hex))
+          e.grid.poly(hexCorners(center, scene.gridSize, hex));
         e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
       }
       e.grid.visible = props_().layers.grid;
@@ -747,6 +760,13 @@ export function MapView(props: Props) {
           if (scene.gridType === "square") {
             x = Math.round(x / scene.gridSize) * scene.gridSize;
             y = Math.round(y / scene.gridSize) * scene.gridSize;
+          }
+          const hex = hexOrientationOf(scene.gridType);
+          if (hex) {
+            // The token's center goes to the middle of a hex.
+            const center = snapToHex({ x: x + half, y: y + half }, scene.gridSize, hex);
+            x = center.x - half;
+            y = center.y - half;
           }
           member.view.position.set(x + half, y + half);
           props_().onMove(member.token.id, x, y);

@@ -170,6 +170,10 @@ CREATE INDEX drawings_scene ON drawings (scene_id);
   `
 ALTER TABLE scenes ADD COLUMN locked_layers TEXT NOT NULL DEFAULT '[]';
 `,
+  // grid_type keeps its original CHECK; a hex grid is stored as 'square' plus its orientation here.
+  `
+ALTER TABLE scenes ADD COLUMN grid_hex TEXT;
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

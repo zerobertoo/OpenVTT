@@ -6,6 +6,7 @@ import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData
 import {
   buildUvtt,
   createDrawingSchema,
+  GRID_TYPES,
   lightInputSchema,
   MAP_LAYERS,
   MAX_SCENE_DRAWINGS,
@@ -49,7 +50,7 @@ const worldFileSchema = z.object({
         assetId: id.nullable(),
         width: z.number().int().min(1).max(16384),
         height: z.number().int().min(1).max(16384),
-        gridType: z.enum(["square", "none"]),
+        gridType: z.enum(GRID_TYPES),
         gridSize: z.number().int().min(10).max(500),
         gridDistance: z.number().positive().max(1000),
         distanceUnit: z.string().max(10),

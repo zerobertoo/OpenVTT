@@ -294,7 +294,9 @@
         "no_media": "This file has no picture inside. Select the image or video exported with it as well.",
         "unsupported_file": "Use a .dd2vtt or .uvtt file, or a PNG, JPG, WebP, WebM or MP4 map."
       }
-    }
+    },
+    "gridHexPointy": "Hexes, pointy top",
+    "gridHexFlat": "Hexes, flat top"
   },
   "dice": {
     "title": "Dice",

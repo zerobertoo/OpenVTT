@@ -1,6 +1,7 @@
 import type { SceneDto, TokenDto } from "@openvtt/shared";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { hexOrientationOf, snapToHex } from "../../lib/hex";
 import { actionForKey, isTypingTarget } from "../../lib/shortcuts";
 import { useTableUi } from "../../tableStore";
 import { ShortcutHelp } from "./ShortcutHelp";
@@ -57,8 +58,15 @@ export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove
           let landed: { name: string; x: number; y: number } | null = null;
           for (const token of movableTokens) {
             const span = token.size * scene.gridSize;
-            const x = Math.min(Math.max(0, token.x + action.dx * scene.gridSize), Math.max(0, scene.width - span));
-            const y = Math.min(Math.max(0, token.y + action.dy * scene.gridSize), Math.max(0, scene.height - span));
+            let x = Math.min(Math.max(0, token.x + action.dx * scene.gridSize), Math.max(0, scene.width - span));
+            let y = Math.min(Math.max(0, token.y + action.dy * scene.gridSize), Math.max(0, scene.height - span));
+            const hex = hexOrientationOf(scene.gridType);
+            if (hex) {
+              // Up and down land between two hexes; snapping picks the one in that direction.
+              const center = snapToHex({ x: x + span / 2 + action.dx * 0.01, y: y + span / 2 }, scene.gridSize, hex);
+              x = center.x - span / 2;
+              y = center.y - span / 2;
+            }
             if (x === token.x && y === token.y) continue;
             onMove(token.id, x, y);
             landed = { name: token.name, x, y };

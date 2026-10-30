@@ -294,7 +294,9 @@
         "no_media": "Esse arquivo não traz a imagem dentro. Selecione também a imagem ou o vídeo exportado com ele.",
         "unsupported_file": "Use um arquivo .dd2vtt ou .uvtt, ou um mapa PNG, JPG, WebP, WebM ou MP4."
       }
-    }
+    },
+    "gridHexPointy": "Hexágonos, ponta para cima",
+    "gridHexFlat": "Hexágonos, lado para cima"
   },
   "dice": {
     "title": "Dados",

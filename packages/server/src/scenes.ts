@@ -14,6 +14,7 @@ interface SceneRow {
   width: number;
   height: number;
   grid_type: "square" | "none";
+  grid_hex: "pointy" | "flat" | null;
   grid_size: number;
   grid_distance: number;
   distance_unit: string;
@@ -88,7 +89,7 @@ const toDto = (r: SceneRow, walls: WallDto[], lights: LightDto[], drawings: Draw
   assetKind: r.asset_mime === null ? null : r.asset_mime.startsWith("video/") ? "video" : "image",
   width: r.width,
   height: r.height,
-  gridType: r.grid_type,
+  gridType: r.grid_hex === "pointy" ? "hexPointy" : r.grid_hex === "flat" ? "hexFlat" : r.grid_type,
   gridSize: r.grid_size,
   gridDistance: r.grid_distance,
   distanceUnit: r.distance_unit,
@@ -110,6 +111,9 @@ export const withoutHiddenMapData = (scene: SceneDto): SceneDto => ({
   lights: [],
   drawings: scene.drawings.filter((d) => d.layer !== "gm"),
 });
+
+const storedGridType = (gridType: SceneDto["gridType"]) => (gridType === "none" ? "none" : "square");
+const storedHex = (gridType: SceneDto["gridType"]) => (gridType === "hexPointy" ? "pointy" : gridType === "hexFlat" ? "flat" : null);
 
 export class SceneService {
   constructor(
@@ -170,8 +174,8 @@ export class SceneService {
       this.db
         .prepare(
           `INSERT INTO scenes (id, world_id, name, asset_id, width, height, grid_type, grid_size, grid_distance, distance_unit,
-             baked_lighting, floor_group, floor, vision_enabled, vision_radius, locked_layers, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             baked_lighting, floor_group, floor, vision_enabled, vision_radius, locked_layers, grid_hex, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -180,7 +184,7 @@ export class SceneService {
           input.assetId,
           input.width,
           input.height,
-          input.gridType,
+          storedGridType(input.gridType),
           input.gridSize,
           input.gridDistance,
           input.distanceUnit,
@@ -190,6 +194,7 @@ export class SceneService {
           input.visionEnabled ? 1 : 0,
           input.visionRadius,
           JSON.stringify(input.lockedLayers),
+          storedHex(input.gridType),
           Date.now(),
         );
       this.replaceMap(id, input);
@@ -208,14 +213,14 @@ export class SceneService {
       this.db
         .prepare(
           `UPDATE scenes SET name = ?, asset_id = ?, width = ?, height = ?, grid_type = ?, grid_size = ?,
-           grid_distance = ?, distance_unit = ?, baked_lighting = ?, floor_group = ?, floor = ?, vision_enabled = ?, vision_radius = ?, locked_layers = ? WHERE id = ?`,
+           grid_distance = ?, distance_unit = ?, baked_lighting = ?, floor_group = ?, floor = ?, vision_enabled = ?, vision_radius = ?, locked_layers = ?, grid_hex = ? WHERE id = ?`,
         )
         .run(
           next.name,
           next.assetId,
           next.width,
           next.height,
-          next.gridType,
+          storedGridType(next.gridType),
           next.gridSize,
           next.gridDistance,
           next.distanceUnit,
@@ -225,6 +230,7 @@ export class SceneService {
           next.visionEnabled ? 1 : 0,
           next.visionRadius,
           JSON.stringify(next.lockedLayers),
+          storedHex(next.gridType),
           sceneId,
         );
       if (input.walls || input.lights) {
