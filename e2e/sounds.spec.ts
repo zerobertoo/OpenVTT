@@ -21,7 +21,7 @@ test("a player is told it is their turn and hears the music the game master play
   const hero = await post(`/api/worlds/${worldId}/tokens`, { sceneId: scene.id, name: "Hero", x: 70, y: 70, controllerIds: [playerId] });
   await page.request.put(`/api/worlds/${worldId}/combat/combatants`, { data: { tokenId: hero.id, score: 12 } });
   await post(`/api/worlds/${worldId}/combat/next`, {});
-  await expect(playerPage.getByText("Your turn!")).toBeVisible();
+  await expect(playerPage.getByText("Your turn!", { exact: true })).toBeVisible();
 
   await page.getByRole("tab", { name: "World" }).click();
   const music = page.getByRole("region", { name: "Table music" });
