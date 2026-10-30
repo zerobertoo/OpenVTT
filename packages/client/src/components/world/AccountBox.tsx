@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { AccountControls } from "../AccountControls";
 import { DiceSetting } from "./DiceSetting";
 import { MeasureSettings } from "./MeasureSettings";
+import { SoundSetting } from "./SoundSetting";
 
 /** Language and log-out, at the bottom of the World tab. */
 export function AccountBox() {
@@ -12,6 +13,7 @@ export function AccountBox() {
       <AccountControls />
       <MeasureSettings />
       <DiceSetting />
+      <SoundSetting />
     </section>
   );
 }

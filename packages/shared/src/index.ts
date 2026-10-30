@@ -302,7 +302,16 @@ export interface WorldStateDto {
   combat: CombatDto | null;
   /** Journal entries the recipient may read. */
   handouts: HandoutDto[];
+  /** What the game master plays for the whole table; null when nothing was picked. */
+  ambient: AmbientDto | null;
 }
+
+export interface AmbientDto {
+  assetId: string;
+  playing: boolean;
+}
+
+export const setAmbientSchema = z.object({ assetId: z.string().uuid().nullable(), playing: z.boolean() });
 
 /** Server → client messages. */
 export type ServerMessage =
@@ -340,6 +349,8 @@ export const MAX_MAP_DIMENSION = 16384;
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 export const ALLOWED_VIDEO_TYPES = ["video/webm", "video/mp4"] as const;
+/** Table music and ambience; uploaded like videos and capped by the same limit. */
+export const ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/ogg"] as const;
 /** Default cap for animated map videos; the server reads `OPENVTT_MAX_VIDEO_BYTES` to override it. */
 export const DEFAULT_MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 

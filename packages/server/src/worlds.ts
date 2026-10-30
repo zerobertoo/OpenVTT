@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import type { MemberDto, UserDto, WorldRole, WorldSummaryDto } from "@openvtt/shared";
+import type { AmbientDto, MemberDto, UserDto, WorldRole, WorldSummaryDto } from "@openvtt/shared";
 import { type Db, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 
@@ -63,6 +63,19 @@ export class WorldService {
       | undefined;
     if (!row) throw new AppError("not_found");
     return { id: row.id, name: row.name, systemId: row.system_id };
+  }
+
+  ambient(worldId: string): AmbientDto | null {
+    const row = this.db.prepare("SELECT ambient_asset_id, ambient_playing FROM worlds WHERE id = ?").get(worldId) as
+      | { ambient_asset_id: string | null; ambient_playing: number }
+      | undefined;
+    return row?.ambient_asset_id ? { assetId: row.ambient_asset_id, playing: row.ambient_playing === 1 } : null;
+  }
+
+  setAmbient(worldId: string, assetId: string | null, playing: boolean): void {
+    this.db
+      .prepare("UPDATE worlds SET ambient_asset_id = ?, ambient_playing = ? WHERE id = ?")
+      .run(assetId, assetId && playing ? 1 : 0, worldId);
   }
 
   rename(worldId: string, name: string): void {

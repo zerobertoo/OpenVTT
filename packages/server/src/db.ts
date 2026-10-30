@@ -185,6 +185,10 @@ CREATE TABLE handouts (
 );
 CREATE INDEX handouts_world ON handouts (world_id);
 `,
+  `
+ALTER TABLE worlds ADD COLUMN ambient_asset_id TEXT REFERENCES assets(id) ON DELETE SET NULL;
+ALTER TABLE worlds ADD COLUMN ambient_playing INTEGER NOT NULL DEFAULT 0;
+`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

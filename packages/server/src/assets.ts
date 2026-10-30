@@ -15,6 +15,7 @@ import {
 import { join } from "node:path";
 import { type Readable, Transform } from "node:stream";
 import {
+  type ALLOWED_AUDIO_TYPES,
   type ALLOWED_IMAGE_TYPES,
   type ALLOWED_VIDEO_TYPES,
   type AssetSummaryDto,
@@ -26,7 +27,8 @@ import { AppError } from "./errors.ts";
 
 type ImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
 type VideoType = (typeof ALLOWED_VIDEO_TYPES)[number];
-export type AssetType = ImageType | VideoType;
+type AudioType = (typeof ALLOWED_AUDIO_TYPES)[number];
+export type AssetType = ImageType | VideoType | AudioType;
 
 const EXTENSIONS: Record<AssetType, string> = {
   "image/png": "png",
@@ -34,6 +36,8 @@ const EXTENSIONS: Record<AssetType, string> = {
   "image/webp": "webp",
   "video/webm": "webm",
   "video/mp4": "mp4",
+  "audio/mpeg": "mp3",
+  "audio/ogg": "ogg",
 };
 
 /** How many leading bytes are enough to recognise every supported container. */
@@ -59,6 +63,15 @@ export function detectVideoType(head: Buffer): VideoType | null {
   if (head.length > 12 && head.toString("latin1", 4, 8) === "ftyp" && MP4_BRANDS.has(head.toString("latin1", 8, 12))) return "video/mp4";
   return null;
 }
+
+/** MP3 (an ID3 tag or an MPEG audio frame header) or Ogg. */
+export function detectAudioType(head: Buffer): AudioType | null {
+  if (head.length > 4 && head.toString("latin1", 0, 4) === "OggS") return "audio/ogg";
+  if (head.length > 4 && (head.toString("latin1", 0, 3) === "ID3" || (head[0] === 0xff && (head[1]! & 0xe0) === 0xe0))) return "audio/mpeg";
+  return null;
+}
+
+const isStreamedType = (mime: string) => isVideoType(mime) || mime.startsWith("audio/");
 
 /**
  * Pipes `source` through `guard` into a new file. Unlike `stream.pipeline` it never destroys `source` on
@@ -136,7 +149,7 @@ export class AssetService {
 
   /** Largest accepted size for a type of asset. */
   maxBytesFor(mime: AssetType): number {
-    return isVideoType(mime) ? this.limits.maxVideoBytes : MAX_UPLOAD_BYTES;
+    return isStreamedType(mime) ? this.limits.maxVideoBytes : MAX_UPLOAD_BYTES;
   }
 
   listFor(worldId: string): AssetSummaryDto[] {
@@ -165,18 +178,18 @@ export class AssetService {
   }
 
   /**
-   * Streams a video straight to disk without holding it in memory. The type comes from the first
+   * Streams a video or an audio file straight to disk without holding it in memory. The type comes from the first
    * bytes and the size is counted as it arrives; on any failure the partial file is removed.
    */
-  async saveVideoStream(worldId: string, source: Readable): Promise<AssetRecord> {
+  async saveMediaStream(worldId: string, source: Readable): Promise<AssetRecord> {
     const id = randomUUID();
     const partPath = join(this.dir, `${id}.part`);
     const max = this.limits.maxVideoBytes;
     let size = 0;
     let head = Buffer.alloc(0);
-    let mime: VideoType | null = null;
+    let mime: VideoType | AudioType | null = null;
     const checkHead = () => {
-      mime = detectVideoType(head);
+      mime = detectVideoType(head) ?? detectAudioType(head);
       if (!mime) throw new AppError("asset_invalid");
     };
     const guard = new Transform({
@@ -226,7 +239,7 @@ export class AssetService {
     } finally {
       closeSync(fd);
     }
-    const mime = detectImageType(head) ?? detectVideoType(head);
+    const mime = detectImageType(head) ?? detectVideoType(head) ?? detectAudioType(head);
     if (!mime || size === 0) throw new AppError("asset_invalid");
     if (size > this.maxBytesFor(mime)) throw new AppError("asset_too_large");
     const id = randomUUID();
@@ -263,9 +276,11 @@ export class AssetService {
   }
 
   /** True when the asset exists and belongs to the world; used to reject cross-world references. */
-  belongsToWorld(assetId: string | null, worldId: string, kind: "image" | "any" = "any"): boolean {
+  belongsToWorld(assetId: string | null, worldId: string, kind: "image" | "map" | "audio"): boolean {
     if (assetId === null) return true;
     const asset = this.find(assetId);
-    return asset?.worldId === worldId && (kind === "any" || !isVideoType(asset.mime));
+    if (asset?.worldId !== worldId) return false;
+    if (kind === "audio") return asset.mime.startsWith("audio/");
+    return asset.mime.startsWith("image/") || (kind === "map" && isVideoType(asset.mime));
   }
 }

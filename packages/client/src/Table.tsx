@@ -16,6 +16,7 @@ import { RulerOptions } from "./components/table/RulerOptions";
 import { SelectionBar } from "./components/table/SelectionBar";
 import { EmptyMap } from "./components/table/TableGuide";
 import { TableKeyboard } from "./components/table/TableKeyboard";
+import { TableSounds } from "./components/table/TableSounds";
 import { TitleChip } from "./components/table/TitleChip";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
@@ -185,6 +186,7 @@ export function Table({ worldId, user }: Props) {
           )}
 
           <DiceOverlay messages={state.messages} userId={user.id} />
+          <TableSounds state={state} userId={user.id} />
           <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
           <TableKeyboard
             scene={scene}

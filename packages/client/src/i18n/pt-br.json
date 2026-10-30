@@ -462,5 +462,19 @@
     "libraryEmpty": "Nada enviado neste mundo ainda.",
     "video": "Vídeo",
     "insert": "Inserir no texto"
+  },
+  "alerts": {
+    "yourTurn": "Sua vez!",
+    "playMusic": "Tocar a música da mesa",
+    "sounds": "Sons",
+    "soundsHint": "Um sinal sonoro quando for sua vez ou alguém sussurrar para você.",
+    "musicVolume": "Volume da música da mesa",
+    "music": "Música da mesa",
+    "track": "Faixa",
+    "noTrack": "Escolha uma faixa",
+    "trackName": "Faixa {{n}} ({{size}} MB)",
+    "play": "Tocar para todos",
+    "stop": "Parar a música",
+    "upload": "Enviar MP3 ou Ogg"
   }
 }

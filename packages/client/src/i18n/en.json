@@ -462,5 +462,19 @@
     "libraryEmpty": "Nothing uploaded in this world yet.",
     "video": "Video",
     "insert": "Insert in text"
+  },
+  "alerts": {
+    "yourTurn": "Your turn!",
+    "playMusic": "Play the table music",
+    "sounds": "Sounds",
+    "soundsHint": "A chime when it is your turn or someone whispers to you.",
+    "musicVolume": "Table music volume",
+    "music": "Table music",
+    "track": "Track",
+    "noTrack": "Choose a track",
+    "trackName": "Track {{n}} ({{size}} MB)",
+    "play": "Play for everyone",
+    "stop": "Stop the music",
+    "upload": "Upload MP3 or Ogg"
   }
 }

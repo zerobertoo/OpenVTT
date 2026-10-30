@@ -66,6 +66,7 @@ export const api = {
   updateScene: (sceneId: string, body: object) => patch<SceneDto>(`/api/scenes/${sceneId}`, body),
   deleteScene: (sceneId: string) => del(`/api/scenes/${sceneId}`),
   worldAssets: (worldId: string) => get<AssetSummaryDto[]>(`/api/worlds/${worldId}/assets`),
+  setAmbient: (worldId: string, body: { assetId: string | null; playing: boolean }) => put(`/api/worlds/${worldId}/ambient`, body),
   createHandout: (worldId: string, body: object) => post<{ id: string }>(`/api/worlds/${worldId}/handouts`, body),
   updateHandout: (handoutId: string, body: object) => patch(`/api/handouts/${handoutId}`, body),
   deleteHandout: (handoutId: string) => del(`/api/handouts/${handoutId}`),

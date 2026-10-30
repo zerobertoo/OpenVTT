@@ -168,7 +168,7 @@ export class SceneService {
   }
 
   create(worldId: string, input: z.infer<typeof createSceneSchema>): SceneDto {
-    if (!this.assets.belongsToWorld(input.assetId, worldId)) throw new AppError("asset_invalid");
+    if (!this.assets.belongsToWorld(input.assetId, worldId, "map")) throw new AppError("asset_invalid");
     const id = randomUUID();
     transaction(this.db, () => {
       this.db
@@ -208,7 +208,7 @@ export class SceneService {
     const current = this.get(sceneId);
     if (!current) throw new AppError("not_found");
     const next = { ...current, ...input };
-    if (!this.assets.belongsToWorld(next.assetId, worldId)) throw new AppError("asset_invalid");
+    if (!this.assets.belongsToWorld(next.assetId, worldId, "map")) throw new AppError("asset_invalid");
     transaction(this.db, () => {
       this.db
         .prepare(

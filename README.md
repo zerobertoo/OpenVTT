@@ -48,7 +48,7 @@ Environment variables:
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | Listen address |
 | `OPENVTT_DB` | `data/openvtt.db` | SQLite file; assets and installed systems are stored next to it |
 | `OPENVTT_SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
-| `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video accepted; images stay capped at 15 MiB |
+| `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video or music file (MP3, Ogg) accepted; images stay capped at 15 MiB |
 
 ### Animated maps
 

@@ -17,6 +17,12 @@ interface PreferencesState {
   setRulerShape: (shape: RulerShape) => void;
   diagonalRule: DiagonalRule;
   setDiagonalRule: (rule: DiagonalRule) => void;
+  /** Chimes for "your turn" and whispers. */
+  sounds: boolean;
+  setSounds: (on: boolean) => void;
+  /** 0 to 1; 0 never starts the table music in this browser. */
+  musicVolume: number;
+  setMusicVolume: (volume: number) => void;
 }
 
 /** Per-browser display preferences. They are kept in this browser only; nothing is sent to the server. */
@@ -33,6 +39,10 @@ export const usePreferences = create<PreferencesState>()(
       setRulerShape: (rulerShape) => set({ rulerShape }),
       diagonalRule: "exact",
       setDiagonalRule: (diagonalRule) => set({ diagonalRule }),
+      sounds: true,
+      setSounds: (sounds) => set({ sounds }),
+      musicVolume: 0.5,
+      setMusicVolume: (musicVolume) => set({ musicVolume }),
     }),
     {
       name: "openvtt-preferences",

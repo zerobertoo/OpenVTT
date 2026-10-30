@@ -11,7 +11,7 @@ services:
     # environment:
     #   # Serving through an HTTPS reverse proxy.
     #   OPENVTT_SECURE_COOKIES: "1"
-    #   # Largest animated map video in bytes (default 104857600 = 100 MiB).
+    #   # Largest animated map video or music file in bytes (default 104857600 = 100 MiB).
     #   OPENVTT_MAX_VIDEO_BYTES: "104857600"
 
 volumes:

@@ -5,6 +5,7 @@ import { Readable } from "node:stream";
 import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import {
+  ALLOWED_AUDIO_TYPES,
   ALLOWED_IMAGE_TYPES,
   ALLOWED_VIDEO_TYPES,
   createActorSchema,
@@ -21,6 +22,7 @@ import {
   PLAYER_EDITABLE_TOKEN_FIELDS,
   passwordSchema,
   sendMessageSchema,
+  setAmbientSchema,
   setCombatantSchema,
   type UserDto,
   updateActorSchema,
@@ -80,7 +82,7 @@ export function buildApp(options: AppOptions) {
     done(null, body),
   );
   // Videos are never buffered: the route receives the raw request stream and writes it to disk.
-  app.addContentTypeParser([...ALLOWED_VIDEO_TYPES], (_req, payload, done) => done(null, payload));
+  app.addContentTypeParser([...ALLOWED_VIDEO_TYPES, ...ALLOWED_AUDIO_TYPES], (_req, payload, done) => done(null, payload));
 
   app.setErrorHandler((error, _req, reply) => {
     if (error instanceof AppError) return reply.status(error.status).send({ error: error.code });
@@ -233,7 +235,7 @@ export function buildApp(options: AppOptions) {
       reply.header("connection", "close");
       throw new AppError("asset_too_large");
     }
-    const asset = await s.assets.saveVideoStream(req.params.id, req.body);
+    const asset = await s.assets.saveMediaStream(req.params.id, req.body);
     return { id: asset.id, mime: asset.mime };
   });
 
@@ -336,6 +338,17 @@ export function buildApp(options: AppOptions) {
     const { viewer } = requireMember(req, worldId);
     s.drawings.clear(req.params.id, viewer);
     hub.broadcastState(worldId);
+    return { ok: true };
+  });
+
+  // ---- table music --------------------------------------------------------------------------
+
+  app.put<{ Params: { id: string } }>("/api/worlds/:id/ambient", async (req) => {
+    requireGm(req, req.params.id);
+    const { assetId, playing } = setAmbientSchema.parse(req.body);
+    if (!s.assets.belongsToWorld(assetId, req.params.id, "audio")) throw new AppError("asset_invalid");
+    s.worlds.setAmbient(req.params.id, assetId, playing);
+    hub.broadcastState(req.params.id);
     return { ok: true };
   });
 

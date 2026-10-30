@@ -9,6 +9,7 @@ import { Field } from "../components/ui/field";
 import { Select, Textarea } from "../components/ui/input";
 import { InviteLink } from "../components/world/InviteLink";
 import { MemberList } from "../components/world/MemberList";
+import { MusicControls } from "../components/world/MusicControls";
 import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
@@ -124,6 +125,7 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
             {t("settings.export")}
           </a>
           <ErrorMessage error={error} />
+          <MusicControls worldId={state.id} ambient={state.ambient} />
           <TemplateEditor worldId={state.id} />
         </>
       )}

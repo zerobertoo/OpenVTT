@@ -234,6 +234,7 @@ export class Hub {
       vision: sight?.vision ?? null,
       combat: this.s.combat.stateFor(worldId, viewer),
       handouts: this.s.handouts.visibleTo(worldId, viewer),
+      ambient: this.s.worlds.ambient(worldId),
     };
   }
 
