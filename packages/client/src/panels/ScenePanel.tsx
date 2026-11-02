@@ -65,10 +65,11 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
       // line up (same size and grid); anything else stays one scene per file.
       for (const group of groupFloors(choice)) {
         const floors = [];
-        for (const draft of group) {
+        for (const [index, draft] of group.entries()) {
           const assetId = (await api.uploadAsset(state.id, draft.media)).id;
           floors.push({
-            name: group.length > 1 ? t("scene.floorName", { n: draft.floor + 1 }) : draft.name,
+            // numbered by place in the stack, so files starting at _1 still give "Floor 1", "Floor 2"
+            name: group.length > 1 ? t("scene.floorName", { n: index + 1 }) : draft.name,
             assetId,
             walls: [
               ...(draft.data?.walls ?? []).map((w) => ({ ...w, kind: "wall" })),

@@ -161,7 +161,7 @@ export async function prepareMapImports(files: File[]): Promise<MapImportDraft[]
       draft.floor = Number(suffix);
     }
   });
-  return drafts.sort((a, b) => (a.floorKey === b.floorKey ? a.floor - b.floor : 0));
+  return drafts;
 }
 
 /** Splits the drafts of an import into scenes: drafts sharing a floor key and the same size and grid stay together. */
@@ -179,5 +179,7 @@ export function groupFloors(drafts: MapImportDraft[]): MapImportDraft[][] {
       if (draft.floorKey && !byKey.has(draft.floorKey)) byKey.set(draft.floorKey, created);
     }
   }
+  // Bottom to top by the number in the file name, whatever order the files were picked in.
+  for (const group of groups) group.sort((a, b) => a.floor - b.floor);
   return groups;
 }

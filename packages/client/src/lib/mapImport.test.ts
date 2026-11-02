@@ -55,7 +55,7 @@ describe("prepareMapImports", () => {
     expect(unnamed).toMatchObject({ gridSize: 70, warnings: ["grid_guessed"] });
   });
 
-  it("groups files named Name_0, Name_1 as floors of one map, in order", async () => {
+  it("groups files named Name_0, Name_1 as floors of one map", async () => {
     const drafts = await prepareMapImports([
       video("Tavern_1.mp4"),
       new File([foundryText], "Tavern_1.json"),
@@ -64,7 +64,7 @@ describe("prepareMapImports", () => {
       video("Cellar.mp4"),
     ]);
     const floors = drafts.filter((d) => d.floorKey === "tavern");
-    expect(floors.map((d) => d.floor)).toEqual([0, 1]);
+    expect(floors.map((d) => d.floor).sort()).toEqual([0, 1]);
     expect(drafts.find((d) => d.name === "Cellar")?.floorKey).toBeNull();
   });
 
@@ -80,8 +80,8 @@ describe("groupFloors", () => {
   const draft = (name: string, floor: number, over: Partial<MapImportDraft> = {}) =>
     ({ name, floorKey: "map", floor, width: 1536, height: 2016, gridSize: 48, ...over }) as MapImportDraft;
 
-  it("puts the floors of one map in one scene, in the order they came", () => {
-    const groups = groupFloors([draft("map 00", 0), draft("map 01", 1), draft("map 02", 2), draft("map 03", 3)]);
+  it("puts the floors of one map in one scene, bottom to top by file number whatever order they were picked in", () => {
+    const groups = groupFloors([draft("map 02", 2), draft("map 00", 0), draft("map 03", 3), draft("map 01", 1)]);
     expect(groups).toHaveLength(1);
     expect(groups[0]?.map((d) => d.floor)).toEqual([0, 1, 2, 3]);
   });

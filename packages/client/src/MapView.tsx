@@ -519,10 +519,13 @@ export function MapView(props: Props) {
       }
     }
 
+    // Each run replaces the one before; a run that wakes up after a newer one started must not touch the background.
+    let latestRun = 0;
     async function syncScene() {
       const e = engine.current;
       const { scene, floor } = props_();
       if (!e) return;
+      const run = ++latestRun;
       e.background.removeChildren().forEach((c) => c.destroy());
       e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
       e.ruler.clear();
@@ -533,15 +536,14 @@ export function MapView(props: Props) {
         return void disposeVideo(e);
       }
       const sceneId = scene.id;
-      const floorId = floor.id;
       if (floor.assetId && floor.assetKind === "video") {
         if (e.video?.assetId !== floor.assetId) {
           disposeVideo(e);
           e.video = startVideo(e, floor.assetId);
         }
         const loaded = await e.video!.ready;
-        // Another floor or scene was shown while the video loaded; its own sync draws the map.
-        if (props_().floor?.id !== floorId) return;
+        // Another floor, scene or setting was shown while the video loaded; its own sync draws the map.
+        if (run !== latestRun) return;
         e.background.removeChildren().forEach((c) => c.destroy());
         if (loaded) {
           const sprite = new Sprite(loaded.texture);
@@ -555,7 +557,7 @@ export function MapView(props: Props) {
       } else if (floor.assetId) {
         disposeVideo(e);
         const texture = await loadTexture(floor.assetId, assetsInUse);
-        if (engine.current?.fitted !== null && props_().floor?.id !== floorId) return;
+        if (run !== latestRun) return;
         const sprite = new Sprite(texture);
         sprite.width = scene.width;
         sprite.height = scene.height;
@@ -567,7 +569,7 @@ export function MapView(props: Props) {
       const below = props_().ghostFloor;
       if (below?.assetId) {
         const texture = await loadTexture(below.assetId, assetsInUse, below.assetKind === "video").catch(() => null);
-        if (props_().floor?.id !== floorId) return;
+        if (run !== latestRun) return;
         if (texture) {
           const ghost = new Sprite(texture);
           ghost.width = scene.width;
@@ -967,7 +969,8 @@ export function MapView(props: Props) {
   const ping = useTableUi((ui) => ui.ping);
   useEffect(() => {
     const e = engine.current;
-    if (!e || !ping || ping.sceneId !== latest.current.scene?.id) return;
+    // The game master is sent every floor's pings, but only the ones on the floor being looked at belong on this map.
+    if (!e || !ping || ping.sceneId !== latest.current.scene?.id || ping.floorId !== latest.current.floor?.id) return;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (ping.focus) {
       const scale = e.world.scale.x;

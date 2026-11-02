@@ -301,7 +301,7 @@ export function Table({ worldId, user }: Props) {
             onRemove={removeSelection}
             onUndo={isGm ? useUndo.getState().undo : undefined}
             onRedo={isGm ? useUndo.getState().redo : undefined}
-            onChangeFloor={isGm && scene && !viewAs ? changeFloorBy : undefined}
+            onChangeFloor={isGm && scene && scene.floors.length > 1 && !viewAs ? changeFloorBy : undefined}
             helpOpen={helpOpen}
             onHelpOpenChange={setHelpOpen}
           />
