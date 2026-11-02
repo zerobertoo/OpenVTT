@@ -24,12 +24,12 @@ interface Props {
 export function Compendium({ worldId, onPlace, actors, actions }: Props) {
   const { t, i18n } = useTranslation();
   const { data: system } = useWorldSystem(worldId);
-  const { run, error } = useAction();
+  const { run, error, pending } = useAction();
   const [entries, setEntries] = useState<CompendiumEntry[] | null>(null);
   const [query, setQuery] = useState("");
   const [sheetId, setSheetId] = useState("");
-  // Only sheets whose template has a list that accepts items can receive them.
-  const itemSheets = actors.filter((a) => itemListOf(system?.templates[a.type]));
+  // Only character sheets whose template has a list that accepts items can receive them (the package check covers that template only).
+  const itemSheets = actors.filter((a) => a.type === "character" && itemListOf(system?.templates[a.type]));
   const target = itemSheets.find((a) => a.id === sheetId) ?? itemSheets[0];
 
   /** Adds the item to the list that accepts items. The list comes from the latest sheet the client holds. */
@@ -40,6 +40,8 @@ export function Compendium({ worldId, onPlace, actors, actions }: Props) {
     const before = computeSheet(template, target.data)[list.id];
     const rows = Array.isArray(before) ? before : [];
     const after = addItemToRows(list, rows, name, entry.data);
+    // a full stack or a full list changes nothing: no save and no undo step
+    if (JSON.stringify(after) === JSON.stringify(rows)) return;
     const sheet = target;
     void run(async () => {
       await api.updateActor(sheet.id, { data: { [list.id]: after } });
@@ -68,7 +70,7 @@ export function Compendium({ worldId, onPlace, actors, actions }: Props) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {itemSheets.length > 1 && (
+      {itemSheets.length > 0 && (
         <Select aria-label={t("compendium.sheet")} value={target?.id} onChange={(e) => setSheetId(e.target.value)}>
           {itemSheets.map((a) => (
             <option key={a.id} value={a.id}>
@@ -96,7 +98,7 @@ export function Compendium({ worldId, onPlace, actors, actions }: Props) {
               <span className="sr-only"> {nameOf(entry)}</span>
             </Button>
             {entry.kind === "item" && target && (
-              <Button size="sm" variant="link" onClick={() => addToSheet(entry, nameOf(entry))}>
+              <Button size="sm" variant="link" disabled={pending} onClick={() => addToSheet(entry, nameOf(entry))}>
                 {t("compendium.addToSheet")}
                 <span className="sr-only"> {`${nameOf(entry)} · ${target.name}`}</span>
               </Button>

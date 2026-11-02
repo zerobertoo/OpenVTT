@@ -138,6 +138,11 @@ describe("item lists", () => {
     expect(addItemToRows(list, [{ item: "Torch" }], "Torch", {})).toEqual([{ item: "Torch", quantity: 2 }]);
   });
 
+  it("changes nothing when the list is full", () => {
+    const full = Array.from({ length: 200 }, (_, i) => ({ item: `Item ${i}` }));
+    expect(addItemToRows(list, full, "Torch", {})).toEqual(full);
+  });
+
   it("adds a new row each time when the list has no quantity field", () => {
     const plain = itemListOf(
       sheetTemplateSchema.parse({

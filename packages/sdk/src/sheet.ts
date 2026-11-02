@@ -11,6 +11,9 @@ const fieldId = z
   .max(40);
 const base = { id: fieldId, label: labelSchema.optional() };
 
+/** The most rows a list field can hold. */
+const MAX_LIST_ROWS = 200;
+
 const scalarFieldSchema = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("text"), multiline: z.boolean().optional(), default: z.string().max(5000).optional() }),
   z.object({ ...base, type: z.literal("number"), default: z.number().optional(), min: z.number().optional(), max: z.number().optional() }),
@@ -42,6 +45,7 @@ const listFieldSchema = z.object({
 
 export const fieldSchema = z.union([scalarFieldSchema, listFieldSchema]);
 export type SheetField = z.infer<typeof fieldSchema>;
+type ScalarField = z.infer<typeof scalarFieldSchema>;
 
 export const sheetTemplateSchema = z
   .object({
@@ -161,7 +165,7 @@ function valueMatches(field: SheetField, value: unknown): boolean {
     case "list":
       return (
         Array.isArray(value) &&
-        value.length <= 200 &&
+        value.length <= MAX_LIST_ROWS &&
         value.every(
           (row) =>
             typeof row === "object" &&
@@ -196,17 +200,18 @@ export function itemDataFits(list: ListField, data: Record<string, unknown>): bo
  * `quantity` number field), otherwise a new row built from the item's `data` is appended.
  */
 export function addItemToRows(list: ListField & { nameField: string }, rows: Row[], name: string, data: Record<string, unknown>): Row[] {
-  const quantity = list.itemFields.find((f) => f.id === "quantity" && f.type === "number");
-  const fallback = quantity?.type === "number" ? (quantity.default ?? 0) : 0;
+  const quantity = list.itemFields.find((f): f is Extract<ScalarField, { type: "number" }> => f.id === "quantity" && f.type === "number");
+  const fallback = quantity?.default ?? 0;
   const index = quantity ? rows.findIndex((row) => row[list.nameField] === name) : -1;
   if (quantity && index >= 0) {
-    const max = quantity.type === "number" ? quantity.max : undefined;
     return rows.map((row, i) => {
       if (i !== index) return row;
       const next = (typeof row.quantity === "number" ? row.quantity : fallback) + 1;
-      return { ...row, quantity: max === undefined ? next : Math.min(next, max) };
+      return { ...row, quantity: quantity.max === undefined ? next : Math.min(next, quantity.max) };
     });
   }
+  // a full list (the limit `valueMatches` enforces) takes no new row; the caller sees the rows unchanged
+  if (rows.length >= MAX_LIST_ROWS) return rows;
   const row: Row = { ...(data as Row), [list.nameField]: name };
   if (quantity && row.quantity === undefined) row.quantity = fallback || 1;
   return [...rows, row];

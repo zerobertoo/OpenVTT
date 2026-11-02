@@ -209,12 +209,13 @@ export function Table({ worldId, user }: Props) {
               token={selectedToken}
               actions={actions}
             />
-            {isGm && scene && (
+            {isGm && (
               <Compendium
                 worldId={state.id}
                 actors={state.actors}
                 actions={actions}
                 onPlace={(entryId) => {
+                  if (!scene) return;
                   const center = useTableUi.getState().mapCenter() ?? { x: scene.width / 2, y: scene.height / 2 };
                   placeEntry(entryId, center.x, center.y);
                 }}
