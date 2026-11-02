@@ -186,7 +186,7 @@ export function Table({ worldId, user }: Props) {
       case "journal":
         return <JournalPanel state={state} isGm={isGm} />;
       case "scenes":
-        return <ScenePanel state={state} viewSceneId={viewSceneId} onView={viewScene} />;
+        return <ScenePanel state={state} viewSceneId={viewSceneId} onView={viewScene} onChangeScene={actions.changeScene} />;
       case "settings":
         return (
           <>
@@ -304,7 +304,7 @@ export function Table({ worldId, user }: Props) {
                       onLayerChange={setLayer}
                       viewAsUserId={viewAs}
                       onViewAsChange={changeViewAs}
-                      onLockChange={(lockedLayers) => scene && void api.updateScene(scene.id, { lockedLayers }).catch(() => undefined)}
+                      onLockChange={(lockedLayers) => scene && actions.changeScene(scene, { lockedLayers })}
                     />
                   )
                 }

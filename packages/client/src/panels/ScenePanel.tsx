@@ -1,4 +1,4 @@
-import type { WorldStateDto } from "@openvtt/shared";
+import type { SceneDto, WorldStateDto } from "@openvtt/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
@@ -15,9 +15,11 @@ interface Props {
   state: WorldStateDto;
   viewSceneId: string | null;
   onView: (sceneId: string) => void;
+  /** Applies new settings to a scene so the game master can undo them. */
+  onChangeScene: (scene: SceneDto, changes: Record<string, unknown>) => void;
 }
 
-export function ScenePanel({ state, viewSceneId, onView }: Props) {
+export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -86,17 +88,15 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
     e.preventDefault();
     if (!current) return;
     const f = new FormData(e.currentTarget);
-    void run(() =>
-      api.updateScene(current.id, {
-        name: String(f.get("name")),
-        gridType: String(f.get("gridType")),
-        gridSize: Number(f.get("gridSize")),
-        gridDistance: Number(f.get("gridDistance")),
-        distanceUnit: String(f.get("distanceUnit")),
-        visionEnabled: f.get("visionEnabled") === "on",
-        visionRadius: Number(f.get("visionRadius")),
-      }),
-    );
+    onChangeScene(current, {
+      name: String(f.get("name")),
+      gridType: String(f.get("gridType")),
+      gridSize: Number(f.get("gridSize")),
+      gridDistance: Number(f.get("gridDistance")),
+      distanceUnit: String(f.get("distanceUnit")),
+      visionEnabled: f.get("visionEnabled") === "on",
+      visionRadius: Number(f.get("visionRadius")),
+    });
   };
 
   return (
@@ -149,12 +149,10 @@ export function ScenePanel({ state, viewSceneId, onView }: Props) {
           onOpenChange={setAdjustingGrid}
           scene={current}
           pending={pending}
-          onApply={(gridSize) =>
-            void run(async () => {
-              await api.updateScene(current.id, { gridSize });
-              setAdjustingGrid(false);
-            })
-          }
+          onApply={(gridSize) => {
+            onChangeScene(current, { gridSize });
+            setAdjustingGrid(false);
+          }}
         />
       )}
       <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} />

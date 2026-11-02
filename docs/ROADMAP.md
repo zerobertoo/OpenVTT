@@ -23,7 +23,7 @@ What is built, and what is still planned. Nothing here is a promise or a date; i
 - Character and NPC sheets defined by rules-system packages; a compendium of monsters and items per system, dragged onto the map.
 - Journal of markdown handouts shared with chosen players; a library of the world's uploads.
 - Table music from uploaded MP3 or Ogg files, with a volume per person.
-- Undo and redo of the game master's map changes (moves, turns, deletions, drawings, compendium placements).
+- Undo and redo of the game master's map changes (moves, turns, deletions, drawings, compendium placements, scene settings).
 
 **People and data**
 
@@ -39,7 +39,7 @@ What is built, and what is still planned. Nothing here is a promise or a date; i
 
 ## Planned or open
 
-- **Undo coverage.** Undo covers map changes made from the map (moves, turns, deletions, drawings, compendium). Scene settings, walls edited in bulk, sheets and handouts are not undoable yet.
+- **Undo coverage.** Undo covers map changes made from the map (moves, turns, deletions, drawings, compendium) and scene settings (grid, units, vision, layer locks). Sheets, handouts and token edits (health, conditions) are not undoable yet.
 - **Compendium.** Only the D&D 5e SRD package ships entries, and only a small set. Items are tokens without a sheet; a richer item model (inventory on sheets) would need a template field for it.
 - **Map import.** Fantasy Grounds XML, AboveVTT and Roll20 JSON are not supported (no public specifications); revisit with samples and public docs. Wall and door shapes of Dungeon Alchemist exports are still unverified against real files with walls.
 - **3D dice physics** beyond the current throw, and token animations beyond the first pass.

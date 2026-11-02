@@ -1,4 +1,4 @@
-import type { DrawingDto, TokenDto } from "@openvtt/shared";
+import type { DrawingDto, SceneDto, TokenDto } from "@openvtt/shared";
 import { api } from "../api";
 import type { UndoEntry } from "./undo";
 
@@ -86,6 +86,13 @@ export function undoableActions(
         undo: async () => ids.set(drawing.id, (await api.createDrawing(sceneId, { kind, layer, points, color, text })).id),
         redo: () => api.deleteDrawing(current(drawing.id)),
       });
+    },
+
+    /** Changes scene settings; undo puts back the values the scene had for the same fields. */
+    changeScene(scene: SceneDto, changes: Record<string, unknown>) {
+      const before = Object.fromEntries(Object.keys(changes).map((key) => [key, (scene as unknown as Record<string, unknown>)[key]]));
+      const set = (values: object) => () => api.updateScene(scene.id, values);
+      apply(set(changes), { undo: set(before), redo: set(changes) });
     },
 
     place(entryId: string, sceneId: string, x: number, y: number) {

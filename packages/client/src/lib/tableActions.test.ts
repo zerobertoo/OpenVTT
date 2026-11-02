@@ -4,7 +4,7 @@ import { api } from "../api";
 import { undoableActions } from "./tableActions";
 import { useUndo } from "./undo";
 
-vi.mock("../api", () => ({ api: { createDrawing: vi.fn(), deleteDrawing: vi.fn() } }));
+vi.mock("../api", () => ({ api: { createDrawing: vi.fn(), deleteDrawing: vi.fn(), updateScene: vi.fn() } }));
 
 const line: Pick<DrawingDto, "kind" | "layer" | "points" | "color" | "text"> = {
   kind: "line",
@@ -18,7 +18,9 @@ let next = 0;
 beforeEach(() => {
   next = 0;
   useUndo.getState().clear();
-  vi.mocked(api.deleteDrawing).mockReset().mockResolvedValue(undefined as never);
+  vi.mocked(api.deleteDrawing)
+    .mockReset()
+    .mockResolvedValue(undefined as never);
   vi.mocked(api.createDrawing)
     .mockReset()
     .mockImplementation(async () => ({ id: `d${++next}` }) as never);
@@ -46,4 +48,16 @@ it("waits for the server's id before undoing a step made a moment ago", async ()
   respond({ id: "slow" });
   await undone;
   expect(api.deleteDrawing).toHaveBeenCalledWith("slow");
+});
+
+it("puts scene settings back to what they were and applies them again on redo", async () => {
+  vi.mocked(api.updateScene)
+    .mockReset()
+    .mockResolvedValue({} as never);
+  actions().changeScene({ id: "s", gridSize: 70, gridType: "square" } as never, { gridSize: 100 });
+  await vi.waitFor(() => expect(api.updateScene).toHaveBeenCalledWith("s", { gridSize: 100 }));
+  await useUndo.getState().undo();
+  expect(api.updateScene).toHaveBeenLastCalledWith("s", { gridSize: 70 });
+  await useUndo.getState().redo();
+  expect(api.updateScene).toHaveBeenLastCalledWith("s", { gridSize: 100 });
 });
