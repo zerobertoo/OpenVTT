@@ -200,6 +200,246 @@
     }
   },
   {
+    "id": "commoner",
+    "name": "Commoner",
+    "kind": "monster",
+    "size": 1,
+    "color": "#9a8f7a",
+    "data": {
+      "str": 10,
+      "dex": 10,
+      "con": 10,
+      "int": 10,
+      "wis": 10,
+      "cha": 10,
+      "challenge": "0",
+      "ac": 10,
+      "speed": 30,
+      "hp": 4,
+      "hp_max": 4
+    }
+  },
+  {
+    "id": "kobold",
+    "name": "Kobold",
+    "kind": "monster",
+    "size": 1,
+    "color": "#a0522d",
+    "data": {
+      "str": 7,
+      "dex": 15,
+      "con": 9,
+      "int": 8,
+      "wis": 7,
+      "cha": 8,
+      "challenge": "1/8",
+      "ac": 12,
+      "speed": 30,
+      "hp": 5,
+      "hp_max": 5
+    }
+  },
+  {
+    "id": "guard",
+    "name": "Guard",
+    "kind": "monster",
+    "size": 1,
+    "color": "#5f6f8a",
+    "data": {
+      "str": 13,
+      "dex": 12,
+      "con": 12,
+      "int": 10,
+      "wis": 11,
+      "cha": 10,
+      "challenge": "1/8",
+      "ac": 16,
+      "speed": 30,
+      "hp": 11,
+      "hp_max": 11
+    }
+  },
+  {
+    "id": "cultist",
+    "name": "Cultist",
+    "kind": "monster",
+    "size": 1,
+    "color": "#5a2a4f",
+    "data": {
+      "str": 11,
+      "dex": 12,
+      "con": 10,
+      "int": 10,
+      "wis": 11,
+      "cha": 10,
+      "challenge": "1/8",
+      "ac": 12,
+      "speed": 30,
+      "hp": 9,
+      "hp_max": 9
+    }
+  },
+  {
+    "id": "hobgoblin",
+    "name": "Hobgoblin",
+    "kind": "monster",
+    "size": 1,
+    "color": "#8a3a2a",
+    "data": {
+      "str": 13,
+      "dex": 12,
+      "con": 12,
+      "int": 10,
+      "wis": 10,
+      "cha": 9,
+      "challenge": "1/2",
+      "ac": 18,
+      "speed": 30,
+      "hp": 11,
+      "hp_max": 11
+    }
+  },
+  {
+    "id": "ghoul",
+    "name": "Ghoul",
+    "kind": "monster",
+    "size": 1,
+    "color": "#7d8a6a",
+    "data": {
+      "str": 13,
+      "dex": 15,
+      "con": 10,
+      "int": 7,
+      "wis": 10,
+      "cha": 6,
+      "challenge": "1",
+      "ac": 12,
+      "speed": 30,
+      "hp": 22,
+      "hp_max": 22
+    }
+  },
+  {
+    "id": "giant-spider",
+    "name": "Giant Spider",
+    "kind": "monster",
+    "size": 2,
+    "color": "#3a2f3f",
+    "data": {
+      "str": 14,
+      "dex": 16,
+      "con": 12,
+      "int": 2,
+      "wis": 11,
+      "cha": 4,
+      "challenge": "1",
+      "ac": 14,
+      "speed": 30,
+      "hp": 26,
+      "hp_max": 26
+    }
+  },
+  {
+    "id": "brown-bear",
+    "name": "Brown Bear",
+    "kind": "monster",
+    "size": 2,
+    "color": "#6b4a2b",
+    "data": {
+      "str": 19,
+      "dex": 10,
+      "con": 16,
+      "int": 2,
+      "wis": 13,
+      "cha": 7,
+      "challenge": "1",
+      "ac": 11,
+      "speed": 40,
+      "hp": 34,
+      "hp_max": 34
+    }
+  },
+  {
+    "id": "dire-wolf",
+    "name": "Dire Wolf",
+    "kind": "monster",
+    "size": 2,
+    "color": "#585858",
+    "data": {
+      "str": 17,
+      "dex": 15,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 7,
+      "challenge": "1",
+      "ac": 14,
+      "speed": 50,
+      "hp": 37,
+      "hp_max": 37
+    }
+  },
+  {
+    "id": "gelatinous-cube",
+    "name": "Gelatinous Cube",
+    "kind": "monster",
+    "size": 2,
+    "color": "#6fae8a",
+    "data": {
+      "str": 14,
+      "dex": 3,
+      "con": 20,
+      "int": 1,
+      "wis": 6,
+      "cha": 1,
+      "challenge": "2",
+      "ac": 6,
+      "speed": 15,
+      "hp": 84,
+      "hp_max": 84
+    }
+  },
+  {
+    "id": "wight",
+    "name": "Wight",
+    "kind": "monster",
+    "size": 1,
+    "color": "#4f5f6a",
+    "data": {
+      "str": 15,
+      "dex": 14,
+      "con": 16,
+      "int": 10,
+      "wis": 13,
+      "cha": 15,
+      "challenge": "3",
+      "ac": 14,
+      "speed": 30,
+      "hp": 45,
+      "hp_max": 45
+    }
+  },
+  {
+    "id": "troll",
+    "name": "Troll",
+    "kind": "monster",
+    "size": 2,
+    "color": "#3f6b4a",
+    "data": {
+      "str": 18,
+      "dex": 13,
+      "con": 20,
+      "int": 7,
+      "wis": 9,
+      "cha": 7,
+      "challenge": "5",
+      "ac": 15,
+      "speed": 30,
+      "hp": 84,
+      "hp_max": 84
+    }
+  },
+  {
     "id": "potion-of-healing",
     "name": "Potion of Healing",
     "kind": "item",
