@@ -10,26 +10,34 @@ type DrawingInput = z.infer<typeof createDrawingSchema>;
 export class DrawingService {
   constructor(private db: Db) {}
 
-  find(drawingId: string): { sceneId: string; worldId: string; authorId: string | null; layer: DrawingDto["layer"] } | null {
+  find(drawingId: string): { sceneId: string; floorId: string; worldId: string; authorId: string | null; layer: DrawingDto["layer"] } | null {
     const row = this.db
-      .prepare("SELECT d.scene_id, d.author_id, d.layer, s.world_id FROM drawings d JOIN scenes s ON s.id = d.scene_id WHERE d.id = ?")
-      .get(drawingId) as { scene_id: string; author_id: string | null; layer: DrawingDto["layer"]; world_id: string } | undefined;
-    return row ? { sceneId: row.scene_id, worldId: row.world_id, authorId: row.author_id, layer: row.layer } : null;
+      .prepare(
+        "SELECT d.scene_id, d.floor_id, d.author_id, d.layer, s.world_id FROM drawings d JOIN scenes s ON s.id = d.scene_id WHERE d.id = ?",
+      )
+      .get(drawingId) as
+      | { scene_id: string; floor_id: string; author_id: string | null; layer: DrawingDto["layer"]; world_id: string }
+      | undefined;
+    return row ? { sceneId: row.scene_id, floorId: row.floor_id, worldId: row.world_id, authorId: row.author_id, layer: row.layer } : null;
   }
 
-  /** Players draw only on the objects layer of the active scene and never place note pins; notes always go to the `gm` layer. */
-  create(sceneId: string, viewer: Viewer, activeSceneId: string | null, input: DrawingInput): string {
+  /**
+   * Players draw only on the objects layer of the active scene, on the floor they are on, and never place note pins;
+   * notes always go to the `gm` layer.
+   */
+  create(sceneId: string, floorId: string, viewer: Viewer, activeSceneId: string | null, input: DrawingInput): string {
     const isGm = viewer.role === "gm";
     if (this.lockedLayers(sceneId).includes(input.kind === "note" ? "gm" : input.layer)) throw new AppError("forbidden");
     if (!isGm && (sceneId !== activeSceneId || input.kind === "note" || input.layer !== "objects")) throw new AppError("forbidden");
-    const { n } = this.db.prepare("SELECT COUNT(*) AS n FROM drawings WHERE scene_id = ?").get(sceneId) as { n: number };
+    const { n } = this.db.prepare("SELECT COUNT(*) AS n FROM drawings WHERE floor_id = ?").get(floorId) as { n: number };
     if (n >= MAX_SCENE_DRAWINGS) throw new AppError("invalid_input");
     const id = randomUUID();
     this.db
-      .prepare("INSERT INTO drawings (id, scene_id, author_id, kind, layer, points, color, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .prepare("INSERT INTO drawings (id, scene_id, floor_id, author_id, kind, layer, points, color, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .run(
         id,
         sceneId,
+        floorId,
         viewer.userId,
         input.kind,
         input.kind === "note" ? "gm" : input.layer,
@@ -40,12 +48,13 @@ export class DrawingService {
     return id;
   }
 
-  insertImported(sceneId: string, input: DrawingInput) {
+  insertImported(sceneId: string, floorId: string, input: DrawingInput) {
     this.db
-      .prepare("INSERT INTO drawings (id, scene_id, author_id, kind, layer, points, color, text) VALUES (?, ?, NULL, ?, ?, ?, ?, ?)")
+      .prepare("INSERT INTO drawings (id, scene_id, floor_id, author_id, kind, layer, points, color, text) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?)")
       .run(
         randomUUID(),
         sceneId,
+        floorId,
         input.kind,
         input.kind === "note" ? "gm" : input.layer,
         JSON.stringify(input.points),
@@ -63,14 +72,15 @@ export class DrawingService {
     this.db.prepare("DELETE FROM drawings WHERE id = ?").run(drawingId);
   }
 
-  clear(sceneId: string, viewer: Viewer) {
+  /** Clears the drawings of one floor the viewer may erase. */
+  clear(sceneId: string, floorId: string, viewer: Viewer) {
     const locked = JSON.stringify(this.lockedLayers(sceneId));
     const unlocked = "layer NOT IN (SELECT value FROM json_each(?))";
-    if (viewer.role === "gm") this.db.prepare(`DELETE FROM drawings WHERE scene_id = ? AND ${unlocked}`).run(sceneId, locked);
+    if (viewer.role === "gm") this.db.prepare(`DELETE FROM drawings WHERE floor_id = ? AND ${unlocked}`).run(floorId, locked);
     else
       this.db
-        .prepare(`DELETE FROM drawings WHERE scene_id = ? AND author_id = ? AND layer <> 'gm' AND ${unlocked}`)
-        .run(sceneId, viewer.userId, locked);
+        .prepare(`DELETE FROM drawings WHERE floor_id = ? AND author_id = ? AND layer <> 'gm' AND ${unlocked}`)
+        .run(floorId, viewer.userId, locked);
   }
 
   private lockedLayers(sceneId: string): string[] {

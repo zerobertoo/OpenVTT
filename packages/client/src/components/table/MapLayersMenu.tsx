@@ -29,7 +29,7 @@ const LAYER_LABELS = ["walls", "doors", "lights", "lightRange", "grid"] as const
 export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUserId, onViewAsChange, onLockChange }: Props) {
   const { t } = useTranslation();
   const previewing = viewAsUserId !== null;
-  const hasMapData = Boolean(scene && (scene.walls.length > 0 || scene.lights.length > 0));
+  const hasMapData = Boolean(scene?.floors.some((f) => f.walls.length > 0 || f.lights.length > 0));
   return (
     <Popover
       className="w-80"

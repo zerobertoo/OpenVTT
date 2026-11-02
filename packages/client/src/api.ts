@@ -80,7 +80,10 @@ export const api = {
   deleteHandout: (handoutId: string) => del(`/api/handouts/${handoutId}`),
   createDrawing: (sceneId: string, body: object) => post<{ id: string }>(`/api/scenes/${sceneId}/drawings`, body),
   deleteDrawing: (drawingId: string) => del(`/api/drawings/${drawingId}`),
-  clearDrawings: (sceneId: string) => del(`/api/scenes/${sceneId}/drawings`),
+  clearDrawings: (sceneId: string, floorId: string) => del(`/api/scenes/${sceneId}/drawings?floorId=${floorId}`),
+  createFloor: (sceneId: string, body: object) => post<SceneDto>(`/api/scenes/${sceneId}/floors`, body),
+  updateFloor: (floorId: string, body: object) => patch<SceneDto>(`/api/floors/${floorId}`, body),
+  deleteFloor: (floorId: string) => del<SceneDto>(`/api/floors/${floorId}`),
   setDoorOpen: (sceneId: string, wallId: string, open: boolean) => post(`/api/scenes/${sceneId}/doors/${wallId}`, { open }),
 
   createToken: (worldId: string, body: object) => post<TokenDto>(`/api/worlds/${worldId}/tokens`, body),

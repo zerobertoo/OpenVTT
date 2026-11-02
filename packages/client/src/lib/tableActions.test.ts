@@ -30,9 +30,9 @@ const actions = () => undoableActions("w", vi.fn(), useUndo.getState().record);
 
 it("follows ids through several recreations", async () => {
   const table = actions();
-  table.draw("s", line);
+  table.draw("s", "f", line);
   await vi.waitFor(() => expect(api.createDrawing).toHaveBeenCalledTimes(1));
-  table.erase("s", { ...line, id: "d1", authorId: "u" } as never);
+  table.erase("s", "f", { ...line, id: "d1", authorId: "u" } as never);
   await useUndo.getState().undo(); // the erase: the drawing comes back as d2
   await useUndo.getState().undo(); // the draw: d2 is the one to delete
   expect(vi.mocked(api.deleteDrawing).mock.calls.map(([id]) => id)).toEqual(["d1", "d2"]);
@@ -41,7 +41,7 @@ it("follows ids through several recreations", async () => {
 it("waits for the server's id before undoing a step made a moment ago", async () => {
   let respond: (value: { id: string }) => void = () => undefined;
   vi.mocked(api.createDrawing).mockImplementationOnce(() => new Promise((resolve) => (respond = resolve)) as never);
-  actions().draw("s", line);
+  actions().draw("s", "f", line);
   const undone = useUndo.getState().undo();
   await vi.waitFor(() => expect(api.createDrawing).toHaveBeenCalled());
   expect(api.deleteDrawing).not.toHaveBeenCalled();

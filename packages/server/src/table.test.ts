@@ -356,7 +356,7 @@ describe("export and import", () => {
     expect(s.tokens.find((t) => t.name === "Hero")!.actorId).toBe(s.actors[0]!.id);
     expect(s.messages.map((m) => m.content)).toEqual(["public line"]);
     expect(s.activeSceneId).toBe(s.scenes[0]!.id);
-    expect((await call(app, importer.cookie, "GET", `/api/assets/${s.scenes[0]!.assetId}`)).statusCode).toBe(200);
+    expect((await call(app, importer.cookie, "GET", `/api/assets/${s.scenes[0]!.floors[0]!.assetId}`)).statusCode).toBe(200);
     conn.ws.close();
   });
 

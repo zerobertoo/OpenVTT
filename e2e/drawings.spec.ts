@@ -6,7 +6,7 @@ test("the game master draws an arrow, pins a private note and erases the arrow",
   await createAndOpenWorld(page, "Drawing world");
   const worldId = worldIdOf(page);
   await page.request.post(`/api/worlds/${worldId}/scenes`, { data: { name: "Arena", width: 700, height: 500 } });
-  const drawings = async () => (await worldState(page, worldId)).scenes[0]?.drawings ?? [];
+  const drawings = async () => (await worldState(page, worldId)).scenes[0]?.floors[0]?.drawings ?? [];
 
   await page.keyboard.press("p");
   await page.keyboard.press("b");

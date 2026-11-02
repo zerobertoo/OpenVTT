@@ -1,4 +1,4 @@
-import { type Point, pointInPolygon, type SceneDto, type TokenDto, visibilityPolygon } from "@openvtt/shared";
+import { type FloorDto, type Point, pointInPolygon, type SceneDto, type TokenDto, visibilityPolygon } from "@openvtt/shared";
 
 export interface VisionRegion {
   polygons: Point[][];
@@ -11,14 +11,14 @@ export interface VisionRegion {
  * ponytail: a light only counts when it lies inside a token's own vision radius; far-off lit rooms stay dark until
  * a token gets close. Extend the sweep radius per light if tables ask for it.
  */
-export function visionRegion(scene: SceneDto, controlled: readonly TokenDto[]): VisionRegion {
-  const blockers = scene.walls.filter((w) => w.kind === "wall" || !w.open);
+export function visionRegion(scene: SceneDto, floor: FloorDto, controlled: readonly TokenDto[]): VisionRegion {
+  const blockers = floor.walls.filter((w) => w.kind === "wall" || !w.open);
   const sight = scene.visionRadius * scene.gridSize;
   const polygons = controlled.map((token) => {
     const half = (token.size * scene.gridSize) / 2;
     return visibilityPolygon({ x: token.x + half, y: token.y + half }, blockers, sight);
   });
-  for (const light of scene.lights) {
+  for (const light of floor.lights) {
     const position = { x: light.x, y: light.y };
     if (polygons.some((polygon) => pointInPolygon(position, polygon))) {
       polygons.push(visibilityPolygon(position, blockers, light.radius * scene.gridSize));

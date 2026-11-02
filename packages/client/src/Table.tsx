@@ -1,4 +1,4 @@
-import type { UserDto } from "@openvtt/shared";
+import { floorOf, type UserDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
@@ -52,7 +52,7 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, layers, viewAsUserId, diceTrayOpen, draw, view } =
+  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, gmViewFloorId, layers, viewAsUserId, diceTrayOpen, draw, view } =
     useTableUi();
   const {
     setTab,
@@ -62,6 +62,7 @@ export function Table({ worldId, user }: Props) {
     toggleToken,
     selectTokens,
     viewScene,
+    viewFloor,
     reset,
     setDiceTrayOpen,
     setLayer,
@@ -134,6 +135,12 @@ export function Table({ worldId, user }: Props) {
       : state.activeSceneId
     : state.activeSceneId;
   const scene = state.scenes.find((s) => s.id === viewSceneId) ?? null;
+  // Players see the floor the server picked for them (the only one sent); the game master picks any floor, or follows the
+  // player they are previewing.
+  const floor = scene
+    ? floorOf(scene, isGm ? (viewAs ? state.viewFloorId : (gmViewFloorId ?? scene.tableFloorId)) : state.viewFloorId)
+    : null;
+  const floorTokens = state.tokens.filter((tk) => tk.floorId === floor?.id);
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
   // Tokens that vanished (deleted, out of sight) silently leave the selection.
   const selectedTokens = state.tokens.filter((tk) => selectedTokenIds.includes(tk.id));
@@ -217,7 +224,8 @@ export function Table({ worldId, user }: Props) {
           {scene ? (
             <MapView
               scene={scene}
-              tokens={view === "tv" ? state.tokens.filter((tk) => !tk.hidden) : state.tokens}
+              floor={floor}
+              tokens={view === "tv" ? floorTokens.filter((tk) => !tk.hidden) : floorTokens}
               tool={tool}
               selectedTokenIds={selectedTokenIds}
               canControl={canControl}
@@ -228,15 +236,15 @@ export function Table({ worldId, user }: Props) {
               vision={state.vision}
               layers={viewAs || view === "tv" ? PLAYER_LAYERS : layers}
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
-              onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus })}
+              onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus, floorId: isGm ? floor?.id : undefined })}
               formatDistance={(cells) => format.distance(cells, scene)}
               rulerShape={rulerShape}
               diagonalRule={diagonalRule}
               draw={draw}
-              onDraw={(drawing) => actions.draw(scene.id, drawing)}
+              onDraw={(drawing) => floor && actions.draw(scene.id, floor.id, drawing)}
               onErase={(drawingId) => {
-                const drawing = scene.drawings.find((d) => d.id === drawingId);
-                if (drawing) actions.erase(scene.id, drawing);
+                const drawing = floor?.drawings.find((d) => d.id === drawingId);
+                if (drawing && floor) actions.erase(scene.id, floor.id, drawing);
               }}
               onMoved={actions.moved}
               onDropEntry={(entryId, x, y) => isGm && placeEntry(entryId, x, y)}
@@ -268,7 +276,7 @@ export function Table({ worldId, user }: Props) {
                 <DrawOptions
                   isGm={isGm}
                   lockedLayers={scene.lockedLayers}
-                  onClear={() => void api.clearDrawings(scene.id).catch(() => undefined)}
+                  onClear={() => floor && void api.clearDrawings(scene.id, floor.id).catch(() => undefined)}
                 />
               )}
               {selectedTokens.length > 1 && (

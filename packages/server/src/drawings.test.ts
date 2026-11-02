@@ -39,9 +39,9 @@ describe("drawings and note pins", () => {
     });
 
     const gmScene = (await stateOf(gm.cookie)).scenes[0]!;
-    expect(gmScene.drawings.map((d) => d.layer)).toEqual(["objects", "gm", "gm"]);
+    expect(gmScene.floors[0]!.drawings.map((d) => d.layer)).toEqual(["objects", "gm", "gm"]);
     const bobState = await stateOf(bob.cookie);
-    expect(bobState.scenes[0]!.drawings.map((d) => d.kind)).toEqual(["arrow"]);
+    expect(bobState.scenes[0]!.floors[0]!.drawings.map((d) => d.kind)).toEqual(["arrow"]);
     expect(JSON.stringify(bobState)).not.toContain("lich");
     expect(JSON.stringify(bobState)).not.toContain("abcdef");
     expect((await call(app, bob.cookie, "GET", `/api/worlds/${world.id}/export`)).statusCode).toBe(403);
@@ -82,9 +82,9 @@ describe("drawings and note pins", () => {
     expect((await call(app, bob.cookie, "DELETE", `/api/drawings/${own.id}`)).statusCode).toBe(200);
     await call(app, bob.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "line", points: [0, 0, 9, 9] });
     await call(app, bob.cookie, "DELETE", `/api/scenes/${scene.id}/drawings`);
-    expect((await stateOf(gm.cookie)).scenes[0]!.drawings).toHaveLength(2);
+    expect((await stateOf(gm.cookie)).scenes[0]!.floors[0]!.drawings).toHaveLength(2);
     await call(app, gm.cookie, "DELETE", `/api/scenes/${scene.id}/drawings`);
-    expect((await stateOf(gm.cookie)).scenes[0]!.drawings).toHaveLength(0);
+    expect((await stateOf(gm.cookie)).scenes[0]!.floors[0]!.drawings).toHaveLength(0);
   });
 
   it("hides scenes that are not active from players who try to draw on them", async () => {
@@ -110,7 +110,7 @@ describe("drawings and note pins", () => {
     const conn = connect(port, imported.json().id, gm.cookie);
     const msg = await conn.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
     conn.ws.close();
-    expect(msg.state.scenes[0]!.drawings[0]).toMatchObject({ kind: "note", layer: "gm", text: SECRET_NOTE.text, authorId: null });
+    expect(msg.state.scenes[0]!.floors[0]!.drawings[0]).toMatchObject({ kind: "note", layer: "gm", text: SECRET_NOTE.text, authorId: null });
   });
 });
 
@@ -143,7 +143,7 @@ describe("locked layers", () => {
         .statusCode,
     ).toBe(200);
     const locked = await stateOf(bob.cookie);
-    expect(locked.scenes[0]!.drawings).toHaveLength(2);
+    expect(locked.scenes[0]!.floors[0]!.drawings).toHaveLength(2);
     expect(locked.scenes[0]!.lockedLayers).toEqual(["objects", "tokens"]);
 
     await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { lockedLayers: [] });

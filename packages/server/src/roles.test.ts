@@ -54,7 +54,7 @@ describe("roles", () => {
     expect(olga.joined.json().role).toBe("observer");
     const state = await stateOf(olga.cookie);
     expect(state.yourRole).toBe("observer");
-    expect(state.scenes[0]!.walls).toEqual([]);
+    expect(state.scenes[0]!.floors[0]!.walls).toEqual([]);
     expect((await call(app, olga.cookie, "POST", `/api/worlds/${world.id}/messages`, { content: "hi" })).statusCode).toBe(403);
     const line = { kind: "line", points: [0, 0, 1, 1] };
     expect((await call(app, olga.cookie, "POST", `/api/scenes/${scene.id}/drawings`, line)).statusCode).toBe(403);

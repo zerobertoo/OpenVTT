@@ -8,6 +8,7 @@ import { TokenList } from "./TokenList";
 const goblin: TokenDto = {
   id: "t1",
   sceneId: "s1",
+  floorId: "f1",
   name: "Goblin",
   x: 0,
   y: 0,

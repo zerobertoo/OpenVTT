@@ -1,4 +1,4 @@
-import type { SceneDto, WorldStateDto } from "@openvtt/shared";
+import { floorOf, type SceneDto, type WorldStateDto } from "@openvtt/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
@@ -19,6 +19,24 @@ interface Props {
   onChangeScene: (scene: SceneDto, changes: Record<string, unknown>) => void;
 }
 
+/** Splits the drafts of an import into scenes: drafts sharing a floor key and the same size and grid stay together. */
+function groupFloors(drafts: MapImportChoice): MapImportChoice[] {
+  const groups: MapImportChoice[] = [];
+  const byKey = new Map<string, MapImportChoice>();
+  for (const draft of drafts) {
+    const group = draft.floorKey ? byKey.get(draft.floorKey) : undefined;
+    const lead = group?.[0];
+    const fits = lead && lead.width === draft.width && lead.height === draft.height && lead.gridSize === draft.gridSize;
+    if (group && fits) group.push(draft);
+    else {
+      const created = [draft];
+      groups.push(created);
+      if (draft.floorKey && !byKey.has(draft.floorKey)) byKey.set(draft.floorKey, created);
+    }
+  }
+  return groups;
+}
+
 export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();
@@ -26,6 +44,8 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props)
   const [importing, setImporting] = useState(false);
   const [adjustingGrid, setAdjustingGrid] = useState(false);
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
+  const walls = current?.floors.reduce((sum, f) => sum + f.walls.length, 0) ?? 0;
+  const lights = current?.floors.reduce((sum, f) => sum + f.lights.length, 0) ?? 0;
 
   const create = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,29 +74,34 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props)
 
   const importMap = (choice: MapImportChoice) =>
     void run(async () => {
-      // Files that are floors of one map share a group so the scenes stay together.
-      const groups = new Map<string, string>();
       let first: string | null = null;
-      for (const draft of choice) {
-        const assetId = (await api.uploadAsset(state.id, draft.media)).id;
-        if (draft.floorKey && !groups.has(draft.floorKey)) groups.set(draft.floorKey, crypto.randomUUID());
+      // Files that are floors of one map (`Tavern_0`, `Tavern_1`) become one scene with a floor each, as long as they
+      // line up (same size and grid); anything else stays one scene per file.
+      for (const group of groupFloors(choice)) {
+        const floors = [];
+        for (const draft of group) {
+          const assetId = (await api.uploadAsset(state.id, draft.media)).id;
+          floors.push({
+            name: group.length > 1 ? t("scene.floorName", { n: draft.floor + 1 }) : draft.name,
+            assetId,
+            walls: [
+              ...(draft.data?.walls ?? []).map((w) => ({ ...w, kind: "wall" })),
+              ...(draft.data?.doors ?? []).map(({ closed, ...w }) => ({ ...w, kind: "door", open: !closed })),
+            ],
+            lights: draft.data?.lights ?? [],
+          });
+        }
+        const lead = group[0]!;
         const scene = await api.createScene(state.id, {
-          name: draft.name,
-          assetId,
-          width: draft.width,
-          height: draft.height,
+          name: group.length > 1 ? lead.name.replace(/[\s_-]*\d{1,2}$/, "") || lead.name : lead.name,
+          width: lead.width,
+          height: lead.height,
           gridType: "square",
-          gridSize: draft.gridSize,
-          gridDistance: draft.gridDistance,
-          distanceUnit: draft.distanceUnit,
-          walls: [
-            ...(draft.data?.walls ?? []).map((w) => ({ ...w, kind: "wall" })),
-            ...(draft.data?.doors ?? []).map(({ closed, ...w }) => ({ ...w, kind: "door", open: !closed })),
-          ],
-          lights: draft.data?.lights ?? [],
-          bakedLighting: draft.data?.bakedLighting ?? false,
-          floorGroup: draft.floorKey ? (groups.get(draft.floorKey) ?? null) : null,
-          floor: draft.floor,
+          gridSize: lead.gridSize,
+          gridDistance: lead.gridDistance,
+          distanceUnit: lead.distanceUnit,
+          bakedLighting: lead.data?.bakedLighting ?? false,
+          floors,
         });
         first ??= scene.id;
       }
@@ -120,11 +145,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props)
         </ul>
       )}
 
-      {current && (current.walls.length > 0 || current.lights.length > 0) && (
-        <p className="m-0 text-ink-2 text-sm">
-          {t("scene.mapDataSummary", { walls: current.walls.length, lights: current.lights.length })}
-        </p>
-      )}
+      {current && (walls > 0 || lights > 0) && <p className="m-0 text-ink-2 text-sm">{t("scene.mapDataSummary", { walls, lights })}</p>}
 
       {current && (
         // The key makes the uncontrolled inputs reset when another scene (or a server update) is shown.
@@ -148,6 +169,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props)
           open={adjustingGrid}
           onOpenChange={setAdjustingGrid}
           scene={current}
+          background={floorOf(current, current.tableFloorId)}
           pending={pending}
           onApply={(gridSize) => {
             onChangeScene(current, { gridSize });

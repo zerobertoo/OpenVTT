@@ -11,9 +11,9 @@ assets/<uuid>.<png|jpg|webp>
 
 A scene's `gridType` is `square`, `hexPointy`, `hexFlat` or `none`; on hex grids `gridSize` is the distance between the centers of two neighboring hexes.
 
-Each scene may carry `walls` (segments `x1,y1,x2,y2` in map pixels, `kind` `wall` or `door`, `open` for doors), `lights` (`x`, `y` in pixels, `radius` in grid cells, `intensity`, `color` as `#rrggbb`, `shadows`), `bakedLighting`, and `floorGroup` / `floor` for maps imported as several floors. All are optional: files written before they existed still import, with empty lists. Importers ignore unknown fields.
+Each scene lists its `floors` (bottom to top; at least one), each with a `name`, an `assetId` (the background picture or video), `walls` (segments `x1,y1,x2,y2` in map pixels, `kind` `wall` or `door`, `open` for doors), `lights` (`x`, `y` in pixels, `radius` in grid cells, `intensity`, `color` as `#rrggbb`, `shadows`) and `drawings`. `tableFloorId` names the floor that players without a token of their own see. Scenes also carry `bakedLighting`. Tokens may carry a `floorId`; without one they stand on the scene's table floor. Files written before floors existed describe one floor through `assetId`, `walls`, `lights` and `drawings` on the scene itself, and import as a scene with a single floor. All of this is optional: files written before it existed still import, with empty lists. Importers ignore unknown fields.
 
-Each scene may also carry `drawings`: `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `text` or `note`), `layer` (`background`, `objects` or `gm`), `points` (flat `[x1, y1, x2, y2, ...]` in map pixels), `color` (`#rrggbb`) and `text`. Who drew them is not exported. Notes always land on the `gm` layer. A scene may list `lockedLayers` (`background`, `objects`, `tokens`, `gm`).
+A floor's `drawings` have a `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `text` or `note`), `layer` (`background`, `objects` or `gm`), `points` (flat `[x1, y1, x2, y2, ...]` in map pixels), `color` (`#rrggbb`) and `text`. Who drew them is not exported. Notes always land on the `gm` layer. A scene may list `lockedLayers` (`background`, `objects`, `tokens`, `gm`).
 
 Each token may also carry `hp` and `hpMax` (both `null` for no health bar), `conditions` (a list of ids such as `prone` or `poisoned`) and `showName`. These are optional too.
 

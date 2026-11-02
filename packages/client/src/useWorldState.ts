@@ -23,7 +23,12 @@ function reducer(state: WorldStateDto | null, msg: ServerMessage): WorldStateDto
     case "vision.update":
       return { ...state, vision: msg.vision };
     case "scene.drawings":
-      return { ...state, scenes: state.scenes.map((s) => (s.id === msg.sceneId ? { ...s, drawings: msg.drawings } : s)) };
+      return {
+        ...state,
+        scenes: state.scenes.map((s) =>
+          s.id === msg.sceneId ? { ...s, floors: s.floors.map((f) => (f.id === msg.floorId ? { ...f, drawings: msg.drawings } : f)) } : s,
+        ),
+      };
     case "combat.update":
       return { ...state, combat: msg.combat };
     case "chat.message":

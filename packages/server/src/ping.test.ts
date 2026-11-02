@@ -28,7 +28,7 @@ describe("map pings", () => {
     // A player's focus request is downgraded to a plain ping; coordinates are clamped to the map.
     bobConn.ws.send(JSON.stringify({ type: "map.ping", x: 5000, y: -20, focus: true }));
     const fromBob = await gmConn.waitFor(isPing);
-    expect(fromBob.ping).toEqual({ sceneId: scene.id, userId: bob.user.id, x: 1000, y: 0, focus: false });
+    expect(fromBob.ping).toEqual({ sceneId: scene.id, floorId: scene.tableFloorId, userId: bob.user.id, x: 1000, y: 0, focus: false });
     await bobConn.waitFor(isPing);
 
     // The game master may ask everyone to look; the rate limit is per connection, so Bob's ping did not use up theirs.

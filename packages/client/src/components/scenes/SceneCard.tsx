@@ -1,4 +1,4 @@
-import type { SceneDto } from "@openvtt/shared";
+import { floorOf, type SceneDto } from "@openvtt/shared";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "../../api";
@@ -24,6 +24,7 @@ interface Props {
 export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDelete }: Props) {
   const { t } = useTranslation();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const thumbnail = floorOf(scene, scene.tableFloorId).assetId;
   return (
     <Card as="li" variant="inset" className={`flex items-center gap-1 p-1.5 ${viewing ? "shadow-[inset_0_0_0_1.5px_var(--accent)]" : ""}`}>
       <button
@@ -32,8 +33,8 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
         onClick={onView}
         className="flex min-w-0 flex-1 cursor-pointer items-center justify-start gap-2.5 rounded-xl bg-transparent p-1 text-left text-ink pointer-coarse:min-h-11"
       >
-        {scene.assetId ? (
-          <img src={assetUrl(scene.assetId)} alt="" className="size-11 flex-none rounded-lg object-cover" />
+        {thumbnail ? (
+          <img src={assetUrl(thumbnail)} alt="" className="size-11 flex-none rounded-lg object-cover" />
         ) : (
           <span className="grid size-11 flex-none place-items-center rounded-lg bg-surface text-ink-2" aria-hidden="true">
             <Icon name="scenes" />
@@ -42,7 +43,7 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
         <span className="grid min-w-0 gap-0.5">
           <span className="truncate font-semibold">{scene.name}</span>
           {shown && <Badge tone="accent">{t("scene.active")}</Badge>}
-          {scene.floorGroup && <Badge tone="neutral">{t("scene.floor", { n: scene.floor })}</Badge>}
+          {scene.floors.length > 1 && <Badge tone="neutral">{t("scene.floorCount", { count: scene.floors.length })}</Badge>}
         </span>
       </button>
 

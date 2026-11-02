@@ -63,6 +63,9 @@ interface TableUiState {
   selectedTokenIds: string[];
   /** Scene the game master is looking at; null follows the active scene. */
   gmViewSceneId: string | null;
+  /** Floor of that scene the game master is looking at; null follows the table floor. */
+  gmViewFloorId: string | null;
+  viewFloor: (floorId: string | null) => void;
   /** Which overlays the game master sees on the map. */
   layers: MapLayers;
   setLayer: (layer: keyof MapLayers, show: boolean) => void;
@@ -107,6 +110,7 @@ const initialState = {
   selectedTokenId: null,
   selectedTokenIds: [] as string[],
   gmViewSceneId: null,
+  gmViewFloorId: null,
   layers: DEFAULT_LAYERS,
   viewAsUserId: null,
   viewCommand: null,
@@ -141,6 +145,7 @@ export const useTableUi = create<TableUiState>((set) => ({
       return { selectedTokenIds, selectedTokenId: selectedTokenIds.at(-1) ?? null };
     }),
   selectTokens: (selectedTokenIds) => set({ selectedTokenIds, selectedTokenId: selectedTokenIds.at(-1) ?? null }),
-  viewScene: (gmViewSceneId) => set({ gmViewSceneId }),
+  viewScene: (gmViewSceneId) => set({ gmViewSceneId, gmViewFloorId: null }),
+  viewFloor: (gmViewFloorId) => set({ gmViewFloorId }),
   reset: () => set(initialState),
 }));

@@ -74,16 +74,16 @@ export function undoableActions(
       apply(drop, { undo: () => Promise.all(tokens.map(createToken)), redo: drop });
     },
 
-    draw(sceneId: string, drawing: NewDrawing) {
+    draw(sceneId: string, floorId: string, drawing: NewDrawing) {
       const key = crypto.randomUUID();
-      const make = async () => ids.set(key, (await api.createDrawing(sceneId, drawing)).id);
+      const make = async () => ids.set(key, (await api.createDrawing(sceneId, { ...drawing, floorId })).id);
       apply(make, { undo: () => api.deleteDrawing(current(key)), redo: make });
     },
 
-    erase(sceneId: string, drawing: DrawingDto) {
+    erase(sceneId: string, floorId: string, drawing: DrawingDto) {
       const { kind, layer, points, color, text } = drawing;
       apply(() => api.deleteDrawing(drawing.id), {
-        undo: async () => ids.set(drawing.id, (await api.createDrawing(sceneId, { kind, layer, points, color, text })).id),
+        undo: async () => ids.set(drawing.id, (await api.createDrawing(sceneId, { kind, layer, points, color, text, floorId })).id),
         redo: () => api.deleteDrawing(current(drawing.id)),
       });
     },

@@ -6,9 +6,11 @@ import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData
 import {
   buildUvtt,
   createDrawingSchema,
+  floorOf,
   GRID_TYPES,
   lightInputSchema,
   MAP_LAYERS,
+  MAX_FLOORS,
   MAX_SCENE_DRAWINGS,
   MAX_SCENE_LIGHTS,
   MAX_SCENE_WALLS,
@@ -47,19 +49,32 @@ const worldFileSchema = z.object({
       z.object({
         id,
         name: z.string().max(80),
-        assetId: id.nullable(),
         width: z.number().int().min(1).max(16384),
         height: z.number().int().min(1).max(16384),
         gridType: z.enum(GRID_TYPES),
         gridSize: z.number().int().min(10).max(500),
         gridDistance: z.number().positive().max(1000),
         distanceUnit: z.string().max(10),
-        // Absent in files written before walls and lights existed.
+        // Files written before floors existed describe one floor with these fields; newer ones list `floors`.
+        assetId: id.nullable().default(null),
         walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS).default([]),
         lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS).default([]),
+        floors: z
+          .array(
+            z.object({
+              id,
+              name: z.string().min(1).max(60),
+              assetId: id.nullable(),
+              walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS).default([]),
+              lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS).default([]),
+              drawings: z.array(createDrawingSchema).max(MAX_SCENE_DRAWINGS).default([]),
+            }),
+          )
+          .min(1)
+          .max(MAX_FLOORS)
+          .optional(),
+        tableFloorId: id.optional(),
         bakedLighting: z.boolean().default(false),
-        floorGroup: z.string().uuid().nullable().default(null),
-        floor: z.number().int().min(-20).max(50).default(0),
         visionEnabled: z.boolean().default(false),
         visionRadius: z.number().finite().min(1).max(200).default(12),
         drawings: z.array(createDrawingSchema).max(MAX_SCENE_DRAWINGS).default([]),
@@ -73,6 +88,7 @@ const worldFileSchema = z.object({
       z.object({
         id,
         sceneId: id,
+        floorId: id.optional(),
         name: z.string().max(60),
         x: z.number().finite(),
         y: z.number().finite(),
@@ -137,11 +153,14 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     for (const record of records) statSync(s.assets.path(record));
     const assets = records.map((record) => ({ id: record.id, file: `assets/${record.fileName}` }));
     // Authors are accounts, which never leave the server.
-    const scenes = s.scenes.list(worldId).map((sc) => ({ ...sc, drawings: sc.drawings.map(({ id: _id, authorId: _a, ...d }) => d) }));
+    const scenes = s.scenes.list(worldId).map((sc) => ({
+      ...sc,
+      floors: sc.floors.map((f) => ({ ...f, drawings: f.drawings.map(({ id: _id, authorId: _a, ...d }) => d) })),
+    }));
     const sceneIds = new Set(scenes.map((sc) => sc.id));
     const gmView = { userId: "", role: "gm" as const };
     const tokens = s.tokens
-      .visibleTo(worldId, gmView, null)
+      .visibleTo(worldId, gmView, null, null)
       .filter((t) => sceneIds.has(t.sceneId))
       .map(({ controllerIds: _controllers, ...t }) => t);
     const actors = s.actors.visibleTo(worldId, gmView).map(({ ownerId: _owner, ...a }) => a);
@@ -196,17 +215,18 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     if (!worldId) throw new AppError("not_found");
     guards.requireGm(req, worldId);
     const scene = s.scenes.get(req.params.id)!;
-    const asset = scene.assetId && scene.assetKind === "image" ? s.assets.find(scene.assetId) : null;
+    const floor = floorOf(scene, (req.query as { floorId?: string }).floorId);
+    const asset = floor.assetId && floor.assetKind === "image" ? s.assets.find(floor.assetId) : null;
     const image = asset ? readFileSync(s.assets.path(asset)).toString("base64") : "";
     const slug =
-      scene.name
+      (scene.floors.length > 1 ? `${scene.name} ${floor.name}` : scene.name)
         .replace(/[^A-Za-z0-9]+/g, "-")
         .replace(/^-|-$/g, "")
         .toLowerCase() || "scene";
     return reply
       .header("content-type", "application/json")
       .header("content-disposition", `attachment; filename="${slug}.dd2vtt"`)
-      .send(JSON.stringify(buildUvtt(scene, image)));
+      .send(JSON.stringify(buildUvtt({ ...scene, walls: floor.walls, lights: floor.lights }, image)));
   });
 
   app.post("/api/worlds/import", async (req) => {
@@ -241,10 +261,18 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     const sceneIds = new Set(file.scenes.map((sc) => sc.id));
     const actorIds = new Set(file.actors.map((a) => a.id));
     const refsOk =
-      file.scenes.every((sc) => sc.assetId === null || assetIds.has(sc.assetId)) &&
+      file.scenes.every(
+        (sc) =>
+          (sc.assetId === null || assetIds.has(sc.assetId)) &&
+          (sc.floors ?? []).every((f) => f.assetId === null || assetIds.has(f.assetId)) &&
+          (sc.tableFloorId === undefined || (sc.floors ?? []).some((f) => f.id === sc.tableFloorId)),
+      ) &&
       file.tokens.every(
         (t) =>
-          sceneIds.has(t.sceneId) && (t.assetId === null || assetIds.has(t.assetId)) && (t.actorId === null || actorIds.has(t.actorId)),
+          sceneIds.has(t.sceneId) &&
+          (t.floorId === undefined || file.scenes.find((sc) => sc.id === t.sceneId)?.floors?.some((f) => f.id === t.floorId)) &&
+          (t.assetId === null || assetIds.has(t.assetId)) &&
+          (t.actorId === null || actorIds.has(t.actorId)),
       ) &&
       file.assets.every((a) => entries.get(a.file)?.path !== undefined);
     if (!refsOk) throw new AppError("import_invalid");
@@ -261,8 +289,18 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
           idMap.set(a.id, record.id);
         }
         for (const sc of file.scenes) {
-          const created = s.scenes.create(worldId, { ...sc, assetId: sc.assetId ? idMap.get(sc.assetId)! : null });
-          for (const drawing of sc.drawings) s.drawings.insertImported(created.id, drawing);
+          const fileFloors = sc.floors ?? [{ id: sc.id, name: sc.name.slice(0, 60) || "Floor", assetId: sc.assetId, walls: sc.walls, lights: sc.lights, drawings: sc.drawings }];
+          const created = s.scenes.create(worldId, {
+            ...sc,
+            lockedLayers: sc.lockedLayers,
+            floors: fileFloors.map((f) => ({ name: f.name, assetId: f.assetId ? idMap.get(f.assetId)! : null, walls: f.walls, lights: f.lights })),
+          });
+          fileFloors.forEach((f, i) => {
+            const createdFloorId = created.floors[i]!.id;
+            idMap.set(f.id, createdFloorId);
+            for (const drawing of f.drawings) s.drawings.insertImported(created.id, createdFloorId, drawing);
+          });
+          if (sc.tableFloorId) s.scenes.update(created.id, { tableFloorId: idMap.get(sc.tableFloorId)! });
           idMap.set(sc.id, created.id);
         }
         for (const a of file.actors) {
@@ -276,6 +314,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
           s.tokens.create(worldId, {
             ...t,
             sceneId: idMap.get(t.sceneId)!,
+            floorId: t.floorId ? idMap.get(t.floorId)! : undefined,
             assetId: t.assetId ? idMap.get(t.assetId)! : null,
             actorId: t.actorId ? idMap.get(t.actorId)! : null,
             controllerIds: [],

@@ -1,4 +1,4 @@
-import type { SceneDto } from "@openvtt/shared";
+import type { FloorDto, SceneDto } from "@openvtt/shared";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "../../api";
@@ -13,7 +13,9 @@ const MAX_CELL = 500;
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  scene: Pick<SceneDto, "assetId" | "assetKind" | "width" | "height" | "gridSize">;
+  scene: Pick<SceneDto, "width" | "height" | "gridSize">;
+  /** The picture or video the grid is lined up with. */
+  background: Pick<FloorDto, "assetId" | "assetKind">;
   onApply: (gridSize: number) => void;
   pending?: boolean;
 }
@@ -22,7 +24,7 @@ interface Props {
  * Lines a square grid up with the map by eye: the grid is drawn over the picture while the cell size changes, and
  * a zoom lets the far corner be checked, where a small error in the cell size adds up.
  */
-export function GridAdjuster({ open, onOpenChange, scene, onApply, pending }: Props) {
+export function GridAdjuster({ open, onOpenChange, scene, background, onApply, pending }: Props) {
   const { t } = useTranslation();
   const [size, setSize] = useState(scene.gridSize);
   // The number box keeps what is being typed (so "7" on the way to "70" is not forced to 10); only valid sizes move the grid.
@@ -42,11 +44,11 @@ export function GridAdjuster({ open, onOpenChange, scene, onApply, pending }: Pr
       {/* A scrollable window on the map; the grid overlay is a repeating gradient sized in map percentages. */}
       <div className="max-h-[50dvh] overflow-auto rounded-lg border-[1.5px] border-line">
         <div className="relative" style={{ width: `${zoom * 100}%` }}>
-          {scene.assetId && scene.assetKind === "video" ? (
+          {background.assetId && background.assetKind === "video" ? (
             // biome-ignore lint/a11y/useMediaCaption: a silent map background has nothing to caption
-            <video src={assetUrl(scene.assetId)} muted preload="metadata" className="block w-full" />
-          ) : scene.assetId ? (
-            <img src={assetUrl(scene.assetId)} alt="" className="block w-full" />
+            <video src={assetUrl(background.assetId)} muted preload="metadata" className="block w-full" />
+          ) : background.assetId ? (
+            <img src={assetUrl(background.assetId)} alt="" className="block w-full" />
           ) : (
             <div className="w-full bg-surface-2" style={{ aspectRatio: `${scene.width} / ${scene.height}` }} />
           )}

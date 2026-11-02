@@ -42,40 +42,41 @@ const stateOf = async (app: Parameters<typeof listen>[0], worldId: string, cooki
 describe("walls, doors and lights", () => {
   it("stores them with the scene and lets the game master read them back", async () => {
     const { app, gm, world, scene } = await setup();
-    expect(scene.walls).toHaveLength(2);
-    expect(scene.walls[1]).toMatchObject({ kind: "door", open: false });
-    expect(scene.lights[0]).toMatchObject({ radius: 4, color: "#ffe5bf", shadows: true });
+    expect(scene.floors[0]!.walls).toHaveLength(2);
+    expect(scene.floors[0]!.walls[1]).toMatchObject({ kind: "door", open: false });
+    expect(scene.floors[0]!.lights[0]).toMatchObject({ radius: 4, color: "#ffe5bf", shadows: true });
     expect(scene.bakedLighting).toBe(true);
     const state = await stateOf(app, world.id, gm.cookie);
-    expect(state.scenes[0]!.walls).toHaveLength(2);
+    expect(state.scenes[0]!.floors[0]!.walls).toHaveLength(2);
   });
 
   it("never sends walls, doors or lights to players", async () => {
     const { app, bob, world } = await setup();
     const state = await stateOf(app, world.id, bob.cookie);
     expect(state.scenes).toHaveLength(1);
-    expect(state.scenes[0]!.walls).toEqual([]);
-    expect(state.scenes[0]!.lights).toEqual([]);
+    expect(state.scenes[0]!.floors[0]!.walls).toEqual([]);
+    expect(state.scenes[0]!.floors[0]!.lights).toEqual([]);
     expect(JSON.stringify(state)).not.toContain("ffe5bf");
   });
 
   it("keeps the map data when an update does not mention it, and replaces it when it does", async () => {
     const { app, gm, scene } = await setup();
-    const renamed = (await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { name: "Crypt 2" })).json();
-    expect(renamed.walls).toHaveLength(2);
-    const replaced = (await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { walls: [WALLS[0]] })).json();
-    expect(replaced.walls).toHaveLength(1);
-    expect(replaced.lights).toHaveLength(1);
+    const floorId = scene.floors[0]!.id;
+    const renamed = (await call(app, gm.cookie, "PATCH", `/api/floors/${floorId}`, { name: "Crypt 2" })).json();
+    expect(renamed.floors[0].walls).toHaveLength(2);
+    const replaced = (await call(app, gm.cookie, "PATCH", `/api/floors/${floorId}`, { walls: [WALLS[0]] })).json();
+    expect(replaced.floors[0].walls).toHaveLength(1);
+    expect(replaced.floors[0].lights).toHaveLength(1);
   });
 
   it("opens a door for the game master only, and only doors", async () => {
     const { app, gm, bob, world, scene } = await setup();
-    const [wall, door] = scene.walls;
+    const [wall, door] = scene.floors[0]!.walls;
     const url = (id: string) => `/api/scenes/${scene.id}/doors/${id}`;
     expect((await call(app, bob.cookie, "POST", url(door!.id), { open: true })).statusCode).toBe(403);
     expect((await call(app, gm.cookie, "POST", url(wall!.id), { open: true })).statusCode).toBe(404);
     expect((await call(app, gm.cookie, "POST", url(door!.id), { open: true })).statusCode).toBe(200);
-    expect((await stateOf(app, world.id, gm.cookie)).scenes[0]!.walls[1]!.open).toBe(true);
+    expect((await stateOf(app, world.id, gm.cookie)).scenes[0]!.floors[0]!.walls[1]!.open).toBe(true);
   });
 
   it("rejects coordinates outside the map limits and too many walls", async () => {
@@ -99,8 +100,8 @@ describe("walls, doors and lights", () => {
     });
     expect(imported.statusCode).toBe(200);
     const scene = (await stateOf(app, imported.json().id, importer.cookie)).scenes[0]!;
-    expect(scene.walls.map((w) => w.kind)).toEqual(["wall", "door"]);
-    expect(scene.lights).toHaveLength(1);
+    expect(scene.floors[0]!.walls.map((w) => w.kind)).toEqual(["wall", "door"]);
+    expect(scene.floors[0]!.lights).toHaveLength(1);
     expect(scene.bakedLighting).toBe(true);
   });
 });
@@ -143,7 +144,7 @@ describe("movement and walls", () => {
     expect(await positionAfter(200)).toBe(200);
     await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 400 });
     expect(await positionAfter(700)).toBe(400);
-    await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/doors/${scene.walls[1]!.id}`, { open: true });
+    await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/doors/${scene.floors[0]!.walls[1]!.id}`, { open: true });
     expect(await positionAfter(700)).toBe(700);
     conn.ws.close();
   });
@@ -193,7 +194,7 @@ describe("vision", () => {
     const bobState = await stateOf(app, world.id, bob.cookie);
     expect(bobState.tokens.map((t) => t.name).sort()).toEqual(["Hero", "Rat"]);
     expect(bobState.vision?.polygons.length).toBeGreaterThan(0);
-    expect(bobState.scenes[0]!.walls).toEqual([]);
+    expect(bobState.scenes[0]!.floors[0]!.walls).toEqual([]);
     const gmState = await stateOf(app, world.id, gm.cookie);
     expect(gmState.tokens).toHaveLength(3);
     expect(gmState.vision).toBeNull();
@@ -212,7 +213,7 @@ describe("vision", () => {
     expect(preview.state.tokens.map((t) => t.name).sort()).toEqual(["Hero", "Rat"]);
     expect(preview.state.vision?.sceneId).toBe(scene.id);
     // The game master keeps the map data; only tokens and fog follow the player.
-    expect(preview.state.scenes[0]!.walls.length).toBeGreaterThan(0);
+    expect(preview.state.scenes[0]!.floors[0]!.walls.length).toBeGreaterThan(0);
 
     // Back to everything.
     gmConn.ws.send(JSON.stringify({ type: "world.viewAs", userId: null }));
@@ -229,7 +230,7 @@ describe("vision", () => {
 
   it("reveals what is behind a door once it opens, and hides it again when it closes", async () => {
     const { app, gm, bob, world, scene } = await visionSetup();
-    const door = scene.walls[0]!.id;
+    const door = scene.floors[0]!.walls[0]!.id;
     await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/doors/${door}`, { open: true });
     expect((await stateOf(app, world.id, bob.cookie)).tokens.map((t) => t.name)).toContain("Ghoul");
     await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/doors/${door}`, { open: false });

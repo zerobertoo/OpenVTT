@@ -13,6 +13,7 @@ export interface Viewer {
 interface TokenRow {
   id: string;
   scene_id: string;
+  floor_id: string;
   name: string;
   x: number;
   y: number;
@@ -43,6 +44,7 @@ export class TokenService {
     return {
       id: row.id,
       sceneId: row.scene_id,
+      floorId: row.floor_id,
       name: row.name,
       x: row.x,
       y: row.y,
@@ -73,19 +75,30 @@ export class TokenService {
     return row ? { token: this.toDto(row), worldId: row.world_id } : null;
   }
 
-  /** The GM sees every token; others see non-hidden tokens of the active scene only. */
-  visibleTo(worldId: string, viewer: Viewer, activeSceneId: string | null): TokenDto[] {
+  /** The GM sees every token; others see non-hidden tokens of the active scene on `floorId` only. */
+  visibleTo(worldId: string, viewer: Viewer, activeSceneId: string | null, floorId: string | null): TokenDto[] {
     const rows = this.db
       .prepare("SELECT t.* FROM tokens t JOIN scenes s ON s.id = t.scene_id WHERE s.world_id = ? ORDER BY t.rowid")
       .all(worldId) as unknown as TokenRow[];
     return rows
       .map((r) => this.toDto(r))
-      .filter((t) => this.canSee(t, viewer, activeSceneId))
+      .filter((t) => this.canSee(t, viewer, activeSceneId, floorId))
       .map((t) => this.forViewer(t, viewer));
   }
 
-  canSee(token: TokenDto, viewer: Viewer, activeSceneId: string | null): boolean {
-    return viewer.role === "gm" || (!token.hidden && token.sceneId === activeSceneId);
+  canSee(token: TokenDto, viewer: Viewer, activeSceneId: string | null, floorId: string | null): boolean {
+    return viewer.role === "gm" || (!token.hidden && token.sceneId === activeSceneId && token.floorId === floorId);
+  }
+
+  /** Floors of the visible tokens a user controls in a scene, in a stable order; decides which floor a player sees. */
+  floorIdsControlledBy(sceneId: string, userId: string): string[] {
+    const rows = this.db
+      .prepare(
+        `SELECT t.floor_id FROM tokens t JOIN token_controllers c ON c.token_id = t.id
+         WHERE t.scene_id = ? AND c.user_id = ? AND t.hidden = 0 ORDER BY t.rowid`,
+      )
+      .all(sceneId, userId) as { floor_id: string }[];
+    return rows.map((r) => r.floor_id);
   }
 
   /** Controlling a token (moving it) requires being the GM or one of its controllers. */
@@ -97,16 +110,19 @@ export class TokenService {
     const sceneWorld = this.db.prepare("SELECT world_id FROM scenes WHERE id = ?").get(input.sceneId) as { world_id: string } | undefined;
     if (sceneWorld?.world_id !== worldId) throw new AppError("not_found");
     this.assertReferences(worldId, input.assetId, input.actorId, input.controllerIds);
+    const floorId = input.floorId ?? this.tableFloorOf(input.sceneId);
+    if (!this.floorBelongsToScene(floorId, input.sceneId)) throw new AppError("not_found");
     const id = randomUUID();
     transaction(this.db, () => {
       this.db
         .prepare(
-          `INSERT INTO tokens (id, scene_id, name, x, y, size, rotation, color, asset_id, hidden, actor_id, hp, hp_max, conditions, show_name)
-           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO tokens (id, scene_id, floor_id, name, x, y, size, rotation, color, asset_id, hidden, actor_id, hp, hp_max, conditions, show_name)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
           input.sceneId,
+          floorId,
           input.name,
           input.x,
           input.y,
@@ -130,11 +146,12 @@ export class TokenService {
     if (!current) throw new AppError("not_found");
     const next = { ...current, ...patch };
     this.assertReferences(worldId, next.assetId, next.actorId, next.controllerIds);
+    if (!this.floorBelongsToScene(next.floorId, current.sceneId)) throw new AppError("not_found");
     transaction(this.db, () => {
       this.db
         .prepare(
           `UPDATE tokens SET name = ?, x = ?, y = ?, size = ?, rotation = ?, color = ?, asset_id = ?, hidden = ?, actor_id = ?,
-             hp = ?, hp_max = ?, conditions = ?, show_name = ?
+             hp = ?, hp_max = ?, conditions = ?, show_name = ?, floor_id = ?
            WHERE id = ?`,
         )
         .run(
@@ -151,11 +168,20 @@ export class TokenService {
           next.hpMax,
           JSON.stringify(next.conditions),
           next.showName ? 1 : 0,
+          next.floorId,
           tokenId,
         );
       if (patch.controllerIds) this.setControllers(tokenId, patch.controllerIds);
     });
     return this.find(tokenId)!.token;
+  }
+
+  private tableFloorOf(sceneId: string): string {
+    return (this.db.prepare("SELECT table_floor_id FROM scenes WHERE id = ?").get(sceneId) as { table_floor_id: string }).table_floor_id;
+  }
+
+  private floorBelongsToScene(floorId: string, sceneId: string): boolean {
+    return this.db.prepare("SELECT 1 AS ok FROM floors WHERE id = ? AND scene_id = ?").get(floorId, sceneId) !== undefined;
   }
 
   remove(tokenId: string): void {

@@ -12,6 +12,7 @@ import {
   createDrawingSchema,
   createInviteSchema,
   createSceneSchema,
+  floorInputSchema,
   createTokenSchema,
   createWorldSchema,
   credentialsSchema,
@@ -32,6 +33,7 @@ import {
   updateHandoutSchema,
   updateMemberSchema,
   updateProfileSchema,
+  updateFloorSchema,
   updateSceneSchema,
   updateTokenSchema,
   updateWorldSchema,
@@ -349,7 +351,7 @@ export function buildApp(options: AppOptions) {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     requireGm(req, worldId);
-    const scene = s.scenes.update(req.params.id, worldId, updateSceneSchema.parse(req.body));
+    const scene = s.scenes.update(req.params.id, updateSceneSchema.parse(req.body));
     hub.broadcastState(worldId);
     return scene;
   });
@@ -364,6 +366,34 @@ export function buildApp(options: AppOptions) {
     return { ok: true };
   });
 
+  app.post<{ Params: { id: string } }>("/api/scenes/:id/floors", async (req) => {
+    const worldId = s.scenes.worldIdOf(req.params.id);
+    if (!worldId) throw new AppError("not_found");
+    requireGm(req, worldId);
+    const scene = s.scenes.addFloor(req.params.id, worldId, floorInputSchema.parse(req.body));
+    hub.broadcastState(worldId);
+    return scene;
+  });
+
+  app.patch<{ Params: { id: string } }>("/api/floors/:id", async (req) => {
+    const owner = s.scenes.floorOwner(req.params.id);
+    if (!owner) throw new AppError("not_found");
+    requireGm(req, owner.worldId);
+    const scene = s.scenes.updateFloor(req.params.id, owner.worldId, updateFloorSchema.parse(req.body));
+    hub.broadcastState(owner.worldId);
+    return scene;
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/floors/:id", async (req) => {
+    const owner = s.scenes.floorOwner(req.params.id);
+    if (!owner) throw new AppError("not_found");
+    const { user } = requireGm(req, owner.worldId);
+    s.worlds.audit(owner.worldId, user.id, "floor.delete", s.scenes.get(owner.sceneId)?.floors.find((f) => f.id === req.params.id)?.name);
+    const scene = s.scenes.removeFloor(req.params.id);
+    hub.broadcastState(owner.worldId);
+    return scene;
+  });
+
   app.delete<{ Params: { id: string } }>("/api/scenes/:id", async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
@@ -376,6 +406,17 @@ export function buildApp(options: AppOptions) {
 
   // ---- drawings -----------------------------------------------------------------------------
 
+  /** A player always works on the floor they are on; the game master names a floor of the scene (default: the table floor). */
+  function drawingFloorId(worldId: string, sceneId: string, viewer: Viewer, requested: string | undefined): string {
+    if (viewer.role !== "gm") {
+      if (sceneId !== s.scenes.activeSceneId(worldId)) throw new AppError("not_found");
+      return s.tokens.floorIdsControlledBy(sceneId, viewer.userId)[0] ?? s.scenes.tableFloorId(sceneId)!;
+    }
+    const floorId = requested ?? s.scenes.tableFloorId(sceneId);
+    if (!floorId || !s.scenes.hasFloor(sceneId, floorId)) throw new AppError("not_found");
+    return floorId;
+  }
+
   app.post<{ Params: { id: string } }>("/api/scenes/:id/drawings", async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
@@ -384,8 +425,9 @@ export function buildApp(options: AppOptions) {
     // A player asking about a scene they cannot see learns nothing about it.
     const activeSceneId = s.scenes.activeSceneId(worldId);
     if (viewer.role !== "gm" && req.params.id !== activeSceneId) throw new AppError("not_found");
-    const id = s.drawings.create(req.params.id, viewer, activeSceneId, input);
-    hub.publishDrawings(worldId, req.params.id);
+    const floorId = drawingFloorId(worldId, req.params.id, viewer, input.floorId);
+    const id = s.drawings.create(req.params.id, floorId, viewer, activeSceneId, input);
+    hub.publishDrawings(worldId, req.params.id, floorId);
     return { id };
   });
 
@@ -394,7 +436,7 @@ export function buildApp(options: AppOptions) {
     if (!found) throw new AppError("not_found");
     const { viewer } = requireParticipant(req, found.worldId);
     s.drawings.remove(req.params.id, viewer);
-    hub.publishDrawings(found.worldId, found.sceneId);
+    hub.publishDrawings(found.worldId, found.sceneId, found.floorId);
     return { ok: true };
   });
 
@@ -402,9 +444,10 @@ export function buildApp(options: AppOptions) {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     const { viewer, user } = requireParticipant(req, worldId);
-    s.drawings.clear(req.params.id, viewer);
+    const floorId = drawingFloorId(worldId, req.params.id, viewer, (req.query as { floorId?: string }).floorId);
+    s.drawings.clear(req.params.id, floorId, viewer);
     if (viewer.role === "gm") s.worlds.audit(worldId, user.id, "drawings.clear", s.scenes.get(req.params.id)?.name);
-    hub.publishDrawings(worldId, req.params.id);
+    hub.publishDrawings(worldId, req.params.id, floorId);
     return { ok: true };
   });
 
@@ -495,7 +538,9 @@ export function buildApp(options: AppOptions) {
     if (!found) throw new AppError("not_found");
     const { viewer } = requireParticipant(req, found.worldId);
     const patch = updateTokenSchema.parse(req.body);
-    if (!s.tokens.canSee(found.token, viewer, s.scenes.activeSceneId(found.worldId))) throw new AppError("not_found");
+    const activeSceneId = s.scenes.activeSceneId(found.worldId);
+    const viewerFloorId = viewer.role === "gm" ? null : (s.tokens.floorIdsControlledBy(found.token.sceneId, viewer.userId)[0] ?? s.scenes.tableFloorId(found.token.sceneId));
+    if (!s.tokens.canSee(found.token, viewer, activeSceneId, viewerFloorId)) throw new AppError("not_found");
     if (!s.tokens.canControl(found.token, viewer)) throw new AppError("forbidden");
     if (viewer.role !== "gm" && Object.keys(patch).some((k) => !(PLAYER_EDITABLE_TOKEN_FIELDS as readonly string[]).includes(k)))
       throw new AppError("forbidden");

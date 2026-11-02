@@ -1,5 +1,6 @@
 import type { IncomingMessage, Server } from "node:http";
 import {
+  floorOf,
   type MessageDto,
   pathIsBlocked,
   type ServerMessage,
@@ -13,7 +14,7 @@ import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { canReadMessage } from "./chat.ts";
 import { AppError } from "./errors.ts";
-import { withoutHiddenMapData } from "./scenes.ts";
+import { sceneForViewer, withoutHiddenFloorData } from "./scenes.ts";
 import type { Services } from "./services.ts";
 import type { Viewer } from "./tokens.ts";
 import { flattenPolygons, visionRegion } from "./vision.ts";
@@ -29,6 +30,8 @@ interface Connection {
   lastPingAt: number;
   /** Re-read with the role on every state sent, so moves and pings need no query of their own. */
   observer: boolean;
+  /** Floor of the active scene this connection was last sent (players only); a change means a full state is due. */
+  floorId: string | null;
 }
 
 const MAX_WS_PAYLOAD = 16 * 1024;
@@ -42,7 +45,13 @@ const clientMessageSchema = z.discriminatedUnion("type", [
     x: z.number().finite(),
     y: z.number().finite(),
   }),
-  z.object({ type: z.literal("map.ping"), x: z.number().finite(), y: z.number().finite(), focus: z.boolean().optional() }),
+  z.object({
+    type: z.literal("map.ping"),
+    x: z.number().finite(),
+    y: z.number().finite(),
+    focus: z.boolean().optional(),
+    floorId: z.string().uuid().optional(),
+  }),
 ]);
 
 /** Pings are relayed, never stored; this keeps one connection from flooding the table. */
@@ -99,7 +108,7 @@ export class Hub {
   }
 
   private open(socket: WebSocket, viewer: Viewer, worldId: string) {
-    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set(), viewAs: null, lastPingAt: 0, observer: true };
+    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set(), viewAs: null, lastPingAt: 0, observer: true, floorId: null };
     this.connections.add(conn);
     this.broadcastState(worldId);
     socket.on("message", (raw) => {
@@ -125,7 +134,7 @@ export class Hub {
     if (!found || found.worldId !== conn.worldId) throw new AppError("not_found");
     const activeSceneId = this.s.scenes.activeSceneId(conn.worldId);
     const { token } = found;
-    if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId)) throw new AppError("not_found");
+    if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId, this.floorIdOf(conn.viewer, activeSceneId))) throw new AppError("not_found");
     if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
     if (conn.observer) throw new AppError("forbidden");
     const scene = this.s.scenes.get(token.sceneId)!;
@@ -135,7 +144,7 @@ export class Hub {
     // Players cannot walk through walls or closed doors; the move is dropped and everyone is told the token stayed.
     if (conn.viewer.role !== "gm") {
       const half = (token.size * scene.gridSize) / 2;
-      const blockers = scene.walls.filter((w) => w.kind === "wall" || !w.open);
+      const blockers = floorOf(scene, token.floorId).walls.filter((w) => w.kind === "wall" || !w.open);
       if (pathIsBlocked({ x: token.x + half, y: token.y + half }, { x: x + half, y: y + half }, blockers)) {
         return this.publishToken(conn.worldId, token, token);
       }
@@ -145,7 +154,7 @@ export class Hub {
   }
 
   /** Relays a ping on the active scene to everyone; only the game master can ask the others to look at it. */
-  private ping(conn: Connection, msg: { x: number; y: number; focus?: boolean }) {
+  private ping(conn: Connection, msg: { x: number; y: number; focus?: boolean; floorId?: string }) {
     if (conn.observer) return;
     const now = Date.now();
     if (now - conn.lastPingAt < PING_MIN_INTERVAL_MS) return;
@@ -153,14 +162,31 @@ export class Hub {
     const sceneId = this.s.scenes.activeSceneId(conn.worldId);
     const scene = sceneId ? this.s.scenes.get(sceneId) : null;
     if (!scene) return;
+    // A ping belongs to the floor of the person who made it; the game master's floor is the one on screen, so they
+    // name it through `floorId` (the table floor when they do not).
+    const floorId = conn.viewer.role === "gm" ? (msg.floorId && this.s.scenes.hasFloor(scene.id, msg.floorId) ? msg.floorId : scene.tableFloorId) : this.floorIdOf(conn.viewer, scene.id)!;
     const ping = {
       sceneId: scene.id,
+      floorId,
       userId: conn.viewer.userId,
       x: Math.min(Math.max(msg.x, 0), scene.width),
       y: Math.min(Math.max(msg.y, 0), scene.height),
       focus: conn.viewer.role === "gm" && msg.focus === true,
     };
-    for (const c of this.connections) if (c.worldId === conn.worldId) this.send(c, { type: "map.ping", ping });
+    for (const c of this.connections) {
+      if (c.worldId !== conn.worldId) continue;
+      // The game master sees every floor's pings; the others only the ones on their own floor.
+      if (c.viewer.role === "gm" || this.floorIdOf(c.viewer, scene.id) === floorId) this.send(c, { type: "map.ping", ping });
+    }
+  }
+
+  /**
+   * The floor of a scene a viewer is looking at: a player follows their first own token, or the table floor when they
+   * have none. The game master is not restricted, so they get null. Never reads the whole scene.
+   */
+  private floorIdOf(viewer: Viewer, sceneId: string | null): string | null {
+    if (viewer.role === "gm" || !sceneId) return null;
+    return this.s.tokens.floorIdsControlledBy(sceneId, viewer.userId)[0] ?? this.s.scenes.tableFloorId(sceneId);
   }
 
   /** The game master previews a player's sight; anyone who is not a player of this world is ignored. */
@@ -182,24 +208,29 @@ export class Hub {
     if (conn.socket.readyState === conn.socket.OPEN) conn.socket.send(JSON.stringify(msg));
   }
 
+  /** The person whose eyes a connection sees through: a player themselves, or the player a game master previews. */
+  private subjectOf(viewer: Viewer, viewAs: string | null): Viewer | null {
+    if (viewer.role !== "gm") return viewer;
+    return viewAs ? { userId: viewAs, role: "player" } : null;
+  }
+
   /**
    * What a player sees through their tokens when the active scene uses vision; null means no restriction (the game
    * master, or a scene without vision). `tokens` are the ones this viewer may be told about. A game master who is
-   * previewing a player (`viewAs`) gets exactly what that player would get.
+   * previewing a player (`viewAs`) gets exactly what that player would get. Only the player's own floor counts.
    */
   private sightOf(worldId: string, viewer: Viewer, viewAs: string | null = null): { vision: VisionDto; tokens: TokenDto[] } | null {
-    let subject = viewer;
-    if (viewer.role === "gm") {
-      if (!viewAs) return null;
-      subject = { userId: viewAs, role: "player" };
-    }
+    const subject = this.subjectOf(viewer, viewAs);
+    if (!subject) return null;
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
     const scene = activeSceneId ? this.s.scenes.get(activeSceneId) : null;
     if (!scene?.visionEnabled) return null;
-    const everything = this.s.tokens.visibleTo(worldId, { userId: "", role: "gm" }, scene.id);
-    const own = everything.filter((t) => t.controllerIds.includes(subject.userId));
-    const region = visionRegion(scene, own);
-    const tokens = this.s.tokens.visibleTo(worldId, subject, scene.id).filter((t) => {
+    const floorId = this.floorIdOf(subject, scene.id)!;
+    const floor = floorOf(scene, floorId);
+    const everything = this.s.tokens.visibleTo(worldId, { userId: "", role: "gm" }, scene.id, null);
+    const own = everything.filter((t) => t.floorId === floor.id && t.controllerIds.includes(subject.userId));
+    const region = visionRegion(scene, floor, own);
+    const tokens = this.s.tokens.visibleTo(worldId, subject, scene.id, floor.id).filter((t) => {
       const half = (t.size * scene.gridSize) / 2;
       return t.controllerIds.includes(subject.userId) || region.contains({ x: t.x + half, y: t.y + half });
     });
@@ -217,12 +248,19 @@ export class Hub {
     this.send(conn, { type: "vision.update", vision: sight.vision });
   }
 
+  /** Floor of the active scene a connection is looking at, as far as it is restricted to one; null for a free game master. */
+  private viewFloorIdOf(conn: Pick<Connection, "viewer" | "viewAs">, activeSceneId: string | null): string | null {
+    const subject = this.subjectOf(conn.viewer, conn.viewAs);
+    return subject ? this.floorIdOf(subject, activeSceneId) : null;
+  }
+
   /** Builds the complete state a viewer is allowed to see. */
   buildState(worldId: string, viewer: Viewer, online: ReadonlySet<string>, viewAs: string | null = null): WorldStateDto {
     const world = this.s.worlds.info(worldId);
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
     const allScenes = this.s.scenes.list(worldId);
     const sight = this.sightOf(worldId, viewer, viewAs);
+    const viewFloorId = this.viewFloorIdOf({ viewer, viewAs }, activeSceneId);
     return {
       id: world.id,
       name: world.name,
@@ -230,8 +268,12 @@ export class Hub {
       yourRole: this.s.worlds.memberRoleOf(worldId, viewer.userId) ?? viewer.role,
       activeSceneId,
       members: this.s.worlds.members(worldId, online),
-      scenes: viewer.role === "gm" ? allScenes : allScenes.filter((sc) => sc.id === activeSceneId).map(withoutHiddenMapData),
-      tokens: sight ? sight.tokens : this.s.tokens.visibleTo(worldId, viewer, activeSceneId),
+      scenes:
+        viewer.role === "gm"
+          ? allScenes
+          : allScenes.filter((sc) => sc.id === activeSceneId).map((sc) => sceneForViewer(sc, false, viewFloorId ?? sc.tableFloorId)),
+      viewFloorId,
+      tokens: sight ? sight.tokens : this.s.tokens.visibleTo(worldId, viewer, activeSceneId, viewFloorId),
       actors: this.s.actors.visibleTo(worldId, viewer),
       messages: this.s.chat.historyFor(worldId, viewer),
       vision: sight?.vision ?? null,
@@ -251,19 +293,22 @@ export class Hub {
     if (role !== "gm") conn.viewAs = null;
     const state = this.buildState(conn.worldId, conn.viewer, this.onlineIn(conn.worldId), conn.viewAs);
     conn.seenTokenIds = new Set(state.tokens.map((t) => t.id));
+    conn.floorId = state.viewFloorId;
     this.send(conn, { type: "world.state", state });
   }
 
-  /** Players get the active scene's drawings without the game master's layer, and nothing for other scenes. */
-  publishDrawings(worldId: string, sceneId: string) {
+  /** Players get one floor's drawings without the game master's layer, only when they are on that floor of the active scene. */
+  publishDrawings(worldId: string, sceneId: string, floorId: string) {
     const scene = this.s.scenes.get(sceneId);
-    if (!scene) return;
+    const floor = scene?.floors.find((f) => f.id === floorId);
+    if (!scene || !floor) return;
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
-    const forPlayers = withoutHiddenMapData(scene).drawings;
+    const forPlayers = withoutHiddenFloorData(floor).drawings;
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
-      if (c.viewer.role === "gm") this.send(c, { type: "scene.drawings", sceneId, drawings: scene.drawings });
-      else if (sceneId === activeSceneId) this.send(c, { type: "scene.drawings", sceneId, drawings: forPlayers });
+      if (c.viewer.role === "gm") this.send(c, { type: "scene.drawings", sceneId, floorId, drawings: floor.drawings });
+      else if (sceneId === activeSceneId && this.floorIdOf(c.viewer, sceneId) === floorId)
+        this.send(c, { type: "scene.drawings", sceneId, floorId, drawings: forPlayers });
     }
   }
 
@@ -276,14 +321,21 @@ export class Hub {
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
+      // A token created, moved to another floor or taken away can change the floor a player is on: send everything again.
+      const floorId = this.viewFloorIdOf(c, activeSceneId);
+      if (floorId !== c.floorId) {
+        this.sendState(c);
+        continue;
+      }
       const sight = this.sightOf(worldId, c.viewer, c.viewAs);
       if (sight) {
         this.refreshSight(c, sight, after.id);
         continue;
       }
-      if (this.s.tokens.canSee(after, c.viewer, activeSceneId))
+      if (this.s.tokens.canSee(after, c.viewer, activeSceneId, floorId))
         this.send(c, { type: "token.upsert", token: this.s.tokens.forViewer(after, c.viewer) });
-      else if (before && this.s.tokens.canSee(before, c.viewer, activeSceneId)) this.send(c, { type: "token.remove", tokenId: after.id });
+      else if (before && this.s.tokens.canSee(before, c.viewer, activeSceneId, floorId))
+        this.send(c, { type: "token.remove", tokenId: after.id });
     }
   }
 
@@ -291,9 +343,14 @@ export class Hub {
     const activeSceneId = this.s.scenes.activeSceneId(worldId);
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
+      const floorId = this.viewFloorIdOf(c, activeSceneId);
+      if (floorId !== c.floorId) {
+        this.sendState(c);
+        continue;
+      }
       const sight = this.sightOf(worldId, c.viewer, c.viewAs);
       if (sight) this.refreshSight(c, sight, null);
-      else if (this.s.tokens.canSee(token, c.viewer, activeSceneId)) this.send(c, { type: "token.remove", tokenId: token.id });
+      else if (this.s.tokens.canSee(token, c.viewer, activeSceneId, floorId)) this.send(c, { type: "token.remove", tokenId: token.id });
     }
   }
 

@@ -154,6 +154,8 @@ export const MAX_SCENE_DRAWINGS = 2000;
 export const createDrawingSchema = z
   .object({
     kind: z.enum(DRAWING_KINDS),
+    /** Floor to draw on; the game master's default is the table floor, a player always draws on their own floor. */
+    floorId: z.string().uuid().optional(),
     layer: z.enum(DRAWING_LAYERS).default("objects"),
     points: z
       .array(z.number().finite().min(-16384).max(16384))
@@ -168,13 +170,24 @@ export const createDrawingSchema = z
   })
   .refine((d) => (d.kind === "text" || d.kind === "note" ? d.text.length > 0 : true));
 
-export interface SceneDto {
+/** One level of a map: its own background, walls, doors, lights and drawings. */
+export interface FloorDto {
   id: string;
   name: string;
   assetId: string | null;
   /** What the background asset is, so the client picks a loader without asking the server. */
   assetKind: "image" | "video" | null;
-  /** Map size in pixels. */
+  /** Walls, doors and lights are game master only until per-player vision exists; players get empty lists. */
+  walls: WallDto[];
+  lights: LightDto[];
+  /** Players never receive the `gm` layer. */
+  drawings: DrawingDto[];
+}
+
+export interface SceneDto {
+  id: string;
+  name: string;
+  /** Map size in pixels; every floor of the scene shares it. */
   width: number;
   height: number;
   gridType: GridType;
@@ -183,26 +196,34 @@ export interface SceneDto {
   /** Real-world distance of one cell, used by the ruler. */
   gridDistance: number;
   distanceUnit: string;
-  /** Walls, doors and lights are game master only until per-player vision exists; players get empty lists. */
-  walls: WallDto[];
-  lights: LightDto[];
   /** True when the picture already has its lighting drawn in (imported "render lights in image"). */
   bakedLighting: boolean;
-  /** Scenes imported together as floors of one map share a group; `floor` orders them (0 = ground). */
-  floorGroup: string | null;
-  floor: number;
+  /**
+   * Floors from bottom to top. The game master receives all of them; a player receives only the one their own token
+   * is on (or the table floor when they have none), so a hidden floor never leaves the server.
+   */
+  floors: FloorDto[];
+  /** The floor players without a token of their own see, and where new tokens land. */
+  tableFloorId: string;
   /** When on, players only see what their own tokens can see (walls, closed doors and light shape it). */
   visionEnabled: boolean;
   /** How far a token sees, in grid cells, before light or walls are considered. */
   visionRadius: number;
-  /** Players never receive the `gm` layer. */
-  drawings: DrawingDto[];
   lockedLayers: MapLayer[];
+}
+
+/** The floor of a scene a viewer is looking at; falls back to the table floor, then to the first one. */
+export function floorOf(scene: Pick<SceneDto, "floors" | "tableFloorId">, floorId: string | null | undefined): FloorDto {
+  return (
+    scene.floors.find((f) => f.id === floorId) ?? scene.floors.find((f) => f.id === scene.tableFloorId) ?? (scene.floors[0] as FloorDto)
+  );
 }
 
 export interface TokenDto {
   id: string;
   sceneId: string;
+  /** Floor of the scene the token stands on. */
+  floorId: string;
   name: string;
   /** Top-left corner in map pixels. */
   x: number;
@@ -333,6 +354,11 @@ export interface WorldStateDto {
   actors: ActorDto[];
   /** Most recent messages the recipient is allowed to read. */
   messages: MessageDto[];
+  /**
+   * Floor of the active scene the recipient is looking at: a player's own floor, also for a game master previewing
+   * that player; null for a game master who is not previewing (they pick any floor).
+   */
+  viewFloorId: string | null;
   /** What the recipient can see when the active scene uses vision; null for the game master and for scenes without it. */
   vision: VisionDto | null;
   /** Null while no combat is running. */
@@ -358,13 +384,15 @@ export type ServerMessage =
   | { type: "vision.update"; vision: VisionDto | null }
   | { type: "combat.update"; combat: CombatDto | null }
   /** Every drawing of one scene the recipient may see, sent after a drawing is added or removed. */
-  | { type: "scene.drawings"; sceneId: string; drawings: DrawingDto[] }
+  | { type: "scene.drawings"; sceneId: string; floorId: string; drawings: DrawingDto[] }
   /** A short-lived marker on the map; `focus` also asks everyone to look at it (game master only). */
   | { type: "map.ping"; ping: PingDto }
   | { type: "error"; code: ErrorCode };
 
 export interface PingDto {
   sceneId: string;
+  /** Only people looking at this floor see the ping. */
+  floorId: string;
   userId: string;
   /** Scene pixels. */
   x: number;
@@ -377,7 +405,7 @@ export type ClientMessage =
   | { type: "world.resync" }
   | { type: "token.move"; tokenId: string; x: number; y: number }
   /** Marks a spot on the active scene for everybody; `focus` is for the game master. */
-  | { type: "map.ping"; x: number; y: number; focus?: boolean }
+  | { type: "map.ping"; x: number; y: number; focus?: boolean; floorId?: string }
   /** Game master only: see the table the way this player does (their tokens' sight); null goes back to seeing everything. */
   | { type: "world.viewAs"; userId: string | null };
 
@@ -415,42 +443,61 @@ export const lightInputSchema = z.object({
 export const MAX_SCENE_WALLS = 20000;
 export const MAX_SCENE_LIGHTS = 1000;
 
+export const MAX_FLOORS = 20;
+const floorFields = {
+  name: z.string().trim().min(1).max(60),
+  assetId: z.string().uuid().nullable(),
+  /** Replacing the lists is all-or-nothing; leave them out on update to keep what is stored. */
+  walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS),
+  lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS),
+};
+export const floorInputSchema = z.object({
+  ...floorFields,
+  assetId: floorFields.assetId.default(null),
+  walls: floorFields.walls.default([]),
+  lights: floorFields.lights.default([]),
+});
+/** `position` moves the floor to that place in the stack (0 = bottom). */
+export const updateFloorSchema = z.object({ ...floorFields, position: z.number().int().min(0).max(MAX_FLOORS - 1) }).partial();
+
 const sceneFields = {
   name: z.string().trim().min(1).max(80),
-  assetId: z.string().uuid().nullable(),
   width: z.number().int().min(1).max(MAX_MAP_DIMENSION),
   height: z.number().int().min(1).max(MAX_MAP_DIMENSION),
   gridType: z.enum(GRID_TYPES),
   gridSize: z.number().int().min(10).max(500),
   gridDistance: z.number().positive().max(1000),
   distanceUnit: z.string().trim().max(10),
-  /** Replacing the lists is all-or-nothing; leave them out on update to keep what is stored. */
-  walls: z.array(wallInputSchema).max(MAX_SCENE_WALLS),
-  lights: z.array(lightInputSchema).max(MAX_SCENE_LIGHTS),
   bakedLighting: z.boolean(),
-  floorGroup: z.string().uuid().nullable(),
-  floor: z.number().int().min(-20).max(50),
+  tableFloorId: z.string().uuid(),
   visionEnabled: z.boolean(),
   visionRadius: z.number().finite().min(1).max(200),
   lockedLayers: z.array(z.enum(MAP_LAYERS)).max(MAP_LAYERS.length),
 };
 // Defaults live only on creation: Zod 4 would also apply them to a partial update and wipe what is stored.
-export const createSceneSchema = z.object({
-  ...sceneFields,
-  assetId: sceneFields.assetId.default(null),
-  gridType: sceneFields.gridType.default("square"),
-  gridSize: sceneFields.gridSize.default(70),
-  gridDistance: sceneFields.gridDistance.default(5),
-  distanceUnit: sceneFields.distanceUnit.default("ft"),
-  walls: sceneFields.walls.default([]),
-  lights: sceneFields.lights.default([]),
-  bakedLighting: sceneFields.bakedLighting.default(false),
-  floorGroup: sceneFields.floorGroup.default(null),
-  floor: sceneFields.floor.default(0),
-  visionEnabled: sceneFields.visionEnabled.default(false),
-  visionRadius: sceneFields.visionRadius.default(12),
-  lockedLayers: sceneFields.lockedLayers.default([]),
-});
+// A scene is created with its floors; `assetId`, `walls` and `lights` are a shortcut for a scene with a single floor.
+export const createSceneSchema = z
+  .object({
+    name: sceneFields.name,
+    width: sceneFields.width,
+    height: sceneFields.height,
+    gridType: sceneFields.gridType.default("square"),
+    gridSize: sceneFields.gridSize.default(70),
+    gridDistance: sceneFields.gridDistance.default(5),
+    distanceUnit: sceneFields.distanceUnit.default("ft"),
+    bakedLighting: sceneFields.bakedLighting.default(false),
+    visionEnabled: sceneFields.visionEnabled.default(false),
+    visionRadius: sceneFields.visionRadius.default(12),
+    lockedLayers: sceneFields.lockedLayers.default([]),
+    floors: z.array(floorInputSchema).min(1).max(MAX_FLOORS).optional(),
+    assetId: floorFields.assetId.default(null),
+    walls: floorFields.walls.default([]),
+    lights: floorFields.lights.default([]),
+  })
+  .transform(({ assetId, walls, lights, floors, ...scene }) => ({
+    ...scene,
+    floors: floors ?? [{ name: scene.name, assetId, walls, lights }],
+  }));
 export const updateSceneSchema = z.object(sceneFields).partial();
 
 const tokenFields = {
@@ -468,9 +515,12 @@ const tokenFields = {
   hpMax: z.number().int().min(1).max(99999).nullable(),
   conditions: z.array(z.enum(TOKEN_CONDITIONS)).max(TOKEN_CONDITIONS.length),
   showName: z.boolean(),
+  floorId: z.string().uuid(),
 };
 export const createTokenSchema = z.object({
   sceneId: z.string().uuid(),
+  /** Defaults to the scene's table floor. */
+  floorId: tokenFields.floorId.optional(),
   name: tokenFields.name,
   x: tokenFields.x,
   y: tokenFields.y,

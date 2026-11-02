@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 export type Db = DatabaseSync;
 
 /** Ordered migrations; the index + 1 is stored in `PRAGMA user_version`. Never edit a released entry. */
-const MIGRATIONS: string[] = [
+export const MIGRATIONS: string[] = [
   `
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
@@ -216,6 +216,34 @@ CREATE TABLE audit_log (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX audit_log_world ON audit_log (world_id, created_at);
+`,
+  // Floors: a scene's background, walls, lights, drawings and tokens now belong to one of its floors. Every existing
+  // scene becomes a scene with a single floor that reuses the scene's id. `scenes.asset_id`, `floor_group` and
+  // `floor` stay as unused columns (SQLite cannot drop a column that carries a foreign key).
+  `
+CREATE TABLE floors (
+  id TEXT PRIMARY KEY,
+  scene_id TEXT NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  asset_id TEXT REFERENCES assets(id) ON DELETE SET NULL
+);
+CREATE INDEX floors_scene ON floors (scene_id, position);
+INSERT INTO floors (id, scene_id, name, position, asset_id) SELECT id, id, name, 0, asset_id FROM scenes;
+ALTER TABLE scenes ADD COLUMN table_floor_id TEXT NOT NULL DEFAULT '';
+UPDATE scenes SET table_floor_id = id;
+ALTER TABLE walls ADD COLUMN floor_id TEXT REFERENCES floors(id) ON DELETE CASCADE;
+UPDATE walls SET floor_id = scene_id;
+ALTER TABLE lights ADD COLUMN floor_id TEXT REFERENCES floors(id) ON DELETE CASCADE;
+UPDATE lights SET floor_id = scene_id;
+ALTER TABLE drawings ADD COLUMN floor_id TEXT REFERENCES floors(id) ON DELETE CASCADE;
+UPDATE drawings SET floor_id = scene_id;
+ALTER TABLE tokens ADD COLUMN floor_id TEXT REFERENCES floors(id) ON DELETE CASCADE;
+UPDATE tokens SET floor_id = scene_id;
+CREATE INDEX walls_floor ON walls (floor_id);
+CREATE INDEX lights_floor ON lights (floor_id);
+CREATE INDEX drawings_floor ON drawings (floor_id);
+CREATE INDEX tokens_floor ON tokens (floor_id);
 `,
 ];
 

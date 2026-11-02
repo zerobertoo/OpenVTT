@@ -36,11 +36,11 @@ test("with fog of war a player only gets the tokens their token can see, and a d
   await expect(list.getByText("Hero")).toBeVisible();
   await expect(list.getByText("Ghoul")).toHaveCount(0);
 
-  await post(`/api/scenes/${scene.id}/doors/${scene.walls[0].id}`, { open: true });
+  await post(`/api/scenes/${scene.id}/doors/${scene.floors[0].walls[0].id}`, { open: true });
   await expect(list.getByText("Ghoul")).toBeVisible();
 
   // The game master can preview what Pat sees, then go back to seeing everything.
-  await post(`/api/scenes/${scene.id}/doors/${scene.walls[0].id}`, { open: false });
+  await post(`/api/scenes/${scene.id}/doors/${scene.floors[0].walls[0].id}`, { open: false });
   await page.getByRole("tab", { name: "Tokens" }).click();
   const gmList = page.getByRole("list", { name: "Tokens in this scene" });
   await expect(gmList.getByText("Ghoul")).toBeVisible();

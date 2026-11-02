@@ -1,4 +1,4 @@
-import type { DrawingDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
+import type { DrawingDto, FloorDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
 import {
   Application,
   Container,
@@ -33,6 +33,8 @@ export type MapTool = "select" | "ruler" | "draw";
 
 interface Props {
   scene: SceneDto | null;
+  /** The floor of the scene being looked at: its background, walls, lights and drawings are what gets drawn. */
+  floor: FloorDto | null;
   tokens: TokenDto[];
   tool: MapTool;
   selectedTokenIds: string[];
@@ -161,7 +163,7 @@ export function MapView(props: Props) {
     fitted: string | null;
     video: VideoBackground | null;
     /** What is drawn now, so syncs caused by token moves skip rebuilding them. */
-    shownDrawings: SceneDto["drawings"] | null;
+    shownDrawings: FloorDto["drawings"] | null;
     shownGrid: string;
   } | null>(null);
   const minimap = useRef<HTMLCanvasElement>(null);
@@ -267,10 +269,10 @@ export function MapView(props: Props) {
           rulerStart = toWorld(e);
         } else if (p === "draw" && e.button === 0) {
           const point = toWorld(e);
-          const { draw, scene } = props_();
-          if (!scene || (draw.kind !== "erase" && scene.lockedLayers.includes(draw.kind === "note" ? "gm" : draw.layer))) return;
+          const { draw, scene, floor } = props_();
+          if (!scene || !floor || (draw.kind !== "erase" && scene.lockedLayers.includes(draw.kind === "note" ? "gm" : draw.layer))) return;
           if (draw.kind === "erase") {
-            const erasable = scene.drawings.filter((d) => props_().canErase(d) && !scene.lockedLayers.includes(d.layer));
+            const erasable = floor.drawings.filter((d) => props_().canErase(d) && !scene.lockedLayers.includes(d.layer));
             const target = drawingAt(erasable, point, 10 / world.scale.x);
             if (target) props_().onErase(target.id);
           } else if (draw.kind === "text" || draw.kind === "note") {
@@ -444,8 +446,8 @@ export function MapView(props: Props) {
 
     const props_ = () => latest.current;
     const assetsInUse = () => {
-      const { scene, tokens } = props_();
-      return new Set([scene?.assetId, ...tokens.map((t) => t.assetId)].filter((id): id is string => Boolean(id)));
+      const { floor, tokens } = props_();
+      return new Set([floor?.assetId, ...tokens.map((t) => t.assetId)].filter((id): id is string => Boolean(id)));
     };
 
     /** Scene outline, tokens as dots and the part of the map on screen, on the overview canvas. */
@@ -489,17 +491,17 @@ export function MapView(props: Props) {
     function syncDrawings() {
       const e = engine.current;
       if (!e) return;
-      const { scene, layers } = props_();
+      const { scene, floor, layers } = props_();
       e.drawingLayers.gm.visible = layers.gmDrawings;
       e.drawingLayers.background.visible = e.background.visible = layers.background;
       e.drawingLayers.objects.visible = layers.objects;
       e.tokenLayer.visible = layers.tokens;
-      const drawings = scene?.drawings ?? null;
+      const drawings = floor?.drawings ?? null;
       if (drawings === e.shownDrawings) return;
       e.shownDrawings = drawings;
       for (const layer of Object.values(e.drawingLayers)) layer.removeChildren().forEach((c) => c.destroy({ children: true }));
-      if (!scene) return;
-      for (const drawing of scene.drawings) {
+      if (!scene || !floor) return;
+      for (const drawing of floor.drawings) {
         const view = drawingView(drawing, scene.gridSize);
         view.cullable = true;
         e.drawingLayers[drawing.layer].addChild(view);
@@ -508,26 +510,27 @@ export function MapView(props: Props) {
 
     async function syncScene() {
       const e = engine.current;
-      const scene = props_().scene;
+      const { scene, floor } = props_();
       if (!e) return;
       e.background.removeChildren().forEach((c) => c.destroy());
       e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
       e.ruler.clear();
       e.rulerLabel.text = "";
-      if (!scene) {
+      if (!scene || !floor) {
         e.grid.clear();
         e.shownGrid = "";
         return void disposeVideo(e);
       }
       const sceneId = scene.id;
-      if (scene.assetId && scene.assetKind === "video") {
-        if (e.video?.assetId !== scene.assetId) {
+      const floorId = floor.id;
+      if (floor.assetId && floor.assetKind === "video") {
+        if (e.video?.assetId !== floor.assetId) {
           disposeVideo(e);
-          e.video = startVideo(e, scene.assetId);
+          e.video = startVideo(e, floor.assetId);
         }
-        const loaded = await e.video.ready;
-        // Another scene was shown while the video loaded; its own sync draws the map.
-        if (props_().scene?.id !== sceneId) return;
+        const loaded = await e.video!.ready;
+        // Another floor or scene was shown while the video loaded; its own sync draws the map.
+        if (props_().floor?.id !== floorId) return;
         e.background.removeChildren().forEach((c) => c.destroy());
         if (loaded) {
           const sprite = new Sprite(loaded.texture);
@@ -538,10 +541,10 @@ export function MapView(props: Props) {
           // Without the video the map is still usable: plain background plus grid and tokens.
           e.background.addChild(new Graphics().rect(0, 0, scene.width, scene.height).fill(0x2a2d34));
         }
-      } else if (scene.assetId) {
+      } else if (floor.assetId) {
         disposeVideo(e);
-        const texture = await loadTexture(scene.assetId, assetsInUse);
-        if (engine.current?.fitted !== null && props_().scene?.id !== sceneId) return;
+        const texture = await loadTexture(floor.assetId, assetsInUse);
+        if (engine.current?.fitted !== null && props_().floor?.id !== floorId) return;
         const sprite = new Sprite(texture);
         sprite.width = scene.width;
         sprite.height = scene.height;
@@ -567,7 +570,7 @@ export function MapView(props: Props) {
         }
       }
       e.grid.visible = props_().layers.grid;
-      drawMapData(e, scene, props_().layers);
+      drawMapData(e, scene, floor, props_().layers);
       if (e.fitted !== sceneId) {
         // Fit the whole map in view the first time a scene is shown.
         fitToScreen(e.world, e.app.screen, scene);
@@ -576,9 +579,9 @@ export function MapView(props: Props) {
     }
 
     /** Lights as soft discs, walls as red lines, doors as amber (closed) or green (open) lines with a handle to open them. */
-    function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto, layers: MapLayers) {
+    function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto, floor: FloorDto, layers: MapLayers) {
       const lights = new Graphics();
-      for (const light of scene.lights) {
+      for (const light of floor.lights) {
         if (layers.lightRange) {
           lights.circle(light.x, light.y, light.radius * scene.gridSize).fill({ color: hexToNumber(light.color), alpha: 0.12 });
         }
@@ -591,8 +594,8 @@ export function MapView(props: Props) {
       }
       const walls = new Graphics();
       const doors = new Container();
-      const line = (g: Graphics, w: SceneDto["walls"][number]) => g.moveTo(w.x1, w.y1).lineTo(w.x2, w.y2);
-      for (const wall of scene.walls) {
+      const line = (g: Graphics, w: FloorDto["walls"][number]) => g.moveTo(w.x1, w.y1).lineTo(w.x2, w.y2);
+      for (const wall of floor.walls) {
         if (wall.kind === "wall") {
           if (layers.walls) line(walls, wall);
           continue;
@@ -908,7 +911,7 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     syncAll.current();
-  }, [props.scene, props.tokens, props.selectedTokenIds, props.layers, props.vision]);
+  }, [props.scene, props.floor, props.tokens, props.selectedTokenIds, props.layers, props.vision]);
 
   // Zoom keys arrive through the table store; zooming keeps the middle of the view where it is.
   const viewCommand = useTableUi((ui) => ui.viewCommand);

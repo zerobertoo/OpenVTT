@@ -182,8 +182,8 @@ describe("video assets", () => {
     const conn = connect(port, imported.json().id, importer.cookie);
     const state = await conn.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
     const copy = state.state.scenes[0]!;
-    expect(copy.assetId).not.toBe(asset.id);
-    const back = await call(app, importer.cookie, "GET", `/api/assets/${copy.assetId}`);
+    expect(copy.floors[0]!.assetId).not.toBe(asset.id);
+    const back = await call(app, importer.cookie, "GET", `/api/assets/${copy.floors[0]!.assetId}`);
     expect(back.headers["content-type"]).toBe("video/mp4");
     expect(back.rawPayload.equals(video)).toBe(true);
     conn.ws.close();
@@ -286,7 +286,7 @@ describe("video assets", () => {
     const scene = (
       await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Moving", assetId: video.id, width: 640, height: 360 })
     ).json();
-    expect(scene.assetId).toBe(video.id);
+    expect(scene.floors[0].assetId).toBe(video.id);
     const token = await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
       sceneId: scene.id,
       name: "T",
