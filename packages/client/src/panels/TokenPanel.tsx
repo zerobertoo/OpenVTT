@@ -81,14 +81,14 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
   };
 
   const patch = (body: object) => {
-    if (token) actions.changeToken(token, body as Record<string, unknown>);
+    if (token) void run(() => actions.changeToken(token, body as Record<string, unknown>));
   };
 
   const uploadImage = (file: File) => {
     if (!token) return;
     void run(async () => {
       const { id: assetId } = await api.uploadAsset(state.id, await shrinkImage(file));
-      actions.changeToken(token, { assetId });
+      await actions.changeToken(token, { assetId });
     });
   };
 

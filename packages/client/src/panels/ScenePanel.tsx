@@ -18,7 +18,7 @@ interface Props {
   viewSceneId: string | null;
   onView: (sceneId: string) => void;
   /** Applies new settings to a scene so the game master can undo them. */
-  onChangeScene: (scene: SceneDto, changes: Record<string, unknown>) => void;
+  onChangeScene: (scene: SceneDto, changes: Record<string, unknown>) => Promise<void>;
   onRenameFloor: (floor: { id: string; name: string }, name: string) => void;
   onAddFloor: (sceneId: string, floor: { name: string; assetId: string | null }) => void;
 }
@@ -100,15 +100,17 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
     e.preventDefault();
     if (!current) return;
     const f = new FormData(e.currentTarget);
-    onChangeScene(current, {
-      name: String(f.get("name")),
-      gridType: String(f.get("gridType")),
-      gridSize: Number(f.get("gridSize")),
-      gridDistance: Number(f.get("gridDistance")),
-      distanceUnit: String(f.get("distanceUnit")),
-      visionEnabled: f.get("visionEnabled") === "on",
-      visionRadius: Number(f.get("visionRadius")),
-    });
+    void run(() =>
+      onChangeScene(current, {
+        name: String(f.get("name")),
+        gridType: String(f.get("gridType")),
+        gridSize: Number(f.get("gridSize")),
+        gridDistance: Number(f.get("gridDistance")),
+        distanceUnit: String(f.get("distanceUnit")),
+        visionEnabled: f.get("visionEnabled") === "on",
+        visionRadius: Number(f.get("visionRadius")),
+      }),
+    );
   };
 
   return (
@@ -179,10 +181,12 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
           scene={current}
           background={floorOf(current, current.tableFloorId)}
           pending={pending}
-          onApply={(gridSize) => {
-            onChangeScene(current, { gridSize });
-            setAdjustingGrid(false);
-          }}
+          onApply={(gridSize) =>
+            void run(async () => {
+              await onChangeScene(current, { gridSize });
+              setAdjustingGrid(false);
+            })
+          }
         />
       )}
       <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} />

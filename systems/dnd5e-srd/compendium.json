@@ -462,9 +462,6 @@
   {
     "id": "wight",
     "name": "Wight",
-    "names": {
-      "pt-br": "Aparição"
-    },
     "kind": "monster",
     "size": 1,
     "color": "#4f5f6a",

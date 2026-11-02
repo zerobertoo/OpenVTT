@@ -59,6 +59,7 @@ export function SheetsPanel({ state, locale, actions }: Props) {
     if (!selected) return;
     setSaveState("saving");
     // What the sheet showed before, defaults included, so undo can put it back even for a never-edited field.
+    // (A computed field has no stored value and cannot be edited, so nothing is skipped for a real field.)
     const previous = template ? computeSheet(template, selected.data)[fieldId] : undefined;
     const saved = await run(async () => {
       await api.updateActor(selected.id, { data: { [fieldId]: value } });

@@ -364,7 +364,7 @@ export function Table({ worldId, user }: Props) {
                       onLayerChange={setLayer}
                       viewAsUserId={viewAs}
                       onViewAsChange={changeViewAs}
-                      onLockChange={(lockedLayers) => scene && actions.changeScene(scene, { lockedLayers })}
+                      onLockChange={(lockedLayers) => scene && void actions.changeScene(scene, { lockedLayers }).catch(() => undefined)}
                     />
                   )
                 }

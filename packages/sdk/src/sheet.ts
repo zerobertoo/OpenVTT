@@ -193,7 +193,9 @@ export const compendiumSchema = z
         .max(60),
       name: z.string().min(1).max(60),
       /** Names in other languages, keyed by lowercase locale (for example `pt-br`); `name` is the fallback. */
-      names: z.record(z.string(), z.string().min(1).max(60)).optional(),
+      names: z
+        .record(z.string().regex(/^[a-z]{2,3}(-[a-z0-9]+)*$/, "locale keys are lowercase, like pt-br"), z.string().min(1).max(60))
+        .optional(),
       kind: z.enum(["monster", "item"]),
       size: z.number().min(0.25).max(20).default(1),
       color: z

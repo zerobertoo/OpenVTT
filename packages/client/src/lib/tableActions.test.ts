@@ -66,7 +66,7 @@ it("puts scene settings back to what they were and applies them again on redo", 
   vi.mocked(api.updateScene)
     .mockReset()
     .mockResolvedValue({} as never);
-  actions().changeScene({ id: "s", gridSize: 70, gridType: "square" } as never, { gridSize: 100 });
+  await actions().changeScene({ id: "s", gridSize: 70, gridType: "square" } as never, { gridSize: 100 });
   await vi.waitFor(() => expect(api.updateScene).toHaveBeenCalledWith("s", { gridSize: 100 }));
   await useUndo.getState().undo();
   expect(api.updateScene).toHaveBeenLastCalledWith("s", { gridSize: 70 });
@@ -78,7 +78,7 @@ it("puts a token's edited fields back and edits the recreated token after an und
   vi.mocked(api.updateToken)
     .mockReset()
     .mockResolvedValue({} as never);
-  actions().changeToken({ id: "t", name: "Orc", hp: 7 } as never, { hp: 3 });
+  await actions().changeToken({ id: "t", name: "Orc", hp: 7 } as never, { hp: 3 });
   await vi.waitFor(() => expect(api.updateToken).toHaveBeenCalledWith("t", { hp: 3 }));
   await useUndo.getState().undo();
   expect(api.updateToken).toHaveBeenLastCalledWith("t", { hp: 7 });
@@ -130,4 +130,39 @@ it("deletes a handout made a moment ago on undo and writes it again on redo", as
   expect(api.deleteHandout).toHaveBeenCalledWith("h1");
   await useUndo.getState().redo();
   expect(api.createHandout).toHaveBeenCalledWith("w", { title: "Map", body: "", audience: ["*"] });
+});
+
+it("sends and records nothing when a change leaves every value as it was", async () => {
+  vi.mocked(api.updateToken)
+    .mockReset()
+    .mockResolvedValue({} as never);
+  await actions().changeToken({ id: "t", size: 1 } as never, { size: 1 });
+  expect(api.updateToken).not.toHaveBeenCalled();
+  expect(useUndo.getState().past).toHaveLength(0);
+});
+
+it("records nothing when the server refuses the change, and rejects so the panel can show why", async () => {
+  vi.mocked(api.updateScene).mockReset().mockRejectedValue(new Error("invalid"));
+  await expect(actions().changeScene({ id: "s", name: "A" } as never, { name: "" })).rejects.toThrow("invalid");
+  expect(useUndo.getState().past).toHaveLength(0);
+});
+
+it("deletes the live copy when a handout is made, deleted, undone and redone around", async () => {
+  vi.mocked(api.deleteHandout)
+    .mockReset()
+    .mockResolvedValue(undefined as never);
+  let made = 0;
+  vi.mocked(api.createHandout)
+    .mockReset()
+    .mockImplementation(async () => ({ id: `h${++made + 1}` }) as never);
+  const table = actions();
+  const handout = { id: "h1", title: "T", body: "", audience: [] };
+  table.handoutCreated(handout);
+  table.handoutDeleted(handout);
+  await useUndo.getState().undo(); // the delete is undone: h2
+  await useUndo.getState().undo(); // the creation is undone: h2 goes away
+  expect(api.deleteHandout).toHaveBeenLastCalledWith("h2");
+  await useUndo.getState().redo(); // made again: h3
+  await useUndo.getState().redo(); // deleted again: h3 goes away
+  expect(api.deleteHandout).toHaveBeenLastCalledWith("h3");
 });
