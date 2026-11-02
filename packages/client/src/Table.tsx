@@ -264,7 +264,8 @@ export function Table({ worldId, user }: Props) {
               scene={scene}
               floor={floor}
               ghostFloor={ghostFloor}
-              tokens={view === "tv" ? floorTokens.filter((tk) => !tk.hidden) : floorTokens}
+              // The shared screen never shows hidden tokens or health bars: the game master receives health for every token.
+              tokens={view === "tv" ? floorTokens.filter((tk) => !tk.hidden).map((tk) => ({ ...tk, hp: null, hpMax: null })) : floorTokens}
               tool={tool}
               selectedTokenIds={selectedTokenIds}
               canControl={canControl}
@@ -293,8 +294,9 @@ export function Table({ worldId, user }: Props) {
             <EmptyMap isGm={isGm} />
           )}
 
-          <DiceOverlay messages={state.messages} userId={user.id} />
-          <TableSounds state={state} userId={user.id} />
+          {/* Secret rolls and whispers must not animate or chime on the shared screen. */}
+          {view !== "tv" && <DiceOverlay messages={state.messages} userId={user.id} />}
+          {view !== "tv" && <TableSounds state={state} userId={user.id} />}
           {scene && view === "normal" && <TableTour isGm={isGm} />}
           <TableKeyboard
             scene={scene}
