@@ -169,7 +169,13 @@ export function Table({ worldId, user }: Props) {
       case "tokens":
         return (
           <>
-            <TokenPanel state={state} userId={user.id} viewSceneId={viewSceneId} token={selectedToken} />
+            <TokenPanel
+              state={state}
+              userId={user.id}
+              viewSceneId={viewSceneId}
+              token={selectedToken}
+              onChangeToken={actions.changeToken}
+            />
             {isGm && scene && (
               <Compendium
                 worldId={state.id}

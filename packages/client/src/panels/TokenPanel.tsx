@@ -20,9 +20,11 @@ interface Props {
   userId: string;
   viewSceneId: string | null;
   token: TokenDto | null;
+  /** Applies an edit to a token so the game master can undo it. */
+  onChangeToken: (token: TokenDto, changes: Record<string, unknown>) => void;
 }
 
-export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
+export function TokenPanel({ state, userId, viewSceneId, token, onChangeToken }: Props) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const selectToken = useTableUi((ui) => ui.selectToken);
@@ -59,7 +61,7 @@ export function TokenPanel({ state, userId, viewSceneId, token }: Props) {
   };
 
   const patch = (body: object) => {
-    if (token) void run(() => api.updateToken(token.id, body));
+    if (token) onChangeToken(token, body as Record<string, unknown>);
   };
 
   const uploadImage = (file: File) => {

@@ -88,6 +88,13 @@ export function undoableActions(
       });
     },
 
+    /** Edits a token (name, health, conditions, visibility...); undo puts back the values of the same fields. */
+    changeToken(token: TokenDto, changes: Record<string, unknown>) {
+      const before = Object.fromEntries(Object.keys(changes).map((key) => [key, (token as unknown as Record<string, unknown>)[key]]));
+      const set = (values: object) => () => api.updateToken(current(token.id), values);
+      apply(set(changes), { undo: set(before), redo: set(changes) });
+    },
+
     /** Changes scene settings; undo puts back the values the scene had for the same fields. */
     changeScene(scene: SceneDto, changes: Record<string, unknown>) {
       const before = Object.fromEntries(Object.keys(changes).map((key) => [key, (scene as unknown as Record<string, unknown>)[key]]));
