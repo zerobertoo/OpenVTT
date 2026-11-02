@@ -9,6 +9,7 @@ import { DiceOverlay } from "./components/table/DiceOverlay";
 import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
 import { DrawOptions } from "./components/table/DrawOptions";
+import { FloorSwitcher } from "./components/table/FloorSwitcher";
 import { MapLayersMenu } from "./components/table/MapLayersMenu";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
@@ -52,8 +53,20 @@ interface Props {
 export function Table({ worldId, user }: Props) {
   const { t, i18n } = useTranslation();
   const { state, connected, send } = useWorldState(worldId);
-  const { tab, drawerOpen, tool, selectedTokenId, selectedTokenIds, gmViewSceneId, gmViewFloorId, layers, viewAsUserId, diceTrayOpen, draw, view } =
-    useTableUi();
+  const {
+    tab,
+    drawerOpen,
+    tool,
+    selectedTokenId,
+    selectedTokenIds,
+    gmViewSceneId,
+    gmViewFloorId,
+    layers,
+    viewAsUserId,
+    diceTrayOpen,
+    draw,
+    view,
+  } = useTableUi();
   const {
     setTab,
     toggleDrawer,
@@ -140,6 +153,11 @@ export function Table({ worldId, user }: Props) {
   const floor = scene
     ? floorOf(scene, isGm ? (viewAs ? state.viewFloorId : (gmViewFloorId ?? scene.tableFloorId)) : state.viewFloorId)
     : null;
+  // The game master can see the floor below faintly through the current one (never while previewing a player).
+  const ghostFloor =
+    isGm && !viewAs && layers.floorBelow && scene && floor
+      ? (scene.floors[scene.floors.findIndex((f) => f.id === floor.id) - 1] ?? null)
+      : null;
   const floorTokens = state.tokens.filter((tk) => tk.floorId === floor?.id);
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
   // Tokens that vanished (deleted, out of sight) silently leave the selection.
@@ -154,10 +172,17 @@ export function Table({ worldId, user }: Props) {
 
   // The drop point becomes the middle of a one-cell token, snapped to a square grid.
   const placeEntry = (entryId: string, x: number, y: number) => {
-    if (!scene) return;
+    if (!scene || !floor) return;
     const half = scene.gridSize / 2;
     const snap = (v: number) => (scene.gridType === "square" ? Math.round((v - half) / scene.gridSize) * scene.gridSize : v - half);
-    actions.place(entryId, scene.id, snap(x), snap(y), i18n.language);
+    actions.place(entryId, scene.id, floor.id, snap(x), snap(y), i18n.language);
+  };
+
+  /** PageUp and PageDown: look at the floor above or below, staying inside the stack. */
+  const changeFloorBy = (direction: 1 | -1) => {
+    if (!scene || !floor) return;
+    const next = scene.floors[scene.floors.findIndex((f) => f.id === floor.id) + direction];
+    if (next) viewFloor(next.id);
   };
 
   const tabs: TableTab[] = isGm
@@ -180,6 +205,7 @@ export function Table({ worldId, user }: Props) {
               state={state}
               userId={user.id}
               viewSceneId={viewSceneId}
+              viewFloorId={floor?.id ?? null}
               token={selectedToken}
               onChangeToken={actions.changeToken}
             />
@@ -199,7 +225,16 @@ export function Table({ worldId, user }: Props) {
       case "journal":
         return <JournalPanel state={state} isGm={isGm} />;
       case "scenes":
-        return <ScenePanel state={state} viewSceneId={viewSceneId} onView={viewScene} onChangeScene={actions.changeScene} />;
+        return (
+          <ScenePanel
+            state={state}
+            viewSceneId={viewSceneId}
+            onView={viewScene}
+            onChangeScene={actions.changeScene}
+            onRenameFloor={actions.renameFloor}
+            onAddFloor={actions.addFloor}
+          />
+        );
       case "settings":
         return (
           <>
@@ -225,6 +260,7 @@ export function Table({ worldId, user }: Props) {
             <MapView
               scene={scene}
               floor={floor}
+              ghostFloor={ghostFloor}
               tokens={view === "tv" ? floorTokens.filter((tk) => !tk.hidden) : floorTokens}
               tool={tool}
               selectedTokenIds={selectedTokenIds}
@@ -265,6 +301,7 @@ export function Table({ worldId, user }: Props) {
             onRemove={removeSelection}
             onUndo={isGm ? useUndo.getState().undo : undefined}
             onRedo={isGm ? useUndo.getState().redo : undefined}
+            onChangeFloor={isGm && scene && !viewAs ? changeFloorBy : undefined}
             helpOpen={helpOpen}
             onHelpOpenChange={setHelpOpen}
           />
@@ -303,6 +340,15 @@ export function Table({ worldId, user }: Props) {
                   selectToken(null);
                 }}
               />
+              {isGm && scene && floor && scene.floors.length > 1 && (
+                <FloorSwitcher
+                  floors={scene.floors}
+                  currentId={floor.id}
+                  tableFloorId={scene.tableFloorId}
+                  onChange={viewFloor}
+                  disabled={viewAs !== null}
+                />
+              )}
               <MapToolbar
                 tool={tool}
                 onToolChange={setTool}

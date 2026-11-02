@@ -280,3 +280,7 @@ output { font-weight: 800; font-size: 1.1rem; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 }
+
+/* Floors: the game master's switcher sits at the middle of the left edge, under the title chip. */
+.floor-switcher { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); z-index: 1; }
+@media (max-width: 52rem) { .floor-switcher { top: 8.4rem; transform: none; } }

@@ -7,6 +7,8 @@ export type ShortcutAction =
   | { type: "deselect" }
   | { type: "diceTray" }
   | { type: "minimap" }
+  /** Game master: look at the floor above (1) or below (-1). */
+  | { type: "floor"; direction: 1 | -1 }
   | { type: "focus" }
   | { type: "view"; kind: "zoomIn" | "zoomOut" | "fit" | "center" }
   /** Move the selected token by whole cells; each axis is -1, 0 or 1. */
@@ -40,6 +42,10 @@ export function actionForKey(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "met
   const arrow = ARROWS[event.key];
   if (arrow) return { type: "move", ...arrow };
   switch (event.key.toLowerCase()) {
+    case "pageup":
+      return { type: "floor", direction: 1 };
+    case "pagedown":
+      return { type: "floor", direction: -1 };
     case "+":
     case "=":
       return { type: "view", kind: "zoomIn" };

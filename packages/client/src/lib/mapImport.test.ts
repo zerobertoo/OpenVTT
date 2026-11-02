@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MapImportError, parseGridFromName, prepareMapImports } from "./mapImport";
+import { groupFloors, type MapImportDraft, MapImportError, parseGridFromName, prepareMapImports } from "./mapImport";
 
 vi.mock("./media", () => ({ readMediaSize: async () => ({ width: 1484, height: 2014 }) }));
 
@@ -73,5 +73,26 @@ describe("prepareMapImports", () => {
     await expect(prepareMapImports([new File([uvttText], "a.dd2vtt")])).rejects.toMatchObject({ code: "no_media" });
     await expect(prepareMapImports([new File(["nope"], "a.dd2vtt")])).rejects.toBeInstanceOf(MapImportError);
     await expect(prepareMapImports([new File(["{}"], "a.json"), video("a.mp4")])).rejects.toMatchObject({ code: "not_uvtt" });
+  });
+});
+
+describe("groupFloors", () => {
+  const draft = (name: string, floor: number, over: Partial<MapImportDraft> = {}) =>
+    ({ name, floorKey: "map", floor, width: 1536, height: 2016, gridSize: 48, ...over }) as MapImportDraft;
+
+  it("puts the floors of one map in one scene, in the order they came", () => {
+    const groups = groupFloors([draft("map 00", 0), draft("map 01", 1), draft("map 02", 2), draft("map 03", 3)]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.map((d) => d.floor)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("keeps a file apart when it does not line up with its floors, and keeps unrelated files apart", () => {
+    const groups = groupFloors([
+      draft("map 00", 0),
+      draft("map 01", 1, { gridSize: 70 }),
+      draft("Tavern", 0, { floorKey: null }),
+      draft("Cave", 0, { floorKey: null }),
+    ]);
+    expect(groups.map((g) => g.map((d) => d.name))).toEqual([["map 00"], ["map 01"], ["Tavern"], ["Cave"]]);
   });
 });

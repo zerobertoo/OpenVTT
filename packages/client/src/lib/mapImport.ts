@@ -163,3 +163,21 @@ export async function prepareMapImports(files: File[]): Promise<MapImportDraft[]
   });
   return drafts.sort((a, b) => (a.floorKey === b.floorKey ? a.floor - b.floor : 0));
 }
+
+/** Splits the drafts of an import into scenes: drafts sharing a floor key and the same size and grid stay together. */
+export function groupFloors(drafts: MapImportDraft[]): MapImportDraft[][] {
+  const groups: MapImportDraft[][] = [];
+  const byKey = new Map<string, MapImportDraft[]>();
+  for (const draft of drafts) {
+    const group = draft.floorKey ? byKey.get(draft.floorKey) : undefined;
+    const lead = group?.[0];
+    const fits = lead && lead.width === draft.width && lead.height === draft.height && lead.gridSize === draft.gridSize;
+    if (group && fits) group.push(draft);
+    else {
+      const created = [draft];
+      groups.push(created);
+      if (draft.floorKey && !byKey.has(draft.floorKey)) byKey.set(draft.floorKey, created);
+    }
+  }
+  return groups;
+}

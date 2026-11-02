@@ -17,18 +17,31 @@ interface Props {
   /** Game master only; they resolve to false when there was nothing to undo or redo. */
   onUndo?: () => Promise<boolean>;
   onRedo?: () => Promise<boolean>;
+  /** Game master only: look at the floor above (1) or below (-1). */
+  onChangeFloor?: (direction: 1 | -1) => void;
   /** Lets the title chip's help button open the same dialog. */
   helpOpen: boolean;
   onHelpOpenChange: (open: boolean) => void;
 }
 
 /** Keyboard shortcuts for the table, the help dialog and a live region that says where a moved token landed. */
-export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo, helpOpen, onHelpOpenChange }: Props) {
+export function TableKeyboard({
+  scene,
+  movableTokens,
+  onMove,
+  onRotate,
+  onRemove,
+  onUndo,
+  onRedo,
+  onChangeFloor,
+  helpOpen,
+  onHelpOpenChange,
+}: Props) {
   const { t } = useTranslation();
   const [announcement, setAnnouncement] = useState("");
   // The handler is attached once and reads the newest props through this ref.
-  const latest = useRef({ scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo });
-  latest.current = { scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo };
+  const latest = useRef({ scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo, onChangeFloor });
+  latest.current = { scene, movableTokens, onMove, onRotate, onRemove, onUndo, onRedo, onChangeFloor };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -57,6 +70,10 @@ export function TableKeyboard({ scene, movableTokens, onMove, onRotate, onRemove
           return ui.selectToken(null);
         case "minimap":
           return ui.toggleMinimap();
+        case "floor":
+          if (!latest.current.onChangeFloor) return;
+          event.preventDefault();
+          return latest.current.onChangeFloor(action.direction);
         case "focus":
           return ui.setView(ui.view === "normal" ? "focus" : "normal");
         case "diceTray":

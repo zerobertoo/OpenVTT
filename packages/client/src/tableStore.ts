@@ -13,6 +13,8 @@ export interface MapLayers {
   /** The disc each light reaches; off by default because maps with baked lighting already show it. */
   lightRange: boolean;
   grid: boolean;
+  /** The floor below, faint over the background, to line up stairs and lights. */
+  floorBelow: boolean;
   /** Drawings and note pins on the game master's own layer. */
   gmDrawings: boolean;
   /** The map picture with its background drawings, the object drawings, and the tokens. */
@@ -27,6 +29,7 @@ export const DEFAULT_LAYERS: MapLayers = {
   lights: true,
   lightRange: false,
   grid: true,
+  floorBelow: false,
   gmDrawings: true,
   background: true,
   objects: true,
@@ -39,6 +42,7 @@ export const PLAYER_LAYERS: MapLayers = {
   lights: false,
   lightRange: false,
   grid: true,
+  floorBelow: false,
   gmDrawings: false,
   background: true,
   objects: true,

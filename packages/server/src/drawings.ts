@@ -10,7 +10,9 @@ type DrawingInput = z.infer<typeof createDrawingSchema>;
 export class DrawingService {
   constructor(private db: Db) {}
 
-  find(drawingId: string): { sceneId: string; floorId: string; worldId: string; authorId: string | null; layer: DrawingDto["layer"] } | null {
+  find(
+    drawingId: string,
+  ): { sceneId: string; floorId: string; worldId: string; authorId: string | null; layer: DrawingDto["layer"] } | null {
     const row = this.db
       .prepare(
         "SELECT d.scene_id, d.floor_id, d.author_id, d.layer, s.world_id FROM drawings d JOIN scenes s ON s.id = d.scene_id WHERE d.id = ?",
@@ -33,7 +35,9 @@ export class DrawingService {
     if (n >= MAX_SCENE_DRAWINGS) throw new AppError("invalid_input");
     const id = randomUUID();
     this.db
-      .prepare("INSERT INTO drawings (id, scene_id, floor_id, author_id, kind, layer, points, color, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .prepare(
+        "INSERT INTO drawings (id, scene_id, floor_id, author_id, kind, layer, points, color, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      )
       .run(
         id,
         sceneId,
@@ -50,7 +54,9 @@ export class DrawingService {
 
   insertImported(sceneId: string, floorId: string, input: DrawingInput) {
     this.db
-      .prepare("INSERT INTO drawings (id, scene_id, floor_id, author_id, kind, layer, points, color, text) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?)")
+      .prepare(
+        "INSERT INTO drawings (id, scene_id, floor_id, author_id, kind, layer, points, color, text) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?)",
+      )
       .run(
         randomUUID(),
         sceneId,

@@ -15,13 +15,15 @@ interface Props {
   actors: ActorDto[];
   /** Game masters edit everything; a controlling player may only rotate. */
   isGm: boolean;
+  /** Floors of the token's scene, bottom to top; the game master can move the token to another one. */
+  floors?: { id: string; name: string }[];
   onPatch: (body: object) => void;
   onUpload: (file: File) => void;
   onDelete: () => void;
 }
 
 /** Fields of the selected token. Each change is saved as soon as it is made. */
-export function TokenEditor({ token, players, actors, isGm, onPatch, onUpload, onDelete }: Props) {
+export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch, onUpload, onDelete }: Props) {
   const { t } = useTranslation();
   const [rotation, setRotation] = useState<number | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -125,6 +127,19 @@ export function TokenEditor({ token, players, actors, isGm, onPatch, onUpload, o
             {(control) => <Switch {...control} defaultChecked={token.showName} onChange={(e) => onPatch({ showName: e.target.checked })} />}
           </Field>
 
+          {floors.length > 1 && (
+            <Field label={t("token.floor")} hint={t("token.floorHint")}>
+              {(control) => (
+                <Select {...control} defaultValue={token.floorId} onChange={(e) => onPatch({ floorId: e.target.value })}>
+                  {[...floors].reverse().map((floor) => (
+                    <option key={floor.id} value={floor.id}>
+                      {floor.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          )}
           <Field label={t("token.name")}>
             {(control) => (
               <Input

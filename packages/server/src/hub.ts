@@ -4,8 +4,8 @@ import {
   type MessageDto,
   pathIsBlocked,
   type ServerMessage,
-  tableRole,
   type TokenDto,
+  tableRole,
   type VisionDto,
   type WorldStateDto,
   WS_PATH,
@@ -108,7 +108,16 @@ export class Hub {
   }
 
   private open(socket: WebSocket, viewer: Viewer, worldId: string) {
-    const conn: Connection = { socket, viewer, worldId, seenTokenIds: new Set(), viewAs: null, lastPingAt: 0, observer: true, floorId: null };
+    const conn: Connection = {
+      socket,
+      viewer,
+      worldId,
+      seenTokenIds: new Set(),
+      viewAs: null,
+      lastPingAt: 0,
+      observer: true,
+      floorId: null,
+    };
     this.connections.add(conn);
     this.broadcastState(worldId);
     socket.on("message", (raw) => {
@@ -134,7 +143,8 @@ export class Hub {
     if (!found || found.worldId !== conn.worldId) throw new AppError("not_found");
     const activeSceneId = this.s.scenes.activeSceneId(conn.worldId);
     const { token } = found;
-    if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId, this.floorIdOf(conn.viewer, activeSceneId))) throw new AppError("not_found");
+    if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId, this.floorIdOf(conn.viewer, activeSceneId)))
+      throw new AppError("not_found");
     if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
     if (conn.observer) throw new AppError("forbidden");
     const scene = this.s.scenes.get(token.sceneId)!;
@@ -164,7 +174,12 @@ export class Hub {
     if (!scene) return;
     // A ping belongs to the floor of the person who made it; the game master's floor is the one on screen, so they
     // name it through `floorId` (the table floor when they do not).
-    const floorId = conn.viewer.role === "gm" ? (msg.floorId && this.s.scenes.hasFloor(scene.id, msg.floorId) ? msg.floorId : scene.tableFloorId) : this.floorIdOf(conn.viewer, scene.id)!;
+    const floorId =
+      conn.viewer.role === "gm"
+        ? msg.floorId && this.s.scenes.hasFloor(scene.id, msg.floorId)
+          ? msg.floorId
+          : scene.tableFloorId
+        : this.floorIdOf(conn.viewer, scene.id)!;
     const ping = {
       sceneId: scene.id,
       floorId,

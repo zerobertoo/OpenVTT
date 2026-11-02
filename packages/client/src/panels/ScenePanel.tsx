@@ -2,12 +2,14 @@ import { floorOf, type SceneDto, type WorldStateDto } from "@openvtt/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
+import { FloorManager } from "../components/scenes/FloorManager";
 import { GridAdjuster } from "../components/scenes/GridAdjuster";
 import { type MapImportChoice, MapImportDialog } from "../components/scenes/MapImportDialog";
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
 import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
+import { groupFloors } from "../lib/mapImport";
 import { readMediaSize, UnsupportedMediaError } from "../lib/media";
 import { ErrorMessage, useAction } from "../ui";
 
@@ -17,27 +19,11 @@ interface Props {
   onView: (sceneId: string) => void;
   /** Applies new settings to a scene so the game master can undo them. */
   onChangeScene: (scene: SceneDto, changes: Record<string, unknown>) => void;
+  onRenameFloor: (floor: { id: string; name: string }, name: string) => void;
+  onAddFloor: (sceneId: string, floor: { name: string; assetId: string | null }) => void;
 }
 
-/** Splits the drafts of an import into scenes: drafts sharing a floor key and the same size and grid stay together. */
-function groupFloors(drafts: MapImportChoice): MapImportChoice[] {
-  const groups: MapImportChoice[] = [];
-  const byKey = new Map<string, MapImportChoice>();
-  for (const draft of drafts) {
-    const group = draft.floorKey ? byKey.get(draft.floorKey) : undefined;
-    const lead = group?.[0];
-    const fits = lead && lead.width === draft.width && lead.height === draft.height && lead.gridSize === draft.gridSize;
-    if (group && fits) group.push(draft);
-    else {
-      const created = [draft];
-      groups.push(created);
-      if (draft.floorKey && !byKey.has(draft.floorKey)) byKey.set(draft.floorKey, created);
-    }
-  }
-  return groups;
-}
-
-export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props) {
+export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRenameFloor, onAddFloor }: Props) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -155,6 +141,27 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene }: Props)
           onSubmit={save}
           pending={pending}
           onAdjustGrid={() => setAdjustingGrid(true)}
+        />
+      )}
+
+      {current && (
+        <FloorManager
+          floors={current.floors}
+          tableFloorId={current.tableFloorId}
+          pending={pending}
+          onRename={(floorId, name) => {
+            const floor = current.floors.find((f) => f.id === floorId);
+            if (floor) onRenameFloor(floor, name);
+          }}
+          onMove={(floorId, position) => void run(() => api.updateFloor(floorId, { position }))}
+          onShowToTable={(floorId) => onChangeScene(current, { tableFloorId: floorId })}
+          onDelete={(floorId) => void run(() => api.deleteFloor(floorId))}
+          onAdd={(name, background) =>
+            void run(async () => {
+              const assetId = background ? (await api.uploadAsset(state.id, background)).id : null;
+              onAddFloor(current.id, { name, assetId });
+            })
+          }
         />
       )}
 

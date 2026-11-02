@@ -110,7 +110,12 @@ describe("drawings and note pins", () => {
     const conn = connect(port, imported.json().id, gm.cookie);
     const msg = await conn.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
     conn.ws.close();
-    expect(msg.state.scenes[0]!.floors[0]!.drawings[0]).toMatchObject({ kind: "note", layer: "gm", text: SECRET_NOTE.text, authorId: null });
+    expect(msg.state.scenes[0]!.floors[0]!.drawings[0]).toMatchObject({
+      kind: "note",
+      layer: "gm",
+      text: SECRET_NOTE.text,
+      authorId: null,
+    });
   });
 });
 

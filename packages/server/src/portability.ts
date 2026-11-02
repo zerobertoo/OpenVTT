@@ -289,11 +289,25 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
           idMap.set(a.id, record.id);
         }
         for (const sc of file.scenes) {
-          const fileFloors = sc.floors ?? [{ id: sc.id, name: sc.name.slice(0, 60) || "Floor", assetId: sc.assetId, walls: sc.walls, lights: sc.lights, drawings: sc.drawings }];
+          const fileFloors = sc.floors ?? [
+            {
+              id: sc.id,
+              name: sc.name.slice(0, 60) || "Floor",
+              assetId: sc.assetId,
+              walls: sc.walls,
+              lights: sc.lights,
+              drawings: sc.drawings,
+            },
+          ];
           const created = s.scenes.create(worldId, {
             ...sc,
             lockedLayers: sc.lockedLayers,
-            floors: fileFloors.map((f) => ({ name: f.name, assetId: f.assetId ? idMap.get(f.assetId)! : null, walls: f.walls, lights: f.lights })),
+            floors: fileFloors.map((f) => ({
+              name: f.name,
+              assetId: f.assetId ? idMap.get(f.assetId)! : null,
+              walls: f.walls,
+              lights: f.lights,
+            })),
           });
           fileFloors.forEach((f, i) => {
             const createdFloorId = created.floors[i]!.id;

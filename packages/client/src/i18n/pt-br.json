@@ -20,7 +20,27 @@
     "deleteTitle_other": "Apagar {{count}} tokens?",
     "deleteBody": "Eles somem do mapa para todos. Isso não pode ser desfeito."
   },
+  "floors": {
+    "title": "Andares",
+    "hint": "O andar de baixo aparece por último. Os jogadores veem o andar em que o próprio token está, ou o andar da mesa quando não têm token.",
+    "switcher": "Andares",
+    "showing": "Mostrando {{name}}",
+    "tableFloorMark": "(andar da mesa)",
+    "tableFloor": "Andar da mesa",
+    "showToTable": "Mostrar à mesa",
+    "nameOf": "Nome de {{name}}",
+    "actions": "Mais ações para {{name}}",
+    "moveUp": "Subir",
+    "moveDown": "Descer",
+    "newName": "Nome do novo andar",
+    "background": "Fundo",
+    "backgroundHint": "Uma imagem ou vídeo do tamanho do mapa. Deixe vazio para um fundo liso.",
+    "add": "Adicionar andar",
+    "deleteTitle": "Excluir {{name}}?",
+    "deleteBody": "O andar, seus tokens, paredes, luzes e desenhos são removidos. Isso não pode ser desfeito."
+  },
   "shortcuts": {
+    "floor": "Ver o andar de cima ou de baixo (mestre)",
     "selectMany": "Adicionar ou tirar um token da seleção",
     "selectBox": "Arrastar uma caixa sobre o fundo para selecionar vários tokens",
     "turn": "Girar os tokens selecionados",
@@ -222,6 +242,7 @@
     "lights": "Pontos de luz",
     "lightRange": "Alcance das luzes",
     "grid": "Grade",
+    "floorBelow": "Andar de baixo, esmaecido",
     "previewOverrides": "Ao ver como jogador, as camadas ficam ocultas.",
     "baked": "Este mapa já traz a iluminação desenhada na imagem, por isso o alcance das luzes vem desligado.",
     "mapLayers": "Camadas do mapa",
@@ -357,6 +378,8 @@
     "dead": "Morto"
   },
   "token": {
+    "floor": "Andar",
+    "floorHint": "Move o token para outro andar da cena. Os jogadores do andar antigo deixam de vê-lo.",
     "hp": "Pontos de vida (máx. {{max}})",
     "importImages": "Importar imagens",
     "importImagesHint": "Escolha até {{max}} imagens; cada uma vira um token com o nome do arquivo.",

@@ -11,6 +11,7 @@ const SHORTCUTS = [
   { keys: ["0"], label: "shortcuts.fit" },
   { keys: ["C"], label: "shortcuts.center" },
   { keys: ["M"], label: "shortcuts.minimap" },
+  { keys: ["PgUp", "PgDn"], label: "shortcuts.floor" },
   { keys: ["Shift", "click"], label: "shortcuts.selectMany" },
   { keys: ["Shift", "drag"], label: "shortcuts.selectBox" },
   { keys: ["[", "]"], label: "shortcuts.turn" },

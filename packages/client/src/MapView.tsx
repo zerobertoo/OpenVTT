@@ -35,6 +35,8 @@ interface Props {
   scene: SceneDto | null;
   /** The floor of the scene being looked at: its background, walls, lights and drawings are what gets drawn. */
   floor: FloorDto | null;
+  /** The floor below, drawn faintly over the background for the game master; null when off. */
+  ghostFloor: FloorDto | null;
   tokens: TokenDto[];
   tool: MapTool;
   selectedTokenIds: string[];
@@ -87,14 +89,23 @@ extensions.add(CullerPlugin);
 const MAX_TEXTURES = 96;
 const textureCache = new Map<string, Promise<Texture>>();
 
-/** Pixi cannot infer the parser from our extension-less asset URLs, so decode through an ImageBitmap. */
-function loadTexture(assetId: string, inUse: () => Set<string>): Promise<Texture> {
+/**
+ * Pixi cannot infer the parser from our extension-less asset URLs, so decode through an ImageBitmap. A video is
+ * reduced to its first frame (`still`): the decoder is released right away, so a faint floor below costs no playback.
+ */
+function loadTexture(assetId: string, inUse: () => Set<string>, still = false): Promise<Texture> {
   const cached =
     textureCache.get(assetId) ??
-    fetch(assetUrl(assetId))
-      .then((r) => r.blob())
-      .then((blob) => createImageBitmap(blob))
-      .then((bitmap) => Texture.from(bitmap));
+    (still
+      ? openVideo(assetUrl(assetId)).then(async (video) => {
+          const bitmap = await createImageBitmap(video);
+          closeVideo(video);
+          return Texture.from(bitmap);
+        })
+      : fetch(assetUrl(assetId))
+          .then((r) => r.blob())
+          .then((blob) => createImageBitmap(blob))
+          .then((bitmap) => Texture.from(bitmap)));
   touchLru(textureCache, assetId, cached, MAX_TEXTURES, inUse(), (texture) => void texture.then((t) => t.destroy(true)));
   return cached;
 }
@@ -446,8 +457,8 @@ export function MapView(props: Props) {
 
     const props_ = () => latest.current;
     const assetsInUse = () => {
-      const { floor, tokens } = props_();
-      return new Set([floor?.assetId, ...tokens.map((t) => t.assetId)].filter((id): id is string => Boolean(id)));
+      const { floor, ghostFloor, tokens } = props_();
+      return new Set([floor?.assetId, ghostFloor?.assetId, ...tokens.map((t) => t.assetId)].filter((id): id is string => Boolean(id)));
     };
 
     /** Scene outline, tokens as dots and the part of the map on screen, on the overview canvas. */
@@ -552,6 +563,18 @@ export function MapView(props: Props) {
       } else {
         disposeVideo(e);
         e.background.addChild(new Graphics().rect(0, 0, scene.width, scene.height).fill(0x2a2d34));
+      }
+      const below = props_().ghostFloor;
+      if (below?.assetId) {
+        const texture = await loadTexture(below.assetId, assetsInUse, below.assetKind === "video").catch(() => null);
+        if (props_().floor?.id !== floorId) return;
+        if (texture) {
+          const ghost = new Sprite(texture);
+          ghost.width = scene.width;
+          ghost.height = scene.height;
+          ghost.alpha = 0.3;
+          e.background.addChild(ghost);
+        }
       }
       const gridKey = `${scene.gridType} ${scene.gridSize} ${scene.width} ${scene.height}`;
       if (gridKey !== e.shownGrid) {
@@ -911,7 +934,7 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     syncAll.current();
-  }, [props.scene, props.floor, props.tokens, props.selectedTokenIds, props.layers, props.vision]);
+  }, [props.scene, props.floor, props.ghostFloor, props.tokens, props.selectedTokenIds, props.layers, props.vision]);
 
   // Zoom keys arrive through the table store; zooming keeps the middle of the view where it is.
   const viewCommand = useTableUi((ui) => ui.viewCommand);

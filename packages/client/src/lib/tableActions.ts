@@ -1,4 +1,4 @@
-import type { DrawingDto, SceneDto, TokenDto } from "@openvtt/shared";
+import type { DrawingDto, FloorDto, SceneDto, TokenDto } from "@openvtt/shared";
 import { api } from "../api";
 import type { UndoEntry } from "./undo";
 
@@ -102,9 +102,22 @@ export function undoableActions(
       apply(set(changes), { undo: set(before), redo: set(changes) });
     },
 
-    place(entryId: string, sceneId: string, x: number, y: number, locale?: string) {
+    /** Renames a floor; undo puts the old name back. */
+    renameFloor(floor: Pick<FloorDto, "id" | "name">, name: string) {
+      const set = (value: string) => () => api.updateFloor(current(floor.id), { name: value });
+      apply(set(name), { undo: set(floor.name), redo: set(name) });
+    },
+
+    /** Adds a floor on top; undo deletes it again, and redo adds it back with the same background. */
+    addFloor(sceneId: string, input: { name: string; assetId: string | null }) {
       const key = crypto.randomUUID();
-      const put = async () => ids.set(key, (await api.placeCompendium(worldId, entryId, { sceneId, x, y, locale })).id);
+      const make = async () => ids.set(key, (await api.createFloor(sceneId, input)).floors.at(-1)!.id);
+      apply(make, { undo: () => api.deleteFloor(current(key)), redo: make });
+    },
+
+    place(entryId: string, sceneId: string, floorId: string, x: number, y: number, locale?: string) {
+      const key = crypto.randomUUID();
+      const put = async () => ids.set(key, (await api.placeCompendium(worldId, entryId, { sceneId, floorId, x, y, locale })).id);
       apply(put, { undo: () => api.deleteToken(current(key)), redo: put });
     },
   };

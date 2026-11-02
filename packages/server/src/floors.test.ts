@@ -1,5 +1,5 @@
-import type { SceneDto, ServerMessage, TokenDto, WorldStateDto } from "@openvtt/shared";
 import { DatabaseSync } from "node:sqlite";
+import type { SceneDto, ServerMessage, TokenDto, WorldStateDto } from "@openvtt/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { MIGRATIONS } from "./db.ts";
 import { call, closeApps, connect, listen, newApp, signUp } from "./test-utils.ts";
@@ -34,8 +34,9 @@ async function setup() {
   ).json() as SceneDto;
   const [cellar, ground, vault] = scene.floors as [SceneDto["floors"][number], SceneDto["floors"][number], SceneDto["floors"][number]];
   const token = async (name: string, floorId: string, extra: object = {}) =>
-    (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: scene.id, floorId, name, x: 100, y: 100, ...extra }))
-      .json() as TokenDto;
+    (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: scene.id, floorId, name, x: 100, y: 100, ...extra })
+    ).json() as TokenDto;
   const port = await listen(app);
   const open = async (cookie: string) => {
     const conn = connect(port, world.id, cookie);
@@ -81,7 +82,9 @@ describe("floors", () => {
 
   it("only lets a token move to a floor of its own scene, and only the game master moves it", async () => {
     const { app, gm, bob, world, scene, ground, vault, token } = await setup();
-    const other = (await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Elsewhere", width: 500, height: 500 })).json() as SceneDto;
+    const other = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Elsewhere", width: 500, height: 500 })
+    ).json() as SceneDto;
     const mine = await token("Bob", ground.id, { controllerIds: [bob.user.id] });
     const foreign = await call(app, gm.cookie, "PATCH", `/api/tokens/${mine.id}`, { floorId: other.floors[0]!.id });
     expect(foreign.statusCode).toBe(404);
@@ -169,7 +172,11 @@ describe("what each person receives", () => {
     const { conn: gmConn } = await open(gm.cookie);
     // The game master pings and draws on the secret floor while Bob stands on the table floor.
     gmConn.ws.send(JSON.stringify({ type: "map.ping", x: 10, y: 10, floorId: vault.id }));
-    const drawing = await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/drawings`, { kind: "arrow", floorId: vault.id, points: [0, 0, 5, 5] });
+    const drawing = await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/drawings`, {
+      kind: "arrow",
+      floorId: vault.id,
+      points: [0, 0, 5, 5],
+    });
     expect(drawing.statusCode).toBe(200);
     await gmConn.waitFor((m) => m.type === "scene.drawings");
     await bobConn.settle();
@@ -204,7 +211,9 @@ describe("movement and vision per floor", () => {
     const { conn } = await open(bob.cookie);
     // The cellar has a wall at x=300, the ground floor has none; Bob sees his first token's floor (cellar).
     conn.ws.send(JSON.stringify({ type: "token.move", tokenId: onCellar.id, x: 600, y: 100 }));
-    const stayed = await conn.waitFor((m): m is Extract<ServerMessage, { type: "token.upsert" }> => m.type === "token.upsert" && m.token.id === onCellar.id);
+    const stayed = await conn.waitFor(
+      (m): m is Extract<ServerMessage, { type: "token.upsert" }> => m.type === "token.upsert" && m.token.id === onCellar.id,
+    );
     expect(stayed.token.x).toBe(100);
     conn.ws.close();
     expect(onGround.floorId).toBe(ground.id);

@@ -12,12 +12,12 @@ import {
   createDrawingSchema,
   createInviteSchema,
   createSceneSchema,
-  floorInputSchema,
   createTokenSchema,
   createWorldSchema,
   credentialsSchema,
   DEFAULT_MAX_VIDEO_BYTES,
   type ErrorCode,
+  floorInputSchema,
   handoutInputSchema,
   joinWorldSchema,
   MAX_UPLOAD_BYTES,
@@ -30,10 +30,10 @@ import {
   tableRole,
   type UserDto,
   updateActorSchema,
+  updateFloorSchema,
   updateHandoutSchema,
   updateMemberSchema,
   updateProfileSchema,
-  updateFloorSchema,
   updateSceneSchema,
   updateTokenSchema,
   updateWorldSchema,
@@ -473,7 +473,7 @@ export function buildApp(options: AppOptions) {
   app.post<{ Params: { id: string; entryId: string } }>("/api/worlds/:id/compendium/:entryId/place", async (req) => {
     const worldId = req.params.id;
     requireGm(req, worldId);
-    const { sceneId, x, y, locale } = placeCompendiumSchema.parse(req.body);
+    const { sceneId, floorId, x, y, locale } = placeCompendiumSchema.parse(req.body);
     const entry = s.systems.get(s.worlds.info(worldId).systemId)?.compendium.find((e) => e.id === req.params.entryId);
     if (!entry) throw new AppError("not_found");
     const name = (locale && entry.names?.[locale.toLowerCase()]) || entry.name;
@@ -485,7 +485,7 @@ export function buildApp(options: AppOptions) {
       }
       const hp = typeof entry.data.hp_max === "number" ? entry.data.hp_max : null;
       return s.tokens.create(worldId, {
-        ...createTokenSchema.parse({ sceneId, name, x, y, size: entry.size, color: entry.color }),
+        ...createTokenSchema.parse({ sceneId, floorId, name, x, y, size: entry.size, color: entry.color }),
         actorId,
         hp,
         hpMax: hp,
@@ -539,7 +539,10 @@ export function buildApp(options: AppOptions) {
     const { viewer } = requireParticipant(req, found.worldId);
     const patch = updateTokenSchema.parse(req.body);
     const activeSceneId = s.scenes.activeSceneId(found.worldId);
-    const viewerFloorId = viewer.role === "gm" ? null : (s.tokens.floorIdsControlledBy(found.token.sceneId, viewer.userId)[0] ?? s.scenes.tableFloorId(found.token.sceneId));
+    const viewerFloorId =
+      viewer.role === "gm"
+        ? null
+        : (s.tokens.floorIdsControlledBy(found.token.sceneId, viewer.userId)[0] ?? s.scenes.tableFloorId(found.token.sceneId));
     if (!s.tokens.canSee(found.token, viewer, activeSceneId, viewerFloorId)) throw new AppError("not_found");
     if (!s.tokens.canControl(found.token, viewer)) throw new AppError("forbidden");
     if (viewer.role !== "gm" && Object.keys(patch).some((k) => !(PLAYER_EDITABLE_TOKEN_FIELDS as readonly string[]).includes(k)))

@@ -65,3 +65,10 @@ describe("isTypingTarget", () => {
     expect(isTypingTarget(null)).toBe(false);
   });
 });
+
+describe("floor keys", () => {
+  it("maps PageUp and PageDown to the floor above and below", () => {
+    expect(press("PageUp")).toEqual({ type: "floor", direction: 1 });
+    expect(press("PageDown")).toEqual({ type: "floor", direction: -1 });
+  });
+});

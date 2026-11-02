@@ -20,7 +20,27 @@
     "deleteTitle_other": "Delete {{count}} tokens?",
     "deleteBody": "They disappear from the map for everyone. This cannot be undone."
   },
+  "floors": {
+    "title": "Floors",
+    "hint": "The bottom floor is listed last. Players see the floor their own token is on, or the table floor when they have none.",
+    "switcher": "Floors",
+    "showing": "Showing {{name}}",
+    "tableFloorMark": "(table floor)",
+    "tableFloor": "Table floor",
+    "showToTable": "Show to table",
+    "nameOf": "Name of {{name}}",
+    "actions": "More actions for {{name}}",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "newName": "New floor name",
+    "background": "Background",
+    "backgroundHint": "A picture or video the size of the map. Leave empty for a plain background.",
+    "add": "Add floor",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "The floor, its tokens, walls, lights and drawings are removed. This cannot be undone."
+  },
   "shortcuts": {
+    "floor": "Look at the floor above or below (game master)",
     "selectMany": "Add or remove a token from the selection",
     "selectBox": "Drag a box over the background to select several tokens",
     "turn": "Turn the selected tokens",
@@ -222,6 +242,7 @@
     "lights": "Light points",
     "lightRange": "Light range",
     "grid": "Grid",
+    "floorBelow": "Floor below, faint",
     "previewOverrides": "While previewing a player, overlays are hidden.",
     "baked": "This map already has its lighting drawn in the image, so the light range is off by default.",
     "mapLayers": "Map layers",
@@ -357,6 +378,8 @@
     "dead": "Dead"
   },
   "token": {
+    "floor": "Floor",
+    "floorHint": "Move the token to another floor of the scene. Players on the old floor stop seeing it.",
     "hp": "Hit points (max {{max}})",
     "importImages": "Import images",
     "importImagesHint": "Pick up to {{max}} images; each becomes a token named after its file.",

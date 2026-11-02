@@ -335,6 +335,8 @@ export interface AssetSummaryDto {
 
 export const placeCompendiumSchema = z.object({
   sceneId: z.string().uuid(),
+  /** Floor to place the token on; the scene's table floor when left out. */
+  floorId: z.string().uuid().optional(),
   /** Language of the name the placed token and sheet get; falls back to the entry's own name. */
   locale: z.string().max(16).optional(),
   x: z.number().finite().min(-16384).max(16384),
@@ -458,7 +460,16 @@ export const floorInputSchema = z.object({
   lights: floorFields.lights.default([]),
 });
 /** `position` moves the floor to that place in the stack (0 = bottom). */
-export const updateFloorSchema = z.object({ ...floorFields, position: z.number().int().min(0).max(MAX_FLOORS - 1) }).partial();
+export const updateFloorSchema = z
+  .object({
+    ...floorFields,
+    position: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_FLOORS - 1),
+  })
+  .partial();
 
 const sceneFields = {
   name: z.string().trim().min(1).max(80),

@@ -19,12 +19,14 @@ interface Props {
   state: WorldStateDto;
   userId: string;
   viewSceneId: string | null;
+  /** Floor the game master is looking at; new tokens land on it. */
+  viewFloorId: string | null;
   token: TokenDto | null;
   /** Applies an edit to a token so the game master can undo it. */
   onChangeToken: (token: TokenDto, changes: Record<string, unknown>) => void;
 }
 
-export function TokenPanel({ state, userId, viewSceneId, token, onChangeToken }: Props) {
+export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, onChangeToken }: Props) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const selectToken = useTableUi((ui) => ui.selectToken);
@@ -38,7 +40,14 @@ export function TokenPanel({ state, userId, viewSceneId, token, onChangeToken }:
     const form = e.currentTarget;
     const name = String(new FormData(form).get("name"));
     void run(async () => {
-      const created = await api.createToken(state.id, { sceneId: scene.id, name, x: scene.gridSize, y: scene.gridSize, size: 1 });
+      const created = await api.createToken(state.id, {
+        sceneId: scene.id,
+        floorId: viewFloorId ?? undefined,
+        name,
+        x: scene.gridSize,
+        y: scene.gridSize,
+        size: 1,
+      });
       form.reset();
       return created;
     });
@@ -54,7 +63,15 @@ export function TokenPanel({ state, userId, viewSceneId, token, onChangeToken }:
       for (const [index, file] of files.entries()) {
         const { id: assetId } = await api.uploadAsset(state.id, await shrinkImage(file));
         const { x, y } = bulkPosition(index, scene);
-        await api.createToken(state.id, { sceneId: scene.id, name: tokenNameFromFile(file.name), x, y, size: 1, assetId });
+        await api.createToken(state.id, {
+          sceneId: scene.id,
+          floorId: viewFloorId ?? undefined,
+          name: tokenNameFromFile(file.name),
+          x,
+          y,
+          size: 1,
+          assetId,
+        });
       }
       return true;
     });
@@ -122,6 +139,7 @@ export function TokenPanel({ state, userId, viewSceneId, token, onChangeToken }:
           players={players}
           actors={state.actors}
           isGm={isGm}
+          floors={scene?.floors}
           onPatch={patch}
           onUpload={uploadImage}
           onDelete={() => void run(() => api.deleteToken(token.id))}
