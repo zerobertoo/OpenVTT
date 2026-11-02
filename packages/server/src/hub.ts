@@ -201,7 +201,7 @@ export class Hub {
    */
   private floorIdOf(viewer: Viewer, sceneId: string | null): string | null {
     if (viewer.role === "gm" || !sceneId) return null;
-    return this.s.tokens.floorIdsControlledBy(sceneId, viewer.userId)[0] ?? this.s.scenes.tableFloorId(sceneId);
+    return this.s.tokens.playerFloorId(sceneId, viewer.userId);
   }
 
   /** The game master previews a player's sight; anyone who is not a player of this world is ignored. */

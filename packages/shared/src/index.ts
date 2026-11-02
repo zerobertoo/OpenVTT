@@ -509,7 +509,8 @@ export const createSceneSchema = z
     ...scene,
     floors: floors ?? [{ name: scene.name, assetId, walls, lights }],
   }));
-export const updateSceneSchema = z.object(sceneFields).partial();
+/** Strict: a caller still sending `assetId`, `walls` or `lights` (now per floor) gets an error instead of a silent no-op. */
+export const updateSceneSchema = z.object(sceneFields).partial().strict();
 
 const tokenFields = {
   name: z.string().trim().min(1).max(60),

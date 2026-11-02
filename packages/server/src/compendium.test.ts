@@ -32,6 +32,9 @@ it("places a monster as a linked sheet and token, and an item as a token, for th
   expect((await place2("pt-br")).json()).toMatchObject({ name: "Lobo" });
   expect((await place2("PT-BR")).json()).toMatchObject({ name: "Lobo" });
   expect((await place2("fr")).json()).toMatchObject({ name: "Wolf" });
+  // The locale is the client's word: names of inherited properties must not be picked up.
+  expect((await place2("constructor")).json()).toMatchObject({ name: "Wolf" });
+  expect((await place2("__proto__")).json()).toMatchObject({ name: "Wolf" });
 });
 
 it("refuses a system whose compendium monsters do not fit its npc sheet", () => {

@@ -57,6 +57,15 @@ describe("floors", () => {
     expect(vault.walls).toHaveLength(1);
   });
 
+  it("refuses a scene update that still carries per-floor fields instead of silently ignoring them", async () => {
+    const { app, gm, scene, cellar } = await setup();
+    const res = await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { walls: [WALL] });
+    expect(res.statusCode).toBe(400);
+    const after = (await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { name: "Manor" })).json() as SceneDto;
+    expect(after.name).toBe("Manor");
+    expect(after.floors.find((f) => f.id === cellar.id)?.walls).toHaveLength(1);
+  });
+
   it("adds, renames, reorders and removes floors, and keeps at least one", async () => {
     const { app, gm, scene, cellar, ground } = await setup();
     const added = (await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/floors`, { name: "Roof" })).json() as SceneDto;

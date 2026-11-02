@@ -410,7 +410,7 @@ export function buildApp(options: AppOptions) {
   function drawingFloorId(worldId: string, sceneId: string, viewer: Viewer, requested: string | undefined): string {
     if (viewer.role !== "gm") {
       if (sceneId !== s.scenes.activeSceneId(worldId)) throw new AppError("not_found");
-      return s.tokens.floorIdsControlledBy(sceneId, viewer.userId)[0] ?? s.scenes.tableFloorId(sceneId)!;
+      return s.tokens.playerFloorId(sceneId, viewer.userId)!;
     }
     const floorId = requested ?? s.scenes.tableFloorId(sceneId);
     if (!floorId || !s.scenes.hasFloor(sceneId, floorId)) throw new AppError("not_found");
@@ -476,7 +476,9 @@ export function buildApp(options: AppOptions) {
     const { sceneId, floorId, x, y, locale } = placeCompendiumSchema.parse(req.body);
     const entry = s.systems.get(s.worlds.info(worldId).systemId)?.compendium.find((e) => e.id === req.params.entryId);
     if (!entry) throw new AppError("not_found");
-    const name = (locale && entry.names?.[locale.toLowerCase()]) || entry.name;
+    // own keys only: the locale comes from the client and must not reach inherited properties like "constructor"
+    const key = locale?.toLowerCase();
+    const name = (key && entry.names && Object.hasOwn(entry.names, key) ? entry.names[key] : undefined) || entry.name;
     const token = transaction(s.db, () => {
       let actorId: string | null = null;
       if (entry.kind === "monster") {
@@ -539,10 +541,7 @@ export function buildApp(options: AppOptions) {
     const { viewer } = requireParticipant(req, found.worldId);
     const patch = updateTokenSchema.parse(req.body);
     const activeSceneId = s.scenes.activeSceneId(found.worldId);
-    const viewerFloorId =
-      viewer.role === "gm"
-        ? null
-        : (s.tokens.floorIdsControlledBy(found.token.sceneId, viewer.userId)[0] ?? s.scenes.tableFloorId(found.token.sceneId));
+    const viewerFloorId = viewer.role === "gm" ? null : s.tokens.playerFloorId(found.token.sceneId, viewer.userId);
     if (!s.tokens.canSee(found.token, viewer, activeSceneId, viewerFloorId)) throw new AppError("not_found");
     if (!s.tokens.canControl(found.token, viewer)) throw new AppError("forbidden");
     if (viewer.role !== "gm" && Object.keys(patch).some((k) => !(PLAYER_EDITABLE_TOKEN_FIELDS as readonly string[]).includes(k)))

@@ -223,12 +223,6 @@ export class SceneService {
     return this.db.prepare("SELECT 1 AS ok FROM floors WHERE id = ? AND scene_id = ?").get(floorId, sceneId) !== undefined;
   }
 
-  /** Floor a door (or any wall) belongs to, so only people on that floor are told about it. */
-  floorOfWall(wallId: string): string | null {
-    const row = this.db.prepare("SELECT floor_id FROM walls WHERE id = ?").get(wallId) as { floor_id: string } | undefined;
-    return row?.floor_id ?? null;
-  }
-
   /** Replaces every wall and light of a floor. */
   private replaceMap(sceneId: string, floorId: string, input: Pick<FloorInput, "walls" | "lights">) {
     this.db.prepare("DELETE FROM walls WHERE floor_id = ?").run(floorId);
@@ -363,10 +357,11 @@ export class SceneService {
     const scene = this.get(owner.sceneId)!;
     if (scene.floors.length <= 1) throw new AppError("invalid_input");
     transaction(this.db, () => {
-      this.db.prepare("DELETE FROM tokens WHERE floor_id = ?").run(floorId);
+      // walls, lights, drawings and tokens of the floor go with it (ON DELETE CASCADE)
       this.db.prepare("DELETE FROM floors WHERE id = ?").run(floorId);
       const remaining = scene.floors.filter((f) => f.id !== floorId);
-      remaining.forEach((f, position) => this.db.prepare("UPDATE floors SET position = ? WHERE id = ?").run(position, f.id));
+      const setPosition = this.db.prepare("UPDATE floors SET position = ? WHERE id = ?");
+      remaining.forEach((f, position) => setPosition.run(position, f.id));
       if (scene.tableFloorId === floorId) {
         this.db.prepare("UPDATE scenes SET table_floor_id = ? WHERE id = ?").run(remaining[0]!.id, owner.sceneId);
       }

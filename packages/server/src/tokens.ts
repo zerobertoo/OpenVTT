@@ -90,15 +90,21 @@ export class TokenService {
     return viewer.role === "gm" || (!token.hidden && token.sceneId === activeSceneId && token.floorId === floorId);
   }
 
-  /** Floors of the visible tokens a user controls in a scene, in a stable order; decides which floor a player sees. */
-  floorIdsControlledBy(sceneId: string, userId: string): string[] {
-    const rows = this.db
+  /**
+   * The floor a player of a scene looks at: the floor of their oldest visible token, or the table floor when they have none.
+   * The single place that decides it, so tokens, drawings, pings and vision always agree.
+   */
+  playerFloorId(sceneId: string, userId: string): string | null {
+    const row = this.db
       .prepare(
-        `SELECT t.floor_id FROM tokens t JOIN token_controllers c ON c.token_id = t.id
-         WHERE t.scene_id = ? AND c.user_id = ? AND t.hidden = 0 ORDER BY t.rowid`,
+        `SELECT COALESCE(
+           (SELECT t.floor_id FROM tokens t JOIN token_controllers c ON c.token_id = t.id
+            WHERE t.scene_id = ?1 AND c.user_id = ?2 AND t.hidden = 0 ORDER BY t.rowid LIMIT 1),
+           (SELECT table_floor_id FROM scenes WHERE id = ?1)
+         ) AS floor_id`,
       )
-      .all(sceneId, userId) as { floor_id: string }[];
-    return rows.map((r) => r.floor_id);
+      .get(sceneId, userId) as { floor_id: string | null };
+    return row.floor_id;
   }
 
   /** Controlling a token (moving it) requires being the GM or one of its controllers. */
