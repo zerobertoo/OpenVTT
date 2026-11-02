@@ -102,9 +102,9 @@ export function undoableActions(
       apply(set(changes), { undo: set(before), redo: set(changes) });
     },
 
-    place(entryId: string, sceneId: string, x: number, y: number) {
+    place(entryId: string, sceneId: string, x: number, y: number, locale?: string) {
       const key = crypto.randomUUID();
-      const put = async () => ids.set(key, (await api.placeCompendium(worldId, entryId, { sceneId, x, y })).id);
+      const put = async () => ids.set(key, (await api.placeCompendium(worldId, entryId, { sceneId, x, y, locale })).id);
       apply(put, { undo: () => api.deleteToken(current(key)), redo: put });
     },
   };

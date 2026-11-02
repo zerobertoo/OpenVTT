@@ -36,6 +36,6 @@ test("the game master places compendium monsters and undoes or redoes changes fr
   // Dragging an entry onto the map places it there; touch screens have no drag and drop, they use the button.
   if (isMobile) return;
   await compendium.getByLabel("Search the compendium").fill("wolf");
-  await compendium.getByRole("listitem").filter({ hasText: "Wolf" }).dragTo(page.getByRole("application"));
+  await compendium.getByRole("listitem").filter({ hasText: /^Wolf/ }).dragTo(page.getByRole("application"));
   await expect.poll(async () => (await tokens()).map((t) => t.name).sort()).toEqual(["Scout", "Wolf"]);
 });

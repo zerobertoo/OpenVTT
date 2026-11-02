@@ -2,6 +2,9 @@
   {
     "id": "bandit",
     "name": "Bandit",
+    "names": {
+      "pt-br": "Bandido"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#7a6a4f",
@@ -22,6 +25,9 @@
   {
     "id": "giant-rat",
     "name": "Giant Rat",
+    "names": {
+      "pt-br": "Rato Gigante"
+    },
     "kind": "monster",
     "size": 0.5,
     "color": "#6b5b4b",
@@ -42,6 +48,9 @@
   {
     "id": "goblin",
     "name": "Goblin",
+    "names": {
+      "pt-br": "Goblin"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#4f7a3a",
@@ -62,6 +71,9 @@
   {
     "id": "skeleton",
     "name": "Skeleton",
+    "names": {
+      "pt-br": "Esqueleto"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#bdb6a1",
@@ -82,6 +94,9 @@
   {
     "id": "wolf",
     "name": "Wolf",
+    "names": {
+      "pt-br": "Lobo"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#6d6d6d",
@@ -102,6 +117,9 @@
   {
     "id": "zombie",
     "name": "Zombie",
+    "names": {
+      "pt-br": "Zumbi"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#5d6b4a",
@@ -122,6 +140,9 @@
   {
     "id": "orc",
     "name": "Orc",
+    "names": {
+      "pt-br": "Orc"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#5a7044",
@@ -142,6 +163,9 @@
   {
     "id": "ogre",
     "name": "Ogre",
+    "names": {
+      "pt-br": "Ogro"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#8a6d3b",
@@ -162,6 +186,9 @@
   {
     "id": "owlbear",
     "name": "Owlbear",
+    "names": {
+      "pt-br": "Urso-Coruja"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#7b5a3a",
@@ -182,6 +209,9 @@
   {
     "id": "young-green-dragon",
     "name": "Young Green Dragon",
+    "names": {
+      "pt-br": "Dragão Verde Jovem"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#2f7a4b",
@@ -202,6 +232,9 @@
   {
     "id": "commoner",
     "name": "Commoner",
+    "names": {
+      "pt-br": "Plebeu"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#9a8f7a",
@@ -222,6 +255,9 @@
   {
     "id": "kobold",
     "name": "Kobold",
+    "names": {
+      "pt-br": "Kobold"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#a0522d",
@@ -242,6 +278,9 @@
   {
     "id": "guard",
     "name": "Guard",
+    "names": {
+      "pt-br": "Guarda"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#5f6f8a",
@@ -262,6 +301,9 @@
   {
     "id": "cultist",
     "name": "Cultist",
+    "names": {
+      "pt-br": "Cultista"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#5a2a4f",
@@ -282,6 +324,9 @@
   {
     "id": "hobgoblin",
     "name": "Hobgoblin",
+    "names": {
+      "pt-br": "Hobgoblin"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#8a3a2a",
@@ -302,6 +347,9 @@
   {
     "id": "ghoul",
     "name": "Ghoul",
+    "names": {
+      "pt-br": "Carniçal"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#7d8a6a",
@@ -322,6 +370,9 @@
   {
     "id": "giant-spider",
     "name": "Giant Spider",
+    "names": {
+      "pt-br": "Aranha Gigante"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#3a2f3f",
@@ -342,6 +393,9 @@
   {
     "id": "brown-bear",
     "name": "Brown Bear",
+    "names": {
+      "pt-br": "Urso-Pardo"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#6b4a2b",
@@ -362,6 +416,9 @@
   {
     "id": "dire-wolf",
     "name": "Dire Wolf",
+    "names": {
+      "pt-br": "Lobo Atroz"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#585858",
@@ -382,6 +439,9 @@
   {
     "id": "gelatinous-cube",
     "name": "Gelatinous Cube",
+    "names": {
+      "pt-br": "Cubo Gelatinoso"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#6fae8a",
@@ -402,6 +462,9 @@
   {
     "id": "wight",
     "name": "Wight",
+    "names": {
+      "pt-br": "Aparição"
+    },
     "kind": "monster",
     "size": 1,
     "color": "#4f5f6a",
@@ -422,6 +485,9 @@
   {
     "id": "troll",
     "name": "Troll",
+    "names": {
+      "pt-br": "Troll"
+    },
     "kind": "monster",
     "size": 2,
     "color": "#3f6b4a",
@@ -442,6 +508,9 @@
   {
     "id": "potion-of-healing",
     "name": "Potion of Healing",
+    "names": {
+      "pt-br": "Poção de Cura"
+    },
     "kind": "item",
     "size": 0.5,
     "color": "#c0392b"
@@ -449,6 +518,9 @@
   {
     "id": "treasure-chest",
     "name": "Treasure Chest",
+    "names": {
+      "pt-br": "Baú do Tesouro"
+    },
     "kind": "item",
     "size": 1,
     "color": "#a0782c"
@@ -456,6 +528,9 @@
   {
     "id": "torch",
     "name": "Torch",
+    "names": {
+      "pt-br": "Tocha"
+    },
     "kind": "item",
     "size": 0.5,
     "color": "#e67e22"
@@ -463,6 +538,9 @@
   {
     "id": "rope",
     "name": "Rope (50 feet)",
+    "names": {
+      "pt-br": "Corda (15 metros)"
+    },
     "kind": "item",
     "size": 0.5,
     "color": "#9c7f5a"

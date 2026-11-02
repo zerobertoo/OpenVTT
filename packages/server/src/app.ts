@@ -430,18 +430,19 @@ export function buildApp(options: AppOptions) {
   app.post<{ Params: { id: string; entryId: string } }>("/api/worlds/:id/compendium/:entryId/place", async (req) => {
     const worldId = req.params.id;
     requireGm(req, worldId);
-    const { sceneId, x, y } = placeCompendiumSchema.parse(req.body);
+    const { sceneId, x, y, locale } = placeCompendiumSchema.parse(req.body);
     const entry = s.systems.get(s.worlds.info(worldId).systemId)?.compendium.find((e) => e.id === req.params.entryId);
     if (!entry) throw new AppError("not_found");
+    const name = (locale && entry.names?.[locale.toLowerCase()]) || entry.name;
     const token = transaction(s.db, () => {
       let actorId: string | null = null;
       if (entry.kind === "monster") {
-        actorId = s.actors.create(worldId, { name: entry.name, type: "npc" }).id;
+        actorId = s.actors.create(worldId, { name, type: "npc" }).id;
         s.db.prepare("UPDATE actors SET data = ? WHERE id = ?").run(JSON.stringify(entry.data), actorId);
       }
       const hp = typeof entry.data.hp_max === "number" ? entry.data.hp_max : null;
       return s.tokens.create(worldId, {
-        ...createTokenSchema.parse({ sceneId, name: entry.name, x, y, size: entry.size, color: entry.color }),
+        ...createTokenSchema.parse({ sceneId, name, x, y, size: entry.size, color: entry.color }),
         actorId,
         hp,
         hpMax: hp,

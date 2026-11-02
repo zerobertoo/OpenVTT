@@ -150,7 +150,7 @@ export function Table({ worldId, user }: Props) {
     if (!scene) return;
     const half = scene.gridSize / 2;
     const snap = (v: number) => (scene.gridType === "square" ? Math.round((v - half) / scene.gridSize) * scene.gridSize : v - half);
-    actions.place(entryId, scene.id, snap(x), snap(y));
+    actions.place(entryId, scene.id, snap(x), snap(y), i18n.language);
   };
 
   const tabs: TableTab[] = isGm

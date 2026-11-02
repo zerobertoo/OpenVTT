@@ -124,6 +124,7 @@ Monsters and items the game master can drag onto the map (or place with a button
 ```
 
 - `id`: lowercase letters, digits and dashes, unique in the file.
+- `names` (optional): the name in other languages, keyed by lowercase locale, for example `"names": { "pt-br": "Lobo" }`. The list and the placed token use it when the game master's language matches; `name` is the fallback.
 - `size` is in grid cells (default 1); `color` is the token color when it has no picture.
 - `data` must fit the system's `npc` template; the package is refused otherwise. When it has `hp_max`, the token starts with that many hit points.
 - Up to 2,000 entries. Only include content you may redistribute (`systems/dnd5e-srd` uses SRD 5.1 monsters under CC-BY-4.0).

@@ -26,6 +26,12 @@ it("places a monster as a linked sheet and token, and an item as a token, for th
   const torch = (await place("torch")).json();
   expect(torch).toMatchObject({ name: "Torch", actorId: null, size: 0.5 });
   expect((await place("no-such-thing")).statusCode).toBe(404);
+
+  const place2 = (locale: string) =>
+    call(app, gm.cookie, "POST", `/api/worlds/${world.id}/compendium/wolf/place`, { sceneId: scene.id, x: 70, y: 70, locale });
+  expect((await place2("pt-br")).json()).toMatchObject({ name: "Lobo" });
+  expect((await place2("PT-BR")).json()).toMatchObject({ name: "Lobo" });
+  expect((await place2("fr")).json()).toMatchObject({ name: "Wolf" });
 });
 
 it("refuses a system whose compendium monsters do not fit its npc sheet", () => {

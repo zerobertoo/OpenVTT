@@ -9,7 +9,7 @@ export const COMPENDIUM_DRAG_TYPE = "application/x-openvtt-compendium";
 
 /** The rules system's monsters and items. Drag one onto the map, or place it in the middle of the view. */
 export function Compendium({ worldId, onPlace }: { worldId: string; onPlace: (entryId: string) => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<CompendiumEntry[] | null>(null);
   const [query, setQuery] = useState("");
   useEffect(() => {
@@ -19,7 +19,10 @@ export function Compendium({ worldId, onPlace }: { worldId: string; onPlace: (en
       .catch(() => setEntries([]));
   }, [worldId]);
   if (!entries?.length) return null;
-  const shown = entries.filter((e) => e.name.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 50);
+  const nameOf = (entry: CompendiumEntry) => entry.names?.[i18n.language.toLowerCase()] ?? entry.name;
+  const needle = query.trim().toLowerCase();
+  // The search matches the shown name and the original one, so both "Goblin" and "Lobo" find what they mean.
+  const shown = entries.filter((e) => nameOf(e).toLowerCase().includes(needle) || e.name.toLowerCase().includes(needle)).slice(0, 50);
   return (
     <section aria-label={t("compendium.title")} className="grid gap-2">
       <h3>{t("compendium.title")}</h3>
@@ -41,12 +44,12 @@ export function Compendium({ worldId, onPlace }: { worldId: string; onPlace: (en
           >
             <span aria-hidden="true" className="size-3 flex-none rounded-full" style={{ background: entry.color }} />
             <span className="min-w-0 flex-1 truncate">
-              {entry.name}
+              {nameOf(entry)}
               <span className="text-ink-2 text-sm"> · {t(`compendium.${entry.kind}`)}</span>
             </span>
             <Button size="sm" variant="link" onClick={() => onPlace(entry.id)}>
               {t("compendium.place")}
-              <span className="sr-only"> {entry.name}</span>
+              <span className="sr-only"> {nameOf(entry)}</span>
             </Button>
           </li>
         ))}

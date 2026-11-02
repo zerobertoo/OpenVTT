@@ -314,6 +314,8 @@ export interface AssetSummaryDto {
 
 export const placeCompendiumSchema = z.object({
   sceneId: z.string().uuid(),
+  /** Language of the name the placed token and sheet get; falls back to the entry's own name. */
+  locale: z.string().max(16).optional(),
   x: z.number().finite().min(-16384).max(16384),
   y: z.number().finite().min(-16384).max(16384),
 });

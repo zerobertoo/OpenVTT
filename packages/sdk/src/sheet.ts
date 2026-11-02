@@ -192,6 +192,8 @@ export const compendiumSchema = z
         .regex(/^[a-z0-9][a-z0-9-]*$/)
         .max(60),
       name: z.string().min(1).max(60),
+      /** Names in other languages, keyed by lowercase locale (for example `pt-br`); `name` is the fallback. */
+      names: z.record(z.string(), z.string().min(1).max(60)).optional(),
       kind: z.enum(["monster", "item"]),
       size: z.number().min(0.25).max(20).default(1),
       color: z
