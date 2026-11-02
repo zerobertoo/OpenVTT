@@ -14,7 +14,12 @@ export function normalizeLocale(raw: string | null | undefined): Locale | null {
 
 /** Saved choice first, then the browser language, then English. */
 export function detectInitialLocale(): Locale {
-  const saved = normalizeLocale(localStorage.getItem(STORAGE_KEY));
+  // Blocked storage (strict privacy modes) throws; the browser language still works then.
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(STORAGE_KEY);
+  } catch {}
+  const saved = normalizeLocale(stored);
   if (saved) return saved;
   for (const lang of navigator.languages) {
     const match = normalizeLocale(lang);
@@ -24,7 +29,9 @@ export function detectInitialLocale(): Locale {
 }
 
 export function setLocale(locale: Locale) {
-  localStorage.setItem(STORAGE_KEY, locale);
+  try {
+    localStorage.setItem(STORAGE_KEY, locale);
+  } catch {}
   void i18n.changeLanguage(locale);
   document.documentElement.lang = locale;
 }

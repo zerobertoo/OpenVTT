@@ -53,9 +53,14 @@ export function DiceOverlay({ messages, userId }: Props) {
     if (!enabled || reduceMotion || last.kind !== "roll" || !last.roll) return;
     const mine = last.userId === userId ? takeLaunch() : null;
     setCurrent({ message: last, launch: mine ?? randomLaunch({ width: window.innerWidth, height: window.innerHeight }) });
+  }, [messages, enabled, reduceMotion, userId]);
+
+  // Its own effect: a chat message arriving mid-animation re-runs the one above and must not cancel this timer.
+  useEffect(() => {
+    if (!current) return;
     const timer = setTimeout(() => setCurrent(null), OVERLAY_MS);
     return () => clearTimeout(timer);
-  }, [messages, enabled, reduceMotion, userId]);
+  }, [current]);
 
   return (
     <>

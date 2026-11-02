@@ -4,6 +4,7 @@ import { loadDice3D } from "../../lib/dice3dLoader";
 import { addDie, type DiceHand, handNotation, handSize, MAX_HAND_DICE, MAX_MODIFIER, removeDie, TRAY_DICE } from "../../lib/diceHand";
 import { rememberLaunch } from "../../lib/diceLaunch";
 import type { Launch } from "../../lib/diceThrow";
+import { usePreferences } from "../../lib/preferences";
 import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
@@ -47,7 +48,10 @@ export function DiceTray({ onRoll, error, onClose }: Props) {
   const full = handSize(hand) >= MAX_HAND_DICE;
 
   // The 3D dice are a separate download; starting it now means the first throw does not wait for it.
-  useEffect(() => void loadDice3D().catch(() => undefined), []);
+  const solidDice = usePreferences((state) => state.dice3d && state.diceOverlay);
+  useEffect(() => {
+    if (solidDice) void loadDice3D().catch(() => undefined);
+  }, [solidDice]);
 
   const throwWith = (launch: Launch) => {
     if (!notation) return;
