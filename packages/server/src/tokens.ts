@@ -91,7 +91,8 @@ export class TokenService {
   }
 
   /**
-   * The floor a player of a scene looks at: the floor of their oldest visible token, or the table floor when they have none.
+   * The floor a player of a scene looks at: the floor of the visible token of theirs the game master moved between floors
+   * last (else their oldest), or the table floor when they have none.
    * The single place that decides it, so tokens, drawings, pings and vision always agree.
    */
   playerFloorId(sceneId: string, userId: string): string | null {
@@ -99,7 +100,7 @@ export class TokenService {
       .prepare(
         `SELECT COALESCE(
            (SELECT t.floor_id FROM tokens t JOIN token_controllers c ON c.token_id = t.id
-            WHERE t.scene_id = ?1 AND c.user_id = ?2 AND t.hidden = 0 ORDER BY t.rowid LIMIT 1),
+            WHERE t.scene_id = ?1 AND c.user_id = ?2 AND t.hidden = 0 ORDER BY t.floor_changed_at DESC, t.rowid LIMIT 1),
            (SELECT table_floor_id FROM scenes WHERE id = ?1)
          ) AS floor_id`,
       )
@@ -157,8 +158,9 @@ export class TokenService {
       this.db
         .prepare(
           `UPDATE tokens SET name = ?, x = ?, y = ?, size = ?, rotation = ?, color = ?, asset_id = ?, hidden = ?, actor_id = ?,
-             hp = ?, hp_max = ?, conditions = ?, show_name = ?, floor_id = ?
-           WHERE id = ?`,
+             hp = ?, hp_max = ?, conditions = ?, show_name = ?,
+             floor_changed_at = CASE WHEN floor_id <> ?14 THEN ?15 ELSE floor_changed_at END, floor_id = ?14
+           WHERE id = ?16`,
         )
         .run(
           next.name,
@@ -175,6 +177,7 @@ export class TokenService {
           JSON.stringify(next.conditions),
           next.showName ? 1 : 0,
           next.floorId,
+          Date.now(),
           tokenId,
         );
       if (patch.controllerIds) this.setControllers(tokenId, patch.controllerIds);

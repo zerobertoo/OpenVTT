@@ -212,6 +212,26 @@ describe("what each person receives", () => {
   });
 });
 
+describe("the floor a player is on", () => {
+  it("follows the token of theirs the game master moved between floors last, else their oldest", async () => {
+    const { app, gm, bob, cellar, ground, vault, token, open } = await setup();
+    const hero = await token("Hero", ground.id, { controllerIds: [bob.user.id] });
+    const familiar = await token("Familiar", ground.id, { controllerIds: [bob.user.id] });
+    const first = await open(bob.cookie);
+    expect(first.state.viewFloorId).toBe(ground.id);
+    first.conn.ws.close();
+    await call(app, gm.cookie, "PATCH", `/api/tokens/${familiar.id}`, { floorId: vault.id });
+    const second = await open(bob.cookie);
+    expect(second.state.viewFloorId).toBe(vault.id);
+    second.conn.ws.close();
+    // Moving the hero afterwards makes the hero's floor the one Bob follows.
+    await call(app, gm.cookie, "PATCH", `/api/tokens/${hero.id}`, { floorId: cellar.id });
+    const third = await open(bob.cookie);
+    expect(third.state.viewFloorId).toBe(cellar.id);
+    third.conn.ws.close();
+  });
+});
+
 describe("movement and vision per floor", () => {
   it("blocks a player with the walls of the token's floor only", async () => {
     const { bob, cellar, ground, token, open } = await setup();
@@ -246,7 +266,8 @@ describe("the migration to floors", () => {
   it("wraps every existing scene in one floor holding its background, walls, lights, drawings and tokens", () => {
     const db = new DatabaseSync(":memory:");
     db.exec("PRAGMA foreign_keys = ON");
-    for (const sql of MIGRATIONS.slice(0, -1)) db.exec(sql);
+    // The floors migration is the second to last one; the last only adds a token column.
+    for (const sql of MIGRATIONS.slice(0, -2)) db.exec(sql);
     db.exec(`
       INSERT INTO users (id, username, password_hash, role, created_at) VALUES ('u1', 'a', 'x', 'user', 1);
       INSERT INTO worlds (id, name, created_at) VALUES ('w1', 'World', 1);
@@ -256,6 +277,7 @@ describe("the migration to floors", () => {
       INSERT INTO lights (id, scene_id, x, y, radius, intensity, color) VALUES ('light1', 's1', 5, 5, 2, 1, '#ffffff');
       INSERT INTO tokens (id, scene_id, name, x, y, size, color) VALUES ('t1', 's1', 'Hero', 0, 0, 1, '#112233');
     `);
+    db.exec(MIGRATIONS.at(-2)!);
     db.exec(MIGRATIONS.at(-1)!);
     const floor = db.prepare("SELECT * FROM floors").all() as { id: string; scene_id: string; name: string; position: number }[];
     expect(floor).toHaveLength(1);
