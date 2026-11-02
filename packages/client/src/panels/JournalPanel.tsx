@@ -9,16 +9,17 @@ import { Field } from "../components/ui/field";
 import { FileButton } from "../components/ui/file-button";
 import { Input, Textarea } from "../components/ui/input";
 import { Markdown } from "../lib/markdown";
+import type { TableActions } from "../lib/tableActions";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
   state: WorldStateDto;
   isGm: boolean;
-  /** Lets the game master undo a handout edit that was just saved. */
-  onEdited: (send: (body: object) => Promise<unknown>, before: object, after: object) => void;
+  /** Lets the game master undo what was just saved. */
+  actions: Pick<TableActions, "edited" | "handoutCreated" | "handoutDeleted">;
 }
 
-export function JournalPanel({ state, isGm, onEdited }: Props) {
+export function JournalPanel({ state, isGm, actions }: Props) {
   const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -27,7 +28,9 @@ export function JournalPanel({ state, isGm, onEdited }: Props) {
 
   const create = () =>
     run(async () => {
-      const { id } = await api.createHandout(state.id, { title: t("journal.untitled"), body: "" });
+      const fields = { title: t("journal.untitled"), body: "", audience: [] };
+      const { id } = await api.createHandout(state.id, fields);
+      actions.handoutCreated({ id, ...fields });
       setSelectedId(id);
       setEditing(true);
     });
@@ -64,7 +67,7 @@ export function JournalPanel({ state, isGm, onEdited }: Props) {
       <ErrorMessage error={error} />
       {selected &&
         (editing && isGm ? (
-          <HandoutEditor key={selected.id} handout={selected} state={state} onEdited={onEdited} onDone={() => setEditing(false)} />
+          <HandoutEditor key={selected.id} handout={selected} state={state} actions={actions} onDone={() => setEditing(false)} />
         ) : (
           <article aria-label={selected.title} className="grid gap-2">
             <h3>{selected.title}</h3>
@@ -78,7 +81,12 @@ export function JournalPanel({ state, isGm, onEdited }: Props) {
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => run(() => api.deleteHandout(selected.id)).then(() => setSelectedId(null))}
+                  onClick={() =>
+                    run(async () => {
+                      await api.deleteHandout(selected.id);
+                      actions.handoutDeleted(selected);
+                    }).then(() => setSelectedId(null))
+                  }
                 >
                   {t("common.delete")}
                 </Button>
@@ -105,12 +113,12 @@ function AudienceNote({ handout, state }: { handout: HandoutDto; state: WorldSta
 function HandoutEditor({
   handout,
   state,
-  onEdited,
+  actions,
   onDone,
 }: {
   handout: HandoutDto;
   state: WorldStateDto;
-  onEdited: Props["onEdited"];
+  actions: Props["actions"];
   onDone: () => void;
 }) {
   const { t } = useTranslation();
@@ -144,7 +152,7 @@ function HandoutEditor({
         const after = { title, body, audience };
         void run(() => api.updateHandout(handout.id, after)).then((ok) => {
           if (ok === undefined) return;
-          onEdited((changes) => api.updateHandout(handout.id, changes), before, after);
+          actions.edited(handout.id, api.updateHandout, before, after);
           onDone();
         });
       }}

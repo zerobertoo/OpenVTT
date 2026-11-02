@@ -1,4 +1,4 @@
-import type { DrawingDto, FloorDto, SceneDto, TokenDto } from "@openvtt/shared";
+import type { ActorDto, DrawingDto, FloorDto, HandoutDto, SceneDto, TokenDto } from "@openvtt/shared";
 import { api } from "../api";
 import type { UndoEntry } from "./undo";
 
@@ -47,6 +47,18 @@ export function undoableActions(
     return created;
   };
 
+  const createHandout = async (handout: HandoutDto) => {
+    const { title, body, audience } = handout;
+    ids.set(handout.id, (await api.createHandout(worldId, { title, body, audience })).id);
+  };
+
+  const createActor = async (actor: ActorDto, linkedTokenIds: string[]) => {
+    const created = await api.createActor(worldId, actor.name, actor.type);
+    ids.set(actor.id, created.id);
+    await api.updateActor(created.id, { data: actor.data, ownerId: actor.ownerId });
+    for (const tokenId of linkedTokenIds) await api.updateToken(current(tokenId), { actorId: created.id });
+  };
+
   const moved = (moves: Move[]) => {
     if (moves.length === 0) return;
     const go = (to: "from" | "to") => async () => {
@@ -60,10 +72,33 @@ export function undoableActions(
 
     /**
      * Records an edit the caller already saved (a sheet field, a handout): undo sends `before` and redo sends `after`
-     * through the same `send`, so the server checks them like any other edit.
+     * through `send`, so the server checks them like any other edit. `send` gets the record's current id.
      */
-    edited(send: (body: object) => Promise<unknown>, before: object, after: object) {
-      record({ undo: () => run(() => send(before)), redo: () => run(() => send(after)) });
+    edited(id: string, send: (id: string, body: object) => Promise<unknown>, before: object, after: object) {
+      record({ undo: () => run(() => send(current(id), before)), redo: () => run(() => send(current(id), after)) });
+    },
+
+    /** A token the caller already created from the panel: undo deletes it and redo makes it again. */
+    tokenCreated(token: TokenDto) {
+      record({ undo: () => run(() => api.deleteToken(current(token.id))), redo: () => run(() => createToken(token)) });
+    },
+
+    handoutCreated(handout: HandoutDto) {
+      record({ undo: () => run(() => api.deleteHandout(current(handout.id))), redo: () => run(() => createHandout(handout)) });
+    },
+
+    /** The caller already deleted the handout; undo writes it again (with a new id that later steps follow). */
+    handoutDeleted(handout: HandoutDto) {
+      record({ undo: () => run(() => createHandout(handout)), redo: () => run(() => api.deleteHandout(current(handout.id))) });
+    },
+
+    actorCreated(actor: ActorDto) {
+      record({ undo: () => run(() => api.deleteActor(current(actor.id))), redo: () => run(() => createActor(actor, [])) });
+    },
+
+    /** The caller already deleted the sheet; undo writes it again and links back the tokens that used it. */
+    actorDeleted(actor: ActorDto, linkedTokenIds: string[]) {
+      record({ undo: () => run(() => createActor(actor, linkedTokenIds)), redo: () => run(() => api.deleteActor(current(actor.id))) });
     },
 
     moveTokens(targets: { token: TokenDto; x: number; y: number }[]) {
@@ -130,3 +165,5 @@ export function undoableActions(
     },
   };
 }
+
+export type TableActions = ReturnType<typeof undoableActions>;

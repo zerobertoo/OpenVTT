@@ -11,6 +11,7 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { bulkPosition, MAX_BULK_TOKENS, tokenNameFromFile } from "../lib/bulkTokens";
 import { shrinkImage } from "../lib/shrinkImage";
+import type { TableActions } from "../lib/tableActions";
 import { useTableUi } from "../tableStore";
 import { ErrorMessage, useAction } from "../ui";
 import { useCan } from "../useCan";
@@ -22,11 +23,11 @@ interface Props {
   /** Floor the game master is looking at; new tokens land on it. */
   viewFloorId: string | null;
   token: TokenDto | null;
-  /** Applies an edit to a token so the game master can undo it. */
-  onChangeToken: (token: TokenDto, changes: Record<string, unknown>) => void;
+  /** Lets the game master undo what was just done to tokens. */
+  actions: Pick<TableActions, "changeToken" | "tokenCreated">;
 }
 
-export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, onChangeToken }: Props) {
+export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, actions }: Props) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const selectToken = useTableUi((ui) => ui.selectToken);
@@ -48,6 +49,7 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, onC
         y: scene.gridSize,
         size: 1,
       });
+      actions.tokenCreated(created);
       form.reset();
       return created;
     });
@@ -63,7 +65,7 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, onC
       for (const [index, file] of files.entries()) {
         const { id: assetId } = await api.uploadAsset(state.id, await shrinkImage(file));
         const { x, y } = bulkPosition(index, scene);
-        await api.createToken(state.id, {
+        const created = await api.createToken(state.id, {
           sceneId: scene.id,
           floorId: viewFloorId ?? undefined,
           name: tokenNameFromFile(file.name),
@@ -72,18 +74,22 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, onC
           size: 1,
           assetId,
         });
+        actions.tokenCreated(created);
       }
       return true;
     });
   };
 
   const patch = (body: object) => {
-    if (token) onChangeToken(token, body as Record<string, unknown>);
+    if (token) actions.changeToken(token, body as Record<string, unknown>);
   };
 
   const uploadImage = (file: File) => {
     if (!token) return;
-    void run(async () => api.updateToken(token.id, { assetId: (await api.uploadAsset(state.id, await shrinkImage(file))).id }));
+    void run(async () => {
+      const { id: assetId } = await api.uploadAsset(state.id, await shrinkImage(file));
+      actions.changeToken(token, { assetId });
+    });
   };
 
   const players = state.members.filter((m) => m.role === "player");

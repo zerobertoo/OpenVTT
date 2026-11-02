@@ -207,7 +207,7 @@ export function Table({ worldId, user }: Props) {
               viewSceneId={viewSceneId}
               viewFloorId={floor?.id ?? null}
               token={selectedToken}
-              onChangeToken={actions.changeToken}
+              actions={actions}
             />
             {isGm && scene && (
               <Compendium
@@ -221,9 +221,9 @@ export function Table({ worldId, user }: Props) {
           </>
         );
       case "sheets":
-        return <SheetsPanel state={state} locale={i18n.language} onEdited={actions.edited} />;
+        return <SheetsPanel state={state} locale={i18n.language} actions={actions} />;
       case "journal":
-        return <JournalPanel state={state} isGm={isGm} onEdited={actions.edited} />;
+        return <JournalPanel state={state} isGm={isGm} actions={actions} />;
       case "scenes":
         return (
           <ScenePanel

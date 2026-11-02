@@ -4,7 +4,19 @@ import { api } from "../api";
 import { undoableActions } from "./tableActions";
 import { useUndo } from "./undo";
 
-vi.mock("../api", () => ({ api: { createDrawing: vi.fn(), deleteDrawing: vi.fn(), updateScene: vi.fn(), updateToken: vi.fn() } }));
+vi.mock("../api", () => ({
+  api: {
+    createDrawing: vi.fn(),
+    deleteDrawing: vi.fn(),
+    updateScene: vi.fn(),
+    updateToken: vi.fn(),
+    createActor: vi.fn(),
+    updateActor: vi.fn(),
+    deleteActor: vi.fn(),
+    createHandout: vi.fn(),
+    deleteHandout: vi.fn(),
+  },
+}));
 
 const line: Pick<DrawingDto, "kind" | "layer" | "points" | "color" | "text"> = {
   kind: "line",
@@ -76,9 +88,46 @@ it("puts a token's edited fields back and edits the recreated token after an und
 
 it("sends the saved edit's earlier values on undo and the new ones on redo", async () => {
   const send = vi.fn().mockResolvedValue(undefined);
-  actions().edited(send, { title: "Old" }, { title: "New" });
+  actions().edited("h", send, { title: "Old" }, { title: "New" });
   await useUndo.getState().undo();
-  expect(send).toHaveBeenLastCalledWith({ title: "Old" });
+  expect(send).toHaveBeenLastCalledWith("h", { title: "Old" });
   await useUndo.getState().redo();
-  expect(send).toHaveBeenLastCalledWith({ title: "New" });
+  expect(send).toHaveBeenLastCalledWith("h", { title: "New" });
+});
+
+it("brings back a deleted sheet with its data and owner, links its tokens, and follows the new id", async () => {
+  vi.mocked(api.createActor)
+    .mockReset()
+    .mockResolvedValue({ id: "a2" } as never);
+  vi.mocked(api.updateActor)
+    .mockReset()
+    .mockResolvedValue({} as never);
+  vi.mocked(api.updateToken)
+    .mockReset()
+    .mockResolvedValue({} as never);
+  vi.mocked(api.deleteActor)
+    .mockReset()
+    .mockResolvedValue(undefined as never);
+  const table = actions();
+  table.actorDeleted({ id: "a1", name: "Orc", type: "npc", ownerId: "u", data: { hp: 3 } } as never, ["t1"]);
+  await useUndo.getState().undo();
+  expect(api.createActor).toHaveBeenCalledWith("w", "Orc", "npc");
+  expect(api.updateActor).toHaveBeenCalledWith("a2", { data: { hp: 3 }, ownerId: "u" });
+  expect(api.updateToken).toHaveBeenCalledWith("t1", { actorId: "a2" });
+  await useUndo.getState().redo();
+  expect(api.deleteActor).toHaveBeenCalledWith("a2");
+});
+
+it("deletes a handout made a moment ago on undo and writes it again on redo", async () => {
+  vi.mocked(api.createHandout)
+    .mockReset()
+    .mockResolvedValue({ id: "h2" } as never);
+  vi.mocked(api.deleteHandout)
+    .mockReset()
+    .mockResolvedValue(undefined as never);
+  actions().handoutCreated({ id: "h1", title: "Map", body: "", audience: ["*"] });
+  await useUndo.getState().undo();
+  expect(api.deleteHandout).toHaveBeenCalledWith("h1");
+  await useUndo.getState().redo();
+  expect(api.createHandout).toHaveBeenCalledWith("w", { title: "Map", body: "", audience: ["*"] });
 });

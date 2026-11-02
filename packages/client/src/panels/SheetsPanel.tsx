@@ -12,17 +12,18 @@ import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { Input, Select } from "../components/ui/input";
 import { Loading, Skeleton } from "../components/ui/skeleton";
+import type { TableActions } from "../lib/tableActions";
 import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
   state: WorldStateDto;
   locale: string;
-  /** Lets the game master undo an edit that was just saved. */
-  onEdited: (send: (body: object) => Promise<unknown>, before: object, after: object) => void;
+  /** Lets the game master undo what was just saved. */
+  actions: Pick<TableActions, "edited" | "actorCreated" | "actorDeleted">;
 }
 
-export function SheetsPanel({ state, locale, onEdited }: Props) {
+export function SheetsPanel({ state, locale, actions }: Props) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const queryClient = useQueryClient();
@@ -47,6 +48,7 @@ export function SheetsPanel({ state, locale, onEdited }: Props) {
     const form = e.currentTarget;
     void run(async () => {
       const actor = await api.createActor(state.id, String(f.get("name")), String(f.get("type")));
+      actions.actorCreated(actor);
       setSelectedId(actor.id);
       setSaveState("idle");
       form.reset();
@@ -63,7 +65,7 @@ export function SheetsPanel({ state, locale, onEdited }: Props) {
       return true;
     });
     if (saved && previous !== undefined && previous !== null) {
-      onEdited((body) => api.updateActor(selected.id, body), { data: { [fieldId]: previous } }, { data: { [fieldId]: value } });
+      actions.edited(selected.id, api.updateActor, { data: { [fieldId]: previous } }, { data: { [fieldId]: value } });
     }
     setSaveState(saved ? "saved" : "idle");
   };
@@ -113,7 +115,7 @@ export function SheetsPanel({ state, locale, onEdited }: Props) {
                   const before = { ownerId: selected.ownerId };
                   const after = { ownerId: e.target.value || null };
                   void run(() => api.updateActor(selected.id, after)).then(
-                    (ok) => ok !== undefined && onEdited((body) => api.updateActor(selected.id, body), before, after),
+                    (ok) => ok !== undefined && actions.edited(selected.id, api.updateActor, before, after),
                   );
                 }}
               >
@@ -141,7 +143,11 @@ export function SheetsPanel({ state, locale, onEdited }: Props) {
             tone="danger"
             onConfirm={() => {
               setConfirmingDelete(false);
-              void run(() => api.deleteActor(selected.id));
+              const linkedTokenIds = state.tokens.filter((token) => token.actorId === selected.id).map((token) => token.id);
+              void run(async () => {
+                await api.deleteActor(selected.id);
+                actions.actorDeleted(selected, linkedTokenIds);
+              });
             }}
           />
         </div>
