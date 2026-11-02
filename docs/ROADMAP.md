@@ -6,7 +6,8 @@ What is built, and what is still planned. Nothing here is a promise or a date; i
 
 **Maps**
 
-- Scenes from images, animated videos (WebM, MP4), Universal VTT files (`.dd2vtt`, `.uvtt`), Foundry-style scene JSON and images with the grid in the file name; several floors of one map imported together.
+- Scenes from images, animated videos (WebM, MP4), Universal VTT files (`.dd2vtt`, `.uvtt`), Foundry-style scene JSON and images with the grid in the file name; several floors of one map imported together as a single scene.
+- Floors: one scene holds several floors, each with its own background, walls, doors, lights, drawings and tokens. The game master switches floors (switcher, PageUp/PageDown), moves tokens between them and sees the floor below faintly; each player only receives the floor their token is on.
 - Square and hex grids (pointy or flat top), adjusted visually over the map; distances in metric, imperial or the scene's own units.
 - Walls, doors and lights, drawn for the game master; tokens cannot walk through walls or closed doors.
 - Fog of war from vision computed on the server (players only receive what their tokens see), and "view as player" for the game master.
@@ -41,8 +42,8 @@ What is built, and what is still planned. Nothing here is a promise or a date; i
 
 - **Undo coverage.** Undo covers map changes made from the map (moves, turns, deletions, drawings, compendium), scene settings (grid, units, vision, layer locks) and token edits (name, health, conditions, visibility). Sheets and handouts are not undoable yet.
 - **Compendium.** Only the D&D 5e SRD package ships entries: 22 SRD monsters and four basic items, with names in English and Brazilian Portuguese. Items are tokens without a sheet; a richer item model (inventory on sheets) would need a template field for it.
-- **Map import.** Fantasy Grounds XML, AboveVTT and Roll20 JSON are not supported (no public specifications); revisit with samples and public docs. Wall and door shapes of Dungeon Alchemist exports are still unverified against real files with walls.
+- **Map import.** Fantasy Grounds XML, AboveVTT and Roll20 JSON are not supported (no public specifications); revisit with samples and public docs. Dungeon Alchemist exports with walls, doors and lights were checked against real multi-floor files.
 - **3D dice physics** beyond the current throw, and token animations beyond the first pass.
 - **Client architecture.** Revisit TanStack Router lazy routes once the sign-in bundle nears its budget again (it is close: about 213 of 215 KB gzip).
 
-Not planned: auras (until systems give tokens ranges), macros and a hotbar (revisit with the compendium), print or PDF sheets beyond the browser's print stylesheet, scene transitions.
+Not planned: auras (until systems give tokens ranges), macros and a hotbar (revisit with the compendium), print or PDF sheets beyond the browser's print stylesheet, scene transitions (floors cover moving between levels of one map).
