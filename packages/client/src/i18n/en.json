@@ -568,10 +568,12 @@
   "undo": { "undone": "Undone", "redone": "Redone" },
   "compendium": {
     "title": "Compendium",
-    "hint": "Monsters and items of this rules system. Drag one onto the map, or place it in the middle of the view.",
+    "hint": "Monsters and items of this rules system. Drag one onto the map, place it in the middle of the view, or add an item to a sheet.",
     "search": "Search the compendium",
     "monster": "monster",
     "item": "item",
-    "place": "Place on map"
+    "place": "Place on map",
+    "addToSheet": "Add to sheet",
+    "sheet": "Sheet that receives items"
   }
 }

@@ -5,6 +5,8 @@ import {
   actorTypeSchema,
   type CompendiumEntry,
   compendiumSchema,
+  itemDataFits,
+  itemListOf,
   type SheetTemplate,
   type SystemManifest,
   sheetTemplateSchema,
@@ -50,6 +52,11 @@ export function parseSystemPackage(files: Record<string, string>): LoadedSystem 
   for (const entry of compendium)
     if (entry.kind === "monster" && (!npc || !validateSheetData(npc, entry.data)))
       throw new Error(`compendium entry ${entry.id} does not fit the npc sheet`);
+  // item data fills a row of the list that accepts items; without such a list it is ignored, so older packages stay valid
+  const itemList = itemListOf(templates.character);
+  for (const entry of compendium)
+    if (entry.kind === "item" && itemList && !itemDataFits(itemList, entry.data))
+      throw new Error(`compendium item ${entry.id} does not fit the ${itemList.id} list of the character sheet`);
   return { manifest, templates, strings, compendium };
 }
 

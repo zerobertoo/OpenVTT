@@ -212,6 +212,8 @@ export function Table({ worldId, user }: Props) {
             {isGm && scene && (
               <Compendium
                 worldId={state.id}
+                actors={state.actors}
+                actions={actions}
                 onPlace={(entryId) => {
                   const center = useTableUi.getState().mapCenter() ?? { x: scene.width / 2, y: scene.height / 2 };
                   placeEntry(entryId, center.x, center.y);

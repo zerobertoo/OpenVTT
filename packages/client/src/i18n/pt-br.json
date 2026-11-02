@@ -568,10 +568,12 @@
   "undo": { "undone": "Desfeito", "redone": "Refeito" },
   "compendium": {
     "title": "Compêndio",
-    "hint": "Monstros e itens deste sistema de regras. Arraste um para o mapa ou coloque no meio da visão.",
+    "hint": "Monstros e itens deste sistema de regras. Arraste um para o mapa, coloque no meio da visão ou adicione um item a uma ficha.",
     "search": "Buscar no compêndio",
     "monster": "monstro",
     "item": "item",
-    "place": "Colocar no mapa"
+    "place": "Colocar no mapa",
+    "addToSheet": "Adicionar à ficha",
+    "sheet": "Ficha que recebe os itens"
   }
 }

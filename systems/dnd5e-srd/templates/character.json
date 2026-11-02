@@ -479,6 +479,8 @@
           "id": "inventory",
           "type": "list",
           "label": "inventory",
+          "accepts": "item",
+          "nameField": "item",
           "itemFields": [
             {
               "id": "item",
@@ -490,6 +492,19 @@
               "type": "number",
               "label": "quantity",
               "default": 1
+            },
+            {
+              "id": "weight",
+              "type": "number",
+              "label": "weight",
+              "default": 0,
+              "min": 0
+            },
+            {
+              "id": "description",
+              "type": "text",
+              "label": "description",
+              "multiline": true
             }
           ]
         },

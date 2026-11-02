@@ -1,17 +1,51 @@
-import type { CompendiumEntry } from "@openvtt/sdk";
+import { addItemToRows, type CompendiumEntry, computeSheet, itemListOf } from "@openvtt/sdk";
+import type { ActorDto } from "@openvtt/shared";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api";
+import type { TableActions } from "../../lib/tableActions";
+import { useWorldSystem } from "../../queries";
+import { ErrorMessage, useAction } from "../../ui";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Input, Select } from "../ui/input";
 
 export const COMPENDIUM_DRAG_TYPE = "application/x-openvtt-compendium";
 
-/** The rules system's monsters and items. Drag one onto the map, or place it in the middle of the view. */
-export function Compendium({ worldId, onPlace }: { worldId: string; onPlace: (entryId: string) => void }) {
+interface Props {
+  worldId: string;
+  onPlace: (entryId: string) => void;
+  /** Sheets of the world, to add items to. */
+  actors: ActorDto[];
+  /** Lets the game master undo an item added to a sheet. */
+  actions: Pick<TableActions, "edited">;
+}
+
+/** The rules system's monsters and items. Drag one onto the map, place it in the middle of the view, or add an item to a sheet. */
+export function Compendium({ worldId, onPlace, actors, actions }: Props) {
   const { t, i18n } = useTranslation();
+  const { data: system } = useWorldSystem(worldId);
+  const { run, error } = useAction();
   const [entries, setEntries] = useState<CompendiumEntry[] | null>(null);
   const [query, setQuery] = useState("");
+  const [sheetId, setSheetId] = useState("");
+  // Only sheets whose template has a list that accepts items can receive them.
+  const itemSheets = actors.filter((a) => itemListOf(system?.templates[a.type]));
+  const target = itemSheets.find((a) => a.id === sheetId) ?? itemSheets[0];
+
+  /** Adds the item to the list that accepts items. The list comes from the latest sheet the client holds. */
+  const addToSheet = (entry: CompendiumEntry, name: string) => {
+    const template = target && system?.templates[target.type];
+    const list = itemListOf(template);
+    if (!target || !template || !list) return;
+    const before = computeSheet(template, target.data)[list.id];
+    const rows = Array.isArray(before) ? before : [];
+    const after = addItemToRows(list, rows, name, entry.data);
+    const sheet = target;
+    void run(async () => {
+      await api.updateActor(sheet.id, { data: { [list.id]: after } });
+      actions.edited(sheet.id, api.updateActor, { data: { [list.id]: rows } }, { data: { [list.id]: after } });
+    });
+  };
   useEffect(() => {
     void api
       .compendium(worldId)
@@ -34,6 +68,16 @@ export function Compendium({ worldId, onPlace }: { worldId: string; onPlace: (en
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      {itemSheets.length > 1 && (
+        <Select aria-label={t("compendium.sheet")} value={target?.id} onChange={(e) => setSheetId(e.target.value)}>
+          {itemSheets.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </Select>
+      )}
+      <ErrorMessage error={error} />
       <ul aria-label={t("compendium.title")} className="m-0 grid list-none gap-1 p-0">
         {shown.map((entry) => (
           <li
@@ -51,6 +95,12 @@ export function Compendium({ worldId, onPlace }: { worldId: string; onPlace: (en
               {t("compendium.place")}
               <span className="sr-only"> {nameOf(entry)}</span>
             </Button>
+            {entry.kind === "item" && target && (
+              <Button size="sm" variant="link" onClick={() => addToSheet(entry, nameOf(entry))}>
+                {t("compendium.addToSheet")}
+                <span className="sr-only"> {`${nameOf(entry)} · ${target.name}`}</span>
+              </Button>
+            )}
           </li>
         ))}
       </ul>

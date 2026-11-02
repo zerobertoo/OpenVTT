@@ -30,6 +30,10 @@ const scalarFieldSchema = z.discriminatedUnion("type", [
 const listFieldSchema = z.object({
   ...base,
   type: z.literal("list"),
+  /** Marks the list that receives compendium items; needs `nameField` too. */
+  accepts: z.literal("item").optional(),
+  /** The text item field that receives the item's name when a compendium item is added to this list. */
+  nameField: fieldId.optional(),
   itemFields: z
     .array(scalarFieldSchema.refine((f) => f.type !== "computed", "computed fields are not allowed in lists"))
     .min(1)
@@ -49,6 +53,14 @@ export const sheetTemplateSchema = z
     for (const f of fields) {
       if (ids.has(f.id)) ctx.addIssue({ code: "custom", message: `duplicate field ${f.id}` });
       ids.add(f.id);
+    }
+    const itemLists = fields.filter((f) => f.type === "list" && (f.accepts !== undefined || f.nameField !== undefined));
+    if (itemLists.length > 1) ctx.addIssue({ code: "custom", message: "only one list may accept items" });
+    for (const f of itemLists) {
+      if (f.type !== "list") continue;
+      const nameField = f.itemFields.find((item) => item.id === f.nameField);
+      if (f.accepts === undefined || nameField?.type !== "text")
+        ctx.addIssue({ code: "custom", message: `${f.id}: accepts "item" needs a nameField that is a text item field` });
     }
     for (const f of fields) {
       if (f.type !== "computed") continue;
@@ -163,6 +175,41 @@ function valueMatches(field: SheetField, value: unknown): boolean {
     case "computed":
       return false;
   }
+}
+
+export type ListField = Extract<SheetField, { type: "list" }>;
+type Row = Record<string, string | number | boolean>;
+
+/** The list of a template that receives compendium items, if the system declares one. */
+export function itemListOf(template: SheetTemplate | undefined): (ListField & { nameField: string }) | undefined {
+  const list = template && allFields(template).find((f): f is ListField => f.type === "list" && f.accepts === "item");
+  return list?.nameField ? (list as ListField & { nameField: string }) : undefined;
+}
+
+/** True when a compendium item's `data` is a valid row of the list that receives items. */
+export function itemDataFits(list: ListField, data: Record<string, unknown>): boolean {
+  return valueMatches(list, [data]);
+}
+
+/**
+ * The list rows after adding an item: a row with the same name gets `quantity + 1` (when the list has a
+ * `quantity` number field), otherwise a new row built from the item's `data` is appended.
+ */
+export function addItemToRows(list: ListField & { nameField: string }, rows: Row[], name: string, data: Record<string, unknown>): Row[] {
+  const quantity = list.itemFields.find((f) => f.id === "quantity" && f.type === "number");
+  const fallback = quantity?.type === "number" ? (quantity.default ?? 0) : 0;
+  const index = quantity ? rows.findIndex((row) => row[list.nameField] === name) : -1;
+  if (quantity && index >= 0) {
+    const max = quantity.type === "number" ? quantity.max : undefined;
+    return rows.map((row, i) => {
+      if (i !== index) return row;
+      const next = (typeof row.quantity === "number" ? row.quantity : fallback) + 1;
+      return { ...row, quantity: max === undefined ? next : Math.min(next, max) };
+    });
+  }
+  const row: Row = { ...(data as Row), [list.nameField]: name };
+  if (quantity && row.quantity === undefined) row.quantity = fallback || 1;
+  return [...rows, row];
 }
 
 /** Resolves a label for a locale: inline per-locale text, then the system's locale file, then the raw key. */

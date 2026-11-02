@@ -510,7 +510,11 @@
     },
     "kind": "item",
     "size": 0.5,
-    "color": "#c0392b"
+    "color": "#c0392b",
+    "data": {
+      "weight": 0.5,
+      "description": "Regain 2d4 + 2 hit points when you drink this potion."
+    }
   },
   {
     "id": "treasure-chest",
@@ -520,7 +524,10 @@
     },
     "kind": "item",
     "size": 1,
-    "color": "#a0782c"
+    "color": "#a0782c",
+    "data": {
+      "description": "A chest of treasure. Add what it holds in your notes."
+    }
   },
   {
     "id": "torch",
@@ -530,7 +537,11 @@
     },
     "kind": "item",
     "size": 0.5,
-    "color": "#e67e22"
+    "color": "#e67e22",
+    "data": {
+      "weight": 1,
+      "description": "Burns for 1 hour, shedding bright light in a 20-foot radius and dim light for another 20 feet."
+    }
   },
   {
     "id": "rope",
@@ -540,6 +551,10 @@
     },
     "kind": "item",
     "size": 0.5,
-    "color": "#9c7f5a"
+    "color": "#9c7f5a",
+    "data": {
+      "weight": 10,
+      "description": "Hempen rope has 2 hit points and can be burst with a DC 17 Strength check."
+    }
   }
 ]

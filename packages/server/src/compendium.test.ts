@@ -37,6 +37,37 @@ it("places a monster as a linked sheet and token, and an item as a token, for th
   expect((await place2("__proto__")).json()).toMatchObject({ name: "Wolf" });
 });
 
+it("refuses a system whose compendium item data does not fit the list that accepts items, and ignores it without one", () => {
+  const build = (list: object | null, itemData: object) => ({
+    "system.json": JSON.stringify({
+      id: "tiny",
+      name: "Tiny",
+      version: "1",
+      author: "a",
+      license: "MIT",
+      minOpenVTT: "0.1.0",
+      actorTypes: { character: { template: "templates/character.json" } },
+      locales: ["en"],
+    }),
+    "locales/en.json": "{}",
+    "templates/character.json": JSON.stringify({ sections: [{ id: "s", fields: list ? [list] : [{ id: "hp", type: "number" }] }] }),
+    "compendium.json": JSON.stringify([{ id: "torch", name: "Torch", kind: "item", data: itemData }]),
+  });
+  const bag = {
+    id: "bag",
+    type: "list",
+    accepts: "item",
+    nameField: "item",
+    itemFields: [
+      { id: "item", type: "text" },
+      { id: "weight", type: "number" },
+    ],
+  };
+  expect(() => parseSystemPackage(build(bag, { weight: 1 }))).not.toThrow();
+  expect(() => parseSystemPackage(build(bag, { mana: 1 }))).toThrow(/does not fit/);
+  expect(() => parseSystemPackage(build(null, { mana: 1 }))).not.toThrow();
+});
+
 it("refuses a system whose compendium monsters do not fit its npc sheet", () => {
   const files = {
     "system.json": JSON.stringify({

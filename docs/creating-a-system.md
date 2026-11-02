@@ -73,6 +73,28 @@ Ids are lowercase letters, digits and underscores, and must be unique across the
 | `list` | array of rows | `itemFields`: a list of non-computed fields |
 | `computed` | derived, never stored | `formula` |
 
+### A list that receives compendium items
+
+One `list` field of the `character` template may also receive items from the compendium. Mark it with `accepts` and say which text item field holds the item's name:
+
+```json
+{
+  "id": "inventory",
+  "type": "list",
+  "accepts": "item",
+  "nameField": "item",
+  "itemFields": [
+    { "id": "item", "type": "text" },
+    { "id": "quantity", "type": "number", "default": 1 },
+    { "id": "weight", "type": "number", "default": 0, "min": 0 }
+  ]
+}
+```
+
+- `accepts` and `nameField` go together; `nameField` must be a `text` item field, and only one list per template may accept items. Both are optional, so packages without them keep working.
+- The game master adds an item with "Add to sheet" in the compendium. The new row has the item's name in `nameField` (in the game master's language) and the item's `data` for the other fields. If a row with the same name already exists and the list has a `quantity` number field, that row's quantity goes up by one instead.
+- The row is a copy: later changes to the package do not reach sheets that already have the item.
+
 ### Formulas
 
 Formulas are plain arithmetic evaluated on the sheet values:
@@ -126,5 +148,6 @@ Monsters and items the game master can drag onto the map (or place with a button
 - `id`: lowercase letters, digits and dashes, unique in the file.
 - `names` (optional): the name in other languages, keyed by lowercase locale, for example `"names": { "pt-br": "Lobo" }`. The list and the placed token use it when the game master's language matches; `name` is the fallback.
 - `size` is in grid cells (default 1); `color` is the token color when it has no picture.
-- `data` must fit the system's `npc` template; the package is refused otherwise. When it has `hp_max`, the token starts with that many hit points.
+- `data` of a monster must fit the system's `npc` template; the package is refused otherwise. When it has `hp_max`, the token starts with that many hit points.
+- `data` of an item uses the item field ids of the `character` list that `accepts` items (for example `{ "weight": 1, "description": "..." }`) and must fit one row of it; the package is refused otherwise. Without such a list the item `data` is ignored. Text in `data` is a single string, not translated.
 - Up to 2,000 entries. Only include content you may redistribute (`systems/dnd5e-srd` uses SRD 5.1 monsters under CC-BY-4.0).

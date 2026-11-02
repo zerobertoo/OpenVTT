@@ -25,6 +25,8 @@
   "inventory": "Inventory",
   "item": "Item",
   "quantity": "Quantity",
+  "weight": "Weight (lb)",
+  "description": "Description",
   "notes": "Notes",
   "challenge": "Challenge rating",
   "passive_perception": "Passive Perception",

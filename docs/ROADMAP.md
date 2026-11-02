@@ -41,7 +41,7 @@ What is built, and what is still planned. Nothing here is a promise or a date; i
 ## Planned or open
 
 - **Undo coverage.** Undo covers map changes made from the map (moves, turns, deletions, drawings, compendium), scene settings (grid, units, vision, layer locks), token edits and pictures, tokens made from the panel, sheets (fields, owner, create, delete with its token links) and handouts (edit, create, delete). Scenes (create, delete, import) and floors are not undoable: bringing a scene back would mean rebuilding its walls, lights, floors, drawings and tokens.
-- **Compendium.** Only the D&D 5e SRD package ships entries: 22 SRD monsters and four basic items, with names in English and Brazilian Portuguese. Items are tokens without a sheet; a richer item model (inventory on sheets) would need a template field for it.
+- **Compendium.** Only the D&D 5e SRD package ships entries: 22 SRD monsters and four basic items, with names in English and Brazilian Portuguese. Items are tokens, and the game master can also add one to a character sheet's inventory list (a copy of the item's data, stacked by name). Items as sheets of their own, with a template and links from the inventory, are not built.
 - **Map import.** Fantasy Grounds XML, AboveVTT and Roll20 JSON are not supported (no public specifications); revisit with samples and public docs. Dungeon Alchemist exports with walls, doors and lights were checked against real multi-floor files.
 - **3D dice physics** beyond the current throw, and token animations beyond the first pass.
 - **Client architecture.** Revisit TanStack Router lazy routes once the sign-in bundle nears its budget again (it is close: about 213 of 215 KB gzip).
