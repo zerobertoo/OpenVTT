@@ -1,4 +1,4 @@
-import type { SheetValue } from "@openvtt/sdk";
+import { computeSheet, type SheetValue } from "@openvtt/sdk";
 import { tableRole, type WorldStateDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
@@ -15,7 +15,14 @@ import { Loading, Skeleton } from "../components/ui/skeleton";
 import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
 
-export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: string }) {
+interface Props {
+  state: WorldStateDto;
+  locale: string;
+  /** Lets the game master undo an edit that was just saved. */
+  onEdited: (send: (body: object) => Promise<unknown>, before: object, after: object) => void;
+}
+
+export function SheetsPanel({ state, locale, onEdited }: Props) {
   const { t } = useTranslation();
   const { run, error } = useAction();
   const queryClient = useQueryClient();
@@ -49,10 +56,15 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
   const saveField = async (fieldId: string, value: SheetValue) => {
     if (!selected) return;
     setSaveState("saving");
+    // What the sheet showed before, defaults included, so undo can put it back even for a never-edited field.
+    const previous = template ? computeSheet(template, selected.data)[fieldId] : undefined;
     const saved = await run(async () => {
       await api.updateActor(selected.id, { data: { [fieldId]: value } });
       return true;
     });
+    if (saved && previous !== undefined && previous !== null) {
+      onEdited((body) => api.updateActor(selected.id, body), { data: { [fieldId]: previous } }, { data: { [fieldId]: value } });
+    }
     setSaveState(saved ? "saved" : "idle");
   };
 
@@ -97,7 +109,13 @@ export function SheetsPanel({ state, locale }: { state: WorldStateDto; locale: s
               <Select
                 {...control}
                 value={selected.ownerId ?? ""}
-                onChange={(e) => run(() => api.updateActor(selected.id, { ownerId: e.target.value || null }))}
+                onChange={(e) => {
+                  const before = { ownerId: selected.ownerId };
+                  const after = { ownerId: e.target.value || null };
+                  void run(() => api.updateActor(selected.id, after)).then(
+                    (ok) => ok !== undefined && onEdited((body) => api.updateActor(selected.id, body), before, after),
+                  );
+                }}
               >
                 <option value="">{t("sheet.noOwner")}</option>
                 {state.members

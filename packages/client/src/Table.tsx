@@ -221,9 +221,9 @@ export function Table({ worldId, user }: Props) {
           </>
         );
       case "sheets":
-        return <SheetsPanel state={state} locale={i18n.language} />;
+        return <SheetsPanel state={state} locale={i18n.language} onEdited={actions.edited} />;
       case "journal":
-        return <JournalPanel state={state} isGm={isGm} />;
+        return <JournalPanel state={state} isGm={isGm} onEdited={actions.edited} />;
       case "scenes":
         return (
           <ScenePanel

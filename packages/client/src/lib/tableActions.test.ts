@@ -73,3 +73,12 @@ it("puts a token's edited fields back and edits the recreated token after an und
   await useUndo.getState().redo();
   expect(api.updateToken).toHaveBeenLastCalledWith("t", { hp: 3 });
 });
+
+it("sends the saved edit's earlier values on undo and the new ones on redo", async () => {
+  const send = vi.fn().mockResolvedValue(undefined);
+  actions().edited(send, { title: "Old" }, { title: "New" });
+  await useUndo.getState().undo();
+  expect(send).toHaveBeenLastCalledWith({ title: "Old" });
+  await useUndo.getState().redo();
+  expect(send).toHaveBeenLastCalledWith({ title: "New" });
+});

@@ -14,9 +14,11 @@ import { ErrorMessage, useAction } from "../ui";
 interface Props {
   state: WorldStateDto;
   isGm: boolean;
+  /** Lets the game master undo a handout edit that was just saved. */
+  onEdited: (send: (body: object) => Promise<unknown>, before: object, after: object) => void;
 }
 
-export function JournalPanel({ state, isGm }: Props) {
+export function JournalPanel({ state, isGm, onEdited }: Props) {
   const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -62,7 +64,7 @@ export function JournalPanel({ state, isGm }: Props) {
       <ErrorMessage error={error} />
       {selected &&
         (editing && isGm ? (
-          <HandoutEditor key={selected.id} handout={selected} state={state} onDone={() => setEditing(false)} />
+          <HandoutEditor key={selected.id} handout={selected} state={state} onEdited={onEdited} onDone={() => setEditing(false)} />
         ) : (
           <article aria-label={selected.title} className="grid gap-2">
             <h3>{selected.title}</h3>
@@ -100,7 +102,17 @@ function AudienceNote({ handout, state }: { handout: HandoutDto; state: WorldSta
   return <p className="m-0 text-ink-2 text-sm">{text}</p>;
 }
 
-function HandoutEditor({ handout, state, onDone }: { handout: HandoutDto; state: WorldStateDto; onDone: () => void }) {
+function HandoutEditor({
+  handout,
+  state,
+  onEdited,
+  onDone,
+}: {
+  handout: HandoutDto;
+  state: WorldStateDto;
+  onEdited: Props["onEdited"];
+  onDone: () => void;
+}) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();
   const [title, setTitle] = useState(handout.title);
@@ -128,7 +140,13 @@ function HandoutEditor({ handout, state, onDone }: { handout: HandoutDto; state:
       className="grid gap-3"
       onSubmit={(e) => {
         e.preventDefault();
-        void run(() => api.updateHandout(handout.id, { title, body, audience })).then((ok) => ok !== undefined && onDone());
+        const before = { title: handout.title, body: handout.body, audience: handout.audience };
+        const after = { title, body, audience };
+        void run(() => api.updateHandout(handout.id, after)).then((ok) => {
+          if (ok === undefined) return;
+          onEdited((changes) => api.updateHandout(handout.id, changes), before, after);
+          onDone();
+        });
       }}
     >
       <Field label={t("journal.title")}>

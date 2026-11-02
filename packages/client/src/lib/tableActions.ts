@@ -58,6 +58,14 @@ export function undoableActions(
   return {
     moved,
 
+    /**
+     * Records an edit the caller already saved (a sheet field, a handout): undo sends `before` and redo sends `after`
+     * through the same `send`, so the server checks them like any other edit.
+     */
+    edited(send: (body: object) => Promise<unknown>, before: object, after: object) {
+      record({ undo: () => run(() => send(before)), redo: () => run(() => send(after)) });
+    },
+
     moveTokens(targets: { token: TokenDto; x: number; y: number }[]) {
       for (const { token, x, y } of targets) move(token.id, x, y);
       moved(targets.map(({ token, x, y }) => ({ tokenId: token.id, from: { x: token.x, y: token.y }, to: { x, y } })));
