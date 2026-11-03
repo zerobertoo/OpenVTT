@@ -1,6 +1,18 @@
 # Roadmap
 
-What is built, and what is still planned. Nothing here is a promise or a date; it records what was decided so it is not lost.
+What is built, and what is still planned. Nothing here is a promise or a date; it records what was decided so it is not lost. Want to help with something below? See [CONTRIBUTING.md](../CONTRIBUTING.md) and open an issue first.
+
+The project is on 0.x and no release has been cut yet; more is planned before 1.0.0. Notable changes are in the [changelog](../CHANGELOG.md).
+
+## Toward 1.0.0
+
+What 1.0.0 should mean, so the number is not arbitrary:
+
+- A stable world file format and database migrations that upgrade existing installations without manual steps.
+- A documented, stable rules-system format ([creating-a-system.md](creating-a-system.md)).
+- Complete installation, operation and play documentation ([index](index.md)).
+- More rules systems and a larger compendium, ideally from the community.
+- Real-world feedback from tables running it for months.
 
 ## Built
 
