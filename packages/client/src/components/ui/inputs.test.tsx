@@ -48,25 +48,25 @@ describe("Disclosure", () => {
   });
 });
 
-describe("ColorPicker", () => {
-  function Harness({ onChange }: { onChange: (hex: string) => void }) {
-    const [value, setValue] = useState("#e5484d");
-    return (
-      <Field label="Color">
-        {(control) => (
-          <ColorPicker
-            {...control}
-            value={value}
-            onChange={(hex) => {
-              setValue(hex);
-              onChange(hex);
-            }}
-          />
-        )}
-      </Field>
-    );
-  }
+function Harness({ onChange }: { onChange: (hex: string) => void }) {
+  const [value, setValue] = useState("#e5484d");
+  return (
+    <Field label="Color">
+      {(control) => (
+        <ColorPicker
+          {...control}
+          value={value}
+          onChange={(hex) => {
+            setValue(hex);
+            onChange(hex);
+          }}
+        />
+      )}
+    </Field>
+  );
+}
 
+describe("ColorPicker", () => {
   it("shows the current hex, picks a swatch and accepts a typed hex code", async () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { Input } from "./input";
@@ -49,6 +49,7 @@ export function ColorPicker({ value, onChange, className, id, ...aria }: ColorPi
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState(value);
+  const hexFieldId = useId();
 
   const choose = (hex: string) => {
     setTyped(hex);
@@ -94,9 +95,10 @@ export function ColorPicker({ value, onChange, className, id, ...aria }: ColorPi
           />
         ))}
       </div>
-      <label className="mt-3 grid gap-1 font-semibold text-[0.9rem]">
+      <label htmlFor={hexFieldId} className="mt-3 grid gap-1 font-semibold text-[0.9rem]">
         {t("color.hex")}
         <Input
+          id={hexFieldId}
           value={typed}
           maxLength={8}
           spellCheck={false}
