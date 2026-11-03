@@ -181,6 +181,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
           scene={current}
           background={floorOf(current, current.tableFloorId)}
           pending={pending}
+          error={error}
           onApply={(gridSize) =>
             void run(async () => {
               await onChangeScene(current, { gridSize });
@@ -189,7 +190,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
           }
         />
       )}
-      <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} />
+      <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} error={error} />
       <datalist id="distance-units">
         <option value="ft" />
         <option value="m" />

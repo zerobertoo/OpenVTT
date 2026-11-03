@@ -1,7 +1,8 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type MapImportDraft, MapImportError, prepareMapImports } from "../../lib/mapImport";
 import { UnsupportedMediaError } from "../../lib/media";
+import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { Field } from "../ui/field";
@@ -15,14 +16,24 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onCreate: (choice: MapImportChoice) => void;
   pending?: boolean;
+  /** Failure of the create request, shown inside the dialog because the page behind it is covered. */
+  error?: unknown;
 }
 
 /** Pick map files (Universal VTT, a Foundry-style export, pictures or videos); check what was read, then create the scenes. */
-export function MapImportDialog({ open, onOpenChange, onCreate, pending }: Props) {
+export function MapImportDialog({ open, onOpenChange, onCreate, pending, error }: Props) {
   const { t } = useTranslation();
   const [drafts, setDrafts] = useState<MapImportDraft[]>([]);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
+
+  // Closing (or a successful create) starts the next import from scratch instead of re-offering the old drafts.
+  useEffect(() => {
+    if (open) return;
+    setDrafts([]);
+    setErrorKey(null);
+    setReading(false);
+  }, [open]);
 
   const pick = async (files: File[]) => {
     setDrafts([]);
@@ -136,6 +147,7 @@ export function MapImportDialog({ open, onOpenChange, onCreate, pending }: Props
               </div>
             </fieldset>
           ))}
+          <ErrorMessage error={error} />
           <Button type="submit" pending={pending} className="justify-self-start">
             {t("scene.import.create", { count: drafts.length })}
           </Button>

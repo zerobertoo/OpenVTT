@@ -65,11 +65,13 @@ interface NewWorldDialogProps {
   onOpenChange: (open: boolean) => void;
   systems: { id: string; name: string; version: string }[];
   pending: boolean;
+  /** Failure of the create request, shown inside the dialog because the page behind it is covered. */
+  error?: unknown;
   onCreate: (name: string, systemId: string) => void;
 }
 
 /** Name and rules system of a new world. A bottom sheet on phones, a centered dialog elsewhere. */
-function NewWorldDialog({ open, onOpenChange, systems, pending, onCreate }: NewWorldDialogProps) {
+function NewWorldDialog({ open, onOpenChange, systems, pending, error, onCreate }: NewWorldDialogProps) {
   const { t } = useTranslation();
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,6 +93,7 @@ function NewWorldDialog({ open, onOpenChange, systems, pending, onCreate }: NewW
             </Select>
           )}
         </Field>
+        <ErrorMessage error={error} />
         <Button type="submit" pending={pending} className="justify-self-end">
           {t("worlds.create")}
         </Button>
@@ -183,6 +186,7 @@ export function WorldListScreen() {
         onOpenChange={setCreating}
         systems={systemsQuery.data ?? []}
         pending={createWorld.isPending}
+        error={createWorld.error}
         onCreate={(name, systemId) => createWorld.mutate({ name, systemId })}
       />
     </section>

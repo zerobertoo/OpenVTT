@@ -2,6 +2,7 @@ import type { FloorDto, SceneDto } from "@openvtt/shared";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "../../api";
+import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { Field } from "../ui/field";
@@ -17,6 +18,8 @@ interface Props {
   /** The picture or video the grid is lined up with. */
   background: Pick<FloorDto, "assetId" | "assetKind">;
   onApply: (gridSize: number) => void;
+  /** Failure of the last apply, shown inside the dialog because the page behind it is covered. */
+  error?: unknown;
   pending?: boolean;
 }
 
@@ -24,7 +27,7 @@ interface Props {
  * Lines a square grid up with the map by eye: the grid is drawn over the picture while the cell size changes, and
  * a zoom lets the far corner be checked, where a small error in the cell size adds up.
  */
-export function GridAdjuster({ open, onOpenChange, scene, background, onApply, pending }: Props) {
+export function GridAdjuster({ open, onOpenChange, scene, background, onApply, pending, error }: Props) {
   const { t } = useTranslation();
   const [size, setSize] = useState(scene.gridSize);
   // The number box keeps what is being typed (so "7" on the way to "70" is not forced to 10); only valid sizes move the grid.
@@ -108,6 +111,7 @@ export function GridAdjuster({ open, onOpenChange, scene, background, onApply, p
           </Select>
         )}
       </Field>
+      <ErrorMessage error={error} />
       <Button pending={pending} className="justify-self-start" onClick={() => onApply(size)}>
         {t("scene.gridAdjust.apply")}
       </Button>
