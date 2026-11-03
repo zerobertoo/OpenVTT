@@ -263,7 +263,7 @@ output { font-weight: 800; font-size: 1.1rem; }
 .scene-row .name { font-weight: 700; flex: 1; }
 
 /* --- tooltip (Radix, rendered in a portal) --- */
-.tooltip { z-index: 50; padding: 0.35rem 0.7rem; font-size: 0.8rem; font-weight: 600; color: var(--on-chrome); background: var(--chrome); border-radius: var(--radius-sm); box-shadow: var(--shadow-chrome); animation: tooltip-in 0.15s var(--ease); }
+.tooltip { z-index: 55; padding: 0.35rem 0.7rem; font-size: 0.8rem; font-weight: 600; color: var(--on-chrome); background: var(--chrome); border-radius: var(--radius-sm); box-shadow: var(--shadow-chrome); animation: tooltip-in 0.15s var(--ease); }
 @keyframes tooltip-in { from { opacity: 0; transform: translateY(2px) scale(0.96); } }
 
 /* --- responsive: the drawer becomes a bottom sheet --- */

@@ -2,7 +2,8 @@ import { DropdownMenu as RadixMenu, Popover as RadixPopover } from "radix-ui";
 import type { ReactElement, ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
-const floatingStyles = "z-50 animate-overlay-in rounded-card bg-surface text-ink shadow-float motion-reduce:animate-none";
+// Above the dialog layer (z-50) so a popover opened from inside a dialog is never covered.
+const floatingStyles = "z-[55] animate-overlay-in rounded-card bg-surface text-ink shadow-float motion-reduce:animate-none";
 
 interface PopoverProps {
   /** The control that opens it; it keeps its own accessible name. */
