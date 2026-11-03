@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [roadmap](https://github.com/zerobertoo/OpenVTT/blob/main/docs/ROADMAP.md) first: some things are planned and some are deliberately not planned.
+        Describe the problem you have at the table, not only the solution you imagine.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: A concrete situation during play or preparation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: help
+    attributes:
+      label: Would you like to implement it?
+      options: ["No", "Yes, I would open a pull request", "Maybe, with guidance"]
+    validations:
+      required: true

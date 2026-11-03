@@ -1,0 +1,19 @@
+name: Question or help
+description: Ask how to install, configure or use OpenVTT
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: Please check the [documentation](https://github.com/zerobertoo/OpenVTT/blob/main/docs/index.md) and [Troubleshooting](https://github.com/zerobertoo/OpenVTT/blob/main/docs/troubleshooting.md) first.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What are you trying to do, and what have you tried?
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run it?
+      options: [Docker Compose, Docker (other), From source, Behind a reverse proxy, Not installed yet]

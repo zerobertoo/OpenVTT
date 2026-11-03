@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/zerobertoo/OpenVTT/security/advisories/new
+    about: Never use a public issue for a vulnerability, including a player seeing hidden information.
+  - name: Documentation
+    url: https://github.com/zerobertoo/OpenVTT/blob/main/docs/index.md
+    about: Installation, configuration, tutorials and troubleshooting.
