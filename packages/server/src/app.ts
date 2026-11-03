@@ -1,6 +1,6 @@
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
@@ -655,7 +655,15 @@ export function buildApp(options: AppOptions) {
   registerPortabilityRoutes(app, s, { requireUser, requireGm, broadcastState: (id) => hub.broadcastState(id) });
 
   if (options.clientDir && existsSync(options.clientDir)) {
-    app.register(fastifyStatic, { root: options.clientDir });
+    app.register(fastifyStatic, {
+      root: options.clientDir,
+      // Files in /assets carry a content hash in their name, so browsers may keep them for good; index.html must stay fresh.
+      cacheControl: false,
+      setHeaders: (res, filePath) => {
+        const hashed = filePath.includes(`${sep}assets${sep}`);
+        res.header("Cache-Control", hashed ? "public, max-age=31536000, immutable" : "no-cache");
+      },
+    });
     app.setNotFoundHandler((req, reply) =>
       req.url.startsWith("/api/") ? reply.status(404).send({ error: "not_found" }) : reply.sendFile("index.html"),
     );
