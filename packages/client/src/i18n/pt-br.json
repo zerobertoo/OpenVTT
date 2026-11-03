@@ -18,7 +18,7 @@
     "clear": "Desmarcar",
     "deleteTitle_one": "Apagar {{count}} token?",
     "deleteTitle_other": "Apagar {{count}} tokens?",
-    "deleteBody": "Eles somem do mapa para todos. Isso não pode ser desfeito."
+    "deleteBody": "Eles somem do mapa para todos. Aperte Ctrl+Z logo em seguida para trazê-los de volta."
   },
   "floors": {
     "title": "Andares",
@@ -401,7 +401,7 @@
     "none": "Nenhum token nesta cena ainda.",
     "noneHint": "Adicione um acima e arraste no mapa.",
     "deleteTitle": "Excluir {{name}}?",
-    "deleteBody": "O token some do mapa para todos. Isso não pode ser desfeito.",
+    "deleteBody": "O token some do mapa para todos. Aperte Ctrl+Z logo em seguida para trazê-lo de volta.",
     "edit": "Editar token",
     "actor": "Ficha vinculada",
     "noActor": "Nenhuma",
@@ -423,7 +423,7 @@
     "saving": "Salvando…",
     "saved": "Tudo salvo",
     "deleteTitle": "Excluir {{name}}?",
-    "deleteBody": "A ficha e tudo o que está nela são removidos. Tokens ligados a ela continuam no mapa. Isso não pode ser desfeito."
+    "deleteBody": "A ficha e tudo o que está nela são removidos. Tokens ligados a ela continuam no mapa. Aperte Ctrl+Z logo em seguida para trazê-la de volta."
   },
   "settings": {
     "title": "Configurações do mundo",
@@ -485,6 +485,8 @@
     "list": "Textos",
     "new": "Novo texto",
     "edit": "Editar",
+    "deleteTitle": "Excluir {{name}}?",
+    "deleteBody": "O texto some para todos. Aperte Ctrl+Z logo em seguida para trazê-lo de volta.",
     "editTitle": "Editar texto",
     "title": "Título",
     "body": "Texto",

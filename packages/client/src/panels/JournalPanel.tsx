@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, assetUrl } from "../api";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
+import { ConfirmDialog } from "../components/ui/dialog";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { FileButton } from "../components/ui/file-button";
@@ -23,6 +24,7 @@ export function JournalPanel({ state, isGm, actions }: Props) {
   const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { run, error, pending } = useAction();
   const selected = state.handouts.find((h) => h.id === selectedId) ?? null;
 
@@ -78,18 +80,26 @@ export function JournalPanel({ state, isGm, actions }: Props) {
                 <Button size="sm" onClick={() => setEditing(true)}>
                   {t("journal.edit")}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() =>
-                    run(async () => {
-                      await api.deleteHandout(selected.id);
-                      actions.handoutDeleted(selected);
-                    }).then(() => setSelectedId(null))
-                  }
-                >
+                <Button size="sm" variant="danger" onClick={() => setConfirmingDelete(true)}>
                   {t("common.delete")}
                 </Button>
+                <ConfirmDialog
+                  open={confirmingDelete}
+                  onOpenChange={setConfirmingDelete}
+                  title={t("journal.deleteTitle", { name: selected.title })}
+                  description={t("journal.deleteBody")}
+                  confirmLabel={t("common.delete")}
+                  cancelLabel={t("common.cancel")}
+                  tone="danger"
+                  onConfirm={() => {
+                    setConfirmingDelete(false);
+                    void run(async () => {
+                      await api.deleteHandout(selected.id);
+                      actions.handoutDeleted(selected);
+                      setSelectedId(null);
+                    });
+                  }}
+                />
               </div>
             )}
           </article>

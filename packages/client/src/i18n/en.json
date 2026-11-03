@@ -18,7 +18,7 @@
     "clear": "Deselect",
     "deleteTitle_one": "Delete {{count}} token?",
     "deleteTitle_other": "Delete {{count}} tokens?",
-    "deleteBody": "They disappear from the map for everyone. This cannot be undone."
+    "deleteBody": "They disappear from the map for everyone. Press Ctrl+Z right after to bring them back."
   },
   "floors": {
     "title": "Floors",
@@ -401,7 +401,7 @@
     "none": "No tokens in this scene yet.",
     "noneHint": "Add one above, then drag it on the map.",
     "deleteTitle": "Delete {{name}}?",
-    "deleteBody": "The token disappears from the map for everyone. This cannot be undone.",
+    "deleteBody": "The token disappears from the map for everyone. Press Ctrl+Z right after to bring it back.",
     "edit": "Edit token",
     "actor": "Linked sheet",
     "noActor": "None",
@@ -423,7 +423,7 @@
     "saving": "Saving…",
     "saved": "All changes saved",
     "deleteTitle": "Delete {{name}}?",
-    "deleteBody": "The sheet and everything on it is removed. Tokens linked to it stay on the map. This cannot be undone."
+    "deleteBody": "The sheet and everything on it is removed. Tokens linked to it stay on the map. Press Ctrl+Z right after to bring it back."
   },
   "settings": {
     "title": "World settings",
@@ -485,6 +485,8 @@
     "list": "Handouts",
     "new": "New handout",
     "edit": "Edit",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "The handout disappears for everyone. Press Ctrl+Z right after to bring it back.",
     "editTitle": "Edit handout",
     "title": "Title",
     "body": "Text",

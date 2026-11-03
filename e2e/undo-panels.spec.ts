@@ -16,6 +16,7 @@ test("the game master undoes a deleted handout and a handout that was just made"
   await expect.poll(handouts).toEqual(["Rumors"]);
 
   await page.getByRole("article", { name: "Rumors" }).getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
   await expect.poll(handouts).toEqual([]);
 
   await page.getByRole("application").focus();
