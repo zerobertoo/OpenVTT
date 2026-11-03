@@ -21,8 +21,16 @@ const contentStyles = cva(
 function useRestoreFocus() {
   const opener = useRef<HTMLElement | null>(null);
   return {
-    onOpenAutoFocus: () => {
+    onOpenAutoFocus: (event: Event) => {
       opener.current = document.activeElement as HTMLElement | null;
+      // Start in the first text field (not on the close button) so typing works at once; dialogs without one keep Radix's default.
+      const field = (event.target as HTMLElement | null)?.querySelector<HTMLElement>(
+        "input:not([type=hidden]):not([type=file]):not([type=checkbox]):not([type=range]):not([type=color]), textarea, select",
+      );
+      if (field) {
+        event.preventDefault();
+        field.focus();
+      }
     },
     onCloseAutoFocus: (event: Event) => {
       event.preventDefault();
