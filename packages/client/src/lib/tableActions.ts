@@ -1,4 +1,4 @@
-import type { ActorDto, DrawingDto, FloorDto, HandoutDto, SceneDto, TokenDto } from "@openvtt/shared";
+import type { ActorDto, DrawingDto, FloorDto, HandoutDto, LightDto, SceneDto, TokenDto } from "@openvtt/shared";
 import { api } from "../api";
 import type { UndoEntry } from "./undo";
 
@@ -9,6 +9,9 @@ export interface Move {
 }
 
 type NewDrawing = Pick<DrawingDto, "kind" | "layer" | "points" | "color" | "text">;
+/** A light as the server takes it: the stored one without its id (ids are reissued on every save). */
+export type LightInput = Omit<LightDto, "id">;
+export const withoutId = ({ id: _id, ...light }: LightDto): LightInput => light;
 const ignore = () => undefined;
 
 /**
@@ -166,6 +169,12 @@ export function undoableActions(
     renameFloor(floor: Pick<FloorDto, "id" | "name">, name: string) {
       const set = (value: string) => () => api.updateFloor(current(floor.id), { name: value });
       apply(set(name), { undo: set(floor.name), redo: set(name) });
+    },
+
+    /** Replaces the lights of a floor (place, edit, move, remove); undo puts the previous list back. */
+    changeLights(floor: Pick<FloorDto, "id" | "lights">, next: LightInput[]) {
+      const set = (lights: LightInput[]) => () => api.updateFloor(current(floor.id), { lights });
+      apply(set(next), { undo: set(floor.lights.map(withoutId)), redo: set(next) });
     },
 
     /** Adds a floor on top; undo deletes it again, and redo adds it back with the same background. */

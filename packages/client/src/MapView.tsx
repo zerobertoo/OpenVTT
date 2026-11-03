@@ -21,6 +21,7 @@ import { Icon } from "./icons";
 import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
+import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
@@ -29,7 +30,7 @@ import type { Move } from "./lib/tableActions";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
-export type MapTool = "select" | "ruler" | "draw";
+export type MapTool = "select" | "ruler" | "draw" | "light";
 
 interface Props {
   scene: SceneDto | null;
@@ -68,6 +69,13 @@ interface Props {
   onMoved: (moves: Move[]) => void;
   /** A compendium entry dropped on the map, at that map point. */
   onDropEntry: (entryId: string, x: number, y: number) => void;
+  /** Light tool: the position in the floor's light list of the light being edited. */
+  selectedLight: number | null;
+  onSelectLight: (index: number | null) => void;
+  /** Light tool: a click on empty map places a light there. */
+  onAddLight: (x: number, y: number) => void;
+  /** Light tool: a light was dragged and dropped. */
+  onMoveLight: (index: number, x: number, y: number) => void;
 }
 
 const MIN_ZOOM = 0.1;
@@ -184,8 +192,11 @@ export function MapView(props: Props) {
     grid: Graphics;
     mapData: Container;
     drawingLayers: Record<DrawingDto["layer"], Container>;
-    fog: Graphics;
-    fogHole: Graphics;
+    /** Darkness, fog and light pools in one picture the size of the map (see `lib/lighting`). */
+    shade: Sprite;
+    shadeCanvas: HTMLCanvasElement;
+    /** What the shade picture shows now, so syncs that change nothing about it skip the repaint. */
+    shownShade: { scene: SceneDto; floor: FloorDto; vision: VisionDto | null; preview: boolean } | null;
     tokenLayer: Container;
     ruler: Graphics;
     rulerLabel: Text;
@@ -216,11 +227,10 @@ export function MapView(props: Props) {
         const background = new Container();
         const grid = new Graphics();
         const mapData = new Container();
-        const fog = new Graphics();
-        fog.eventMode = "none";
-        // The visible area, used as an inverse mask: fog is drawn everywhere except under it.
-        const fogHole = new Graphics();
-        fog.setMask({ mask: fogHole, inverse: true });
+        const shade = new Sprite();
+        shade.eventMode = "none";
+        shade.visible = false;
+        const shadeCanvas = document.createElement("canvas");
         const tokenLayer = new Container();
         // Background marks sit under the grid, object marks under the tokens, the game master's above them.
         const drawingLayers = { background: new Container(), objects: new Container(), gm: new Container() };
@@ -235,8 +245,7 @@ export function MapView(props: Props) {
           drawingLayers.objects,
           tokenLayer,
           drawingLayers.gm,
-          fog,
-          fogHole,
+          shade,
           ruler,
           rulerLabel,
         );
@@ -250,8 +259,9 @@ export function MapView(props: Props) {
           grid,
           mapData,
           drawingLayers,
-          fog,
-          fogHole,
+          shade,
+          shadeCanvas,
+          shownShade: null,
           tokenLayer,
           ruler,
           rulerLabel,
@@ -272,6 +282,9 @@ export function MapView(props: Props) {
         });
         syncAll.current();
       });
+
+    // The light marker being dragged with the light tool; its map data is rebuilt after the drop saves.
+    let lightDrag: { index: number; marker: Graphics; x: number; y: number; moved: boolean } | null = null;
 
     function bindInteractions(app: Application, world: Container, ruler: Graphics, label: Text) {
       let panning: { x: number; y: number } | null = null;
@@ -295,6 +308,9 @@ export function MapView(props: Props) {
         if (e.button === 1 || e.button === 2 || (p === "select" && e.target === app.stage)) {
           panning = { x: e.global.x - world.x, y: e.global.y - world.y };
           if (p === "select" && e.button === 0) props_().onSelect(null);
+        } else if (p === "light" && e.button === 0 && e.target === app.stage) {
+          const point = toWorld(e);
+          props_().onAddLight(point.x, point.y);
         } else if (p === "ruler" && e.button === 0) {
           rulerStart = toWorld(e);
         } else if (p === "draw" && e.button === 0) {
@@ -312,6 +328,19 @@ export function MapView(props: Props) {
         }
       });
       app.stage.on("pointermove", (e) => {
+        if (lightDrag) {
+          const point = toWorld(e);
+          lightDrag.x = point.x;
+          lightDrag.y = point.y;
+          lightDrag.moved = true;
+          // Selecting the light redraws the map data under the pointer; follow the marker that replaced the dragged one.
+          if (lightDrag.marker.destroyed) {
+            const replacement = engine.current?.mapData.children[0]?.children[lightDrag.index];
+            if (replacement instanceof Graphics) lightDrag.marker = replacement;
+          }
+          if (!lightDrag.marker.destroyed) lightDrag.marker.position.set(point.x, point.y);
+          return;
+        }
         if (sketch) {
           const point = toWorld(e);
           const { draw, scene } = props_();
@@ -373,6 +402,11 @@ export function MapView(props: Props) {
       });
       const stop = (e: FederatedPointerEvent) => {
         panning = null;
+        if (lightDrag) {
+          const dropped = lightDrag;
+          lightDrag = null;
+          if (dropped.moved) props_().onMoveLight(dropped.index, dropped.x, dropped.y);
+        }
         if (sketch) {
           const points = sketch;
           sketch = null;
@@ -523,7 +557,7 @@ export function MapView(props: Props) {
     syncAll.current = () => {
       void syncScene();
       syncTokens();
-      syncFog();
+      syncShade();
       syncDrawings();
     };
 
@@ -638,18 +672,29 @@ export function MapView(props: Props) {
 
     /** Lights as soft discs, walls as red lines, doors as amber (closed) or green (open) lines with a handle to open them. */
     function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto, floor: FloorDto, layers: MapLayers) {
-      const lights = new Graphics();
-      for (const light of floor.lights) {
-        if (layers.lightRange) {
-          lights.circle(light.x, light.y, light.radius * scene.gridSize).fill({ color: hexToNumber(light.color), alpha: 0.12 });
+      const lights = new Container();
+      const editing = props_().tool === "light";
+      const selected = props_().selectedLight;
+      floor.lights.forEach((light, index) => {
+        if (!layers.lights && !editing) return;
+        const picked = editing && index === selected;
+        const marker = new Graphics()
+          .circle(0, 0, Math.max(4, scene.gridSize / 8) * (editing ? 1.5 : 1))
+          .fill({ color: hexToNumber(light.color) })
+          .stroke({ width: picked ? 4 : 2, color: picked ? 0xffffff : 0x000000 });
+        marker.position.set(light.x, light.y);
+        if (editing) {
+          marker.eventMode = "static";
+          marker.cursor = "move";
+          marker.on("pointerdown", (event) => {
+            if (event.button !== 0) return;
+            event.stopPropagation();
+            if (props_().selectedLight !== index) props_().onSelectLight(index);
+            lightDrag = { index, marker, x: light.x, y: light.y, moved: false };
+          });
         }
-        if (layers.lights) {
-          lights
-            .circle(light.x, light.y, Math.max(4, scene.gridSize / 8))
-            .fill({ color: hexToNumber(light.color) })
-            .stroke({ width: 2, color: 0x000000 });
-        }
-      }
+        lights.addChild(marker);
+      });
       const walls = new Graphics();
       const doors = new Container();
       const line = (g: Graphics, w: FloorDto["walls"][number]) => g.moveTo(w.x1, w.y1).lineTo(w.x2, w.y2);
@@ -714,16 +759,43 @@ export function MapView(props: Props) {
       return shape;
     }
 
-    /** Darkens everything a player cannot see right now; the polygons come from the server, which never sends walls. */
-    function syncFog() {
+    /**
+     * Darkens what a player cannot see and what no light reaches. A player's polygons and light pools come from the
+     * server, which never sends walls; the game master's pools are computed here from the floor's own walls.
+     */
+    function syncShade() {
       const e = engine.current;
-      const { scene, vision } = props_();
+      const { scene, floor, vision, layers } = props_();
       if (!e) return;
-      e.fog.clear();
-      e.fogHole.clear();
-      if (!scene || !vision || vision.sceneId !== scene.id) return;
-      e.fog.rect(0, 0, scene.width, scene.height).fill({ color: 0x000000, alpha: 0.94 });
-      for (const polygon of vision.polygons) if (polygon.length >= 6) e.fogHole.poly(polygon).fill(0xffffff);
+      if (!scene || !floor) {
+        e.shade.visible = false;
+        e.shownShade = null;
+        return;
+      }
+      const shown = e.shownShade;
+      if (shown && shown.scene === scene && shown.floor === floor && shown.vision === vision && shown.preview === layers.lightRange) return;
+      e.shownShade = { scene, floor, vision, preview: layers.lightRange };
+      const plan = planShade(scene, floor, vision, layers.lightRange);
+      e.shade.visible = plan !== null;
+      if (!plan) return;
+      const size = shadeSize(scene.width, scene.height);
+      // A new canvas (and texture) only when the map size changes; otherwise the same texture is refreshed from its canvas.
+      const resized = e.shadeCanvas.width !== size.width || e.shadeCanvas.height !== size.height;
+      if (resized) {
+        e.shadeCanvas = document.createElement("canvas");
+        e.shadeCanvas.width = size.width;
+        e.shadeCanvas.height = size.height;
+      }
+      const context = e.shadeCanvas.getContext("2d");
+      if (!context) return;
+      paintShade(context, plan, scene.width, scene.height, size.scale);
+      if (resized || e.shade.texture === Texture.EMPTY) {
+        const old = e.shade.texture;
+        e.shade.texture = Texture.from(e.shadeCanvas);
+        if (old !== Texture.EMPTY) old.destroy(true);
+      } else e.shade.texture.source.update();
+      e.shade.width = scene.width;
+      e.shade.height = scene.height;
     }
 
     /** Draws a line-based mark into `g`; also used for the preview while the pointer is down. */
@@ -971,7 +1043,17 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     syncAll.current();
-  }, [props.scene, props.floor, props.ghostFloor, props.tokens, props.selectedTokenIds, props.layers, props.vision]);
+  }, [
+    props.scene,
+    props.floor,
+    props.ghostFloor,
+    props.tokens,
+    props.selectedTokenIds,
+    props.layers,
+    props.vision,
+    props.tool,
+    props.selectedLight,
+  ]);
 
   // Zoom keys arrive through the table store; zooming keeps the middle of the view where it is.
   const viewCommand = useTableUi((ui) => ui.viewCommand);

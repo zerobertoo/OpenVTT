@@ -1,5 +1,5 @@
 import { MAX_MAP_DIMENSION, type SceneDto } from "@openvtt/shared";
-import type { FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
@@ -7,6 +7,32 @@ import { Field } from "../ui/field";
 import { FilePicker } from "../ui/file-picker";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
+import { Slider } from "../ui/slider";
+
+/** How lit the scene is, 0 to 100 %: a slider that submits with the form through a hidden field. */
+function AmbientLightField({ defaultValue }: { defaultValue: number }) {
+  const { t } = useTranslation();
+  const [percent, setPercent] = useState(Math.round(defaultValue * 100));
+  return (
+    <Field label={t("scene.ambientLight")} hint={t("scene.ambientLightHint", { percent })}>
+      {(control) => (
+        <>
+          <input type="hidden" name="ambientLight" value={percent / 100} />
+          <Slider
+            id={control.id}
+            aria-describedby={control["aria-describedby"]}
+            aria-label={t("scene.ambientLight")}
+            value={percent}
+            min={0}
+            max={100}
+            step={5}
+            onValueChange={setPercent}
+          />
+        </>
+      )}
+    </Field>
+  );
+}
 
 function GridTypeSelect({ defaultValue }: { defaultValue: string }) {
   const { t } = useTranslation();
@@ -52,6 +78,7 @@ export function SceneSettingsForm({ scene, onSubmit, pending, onAdjustGrid }: Se
           {(control) => <Input {...control} name="distanceUnit" list="distance-units" defaultValue={scene.distanceUnit} maxLength={10} />}
         </Field>
       </div>
+      {!scene.bakedLighting && <AmbientLightField defaultValue={scene.ambientLight} />}
       <Field label={t("scene.vision")} hint={t("scene.visionHint")} inline>
         {(control) => <Checkbox {...control} name="visionEnabled" defaultChecked={scene.visionEnabled} />}
       </Field>

@@ -10,6 +10,7 @@ What is built, and what is still planned. Nothing here is a promise or a date; i
 - Floors: one scene holds several floors, each with its own background, walls, doors, lights, drawings and tokens. The game master switches floors (switcher, PageUp/PageDown), moves tokens between them and sees the floor below faintly; each player only receives the floor their token is on.
 - Square and hex grids (pointy or flat top), adjusted visually over the map; distances in metric, imperial or the scene's own units.
 - Walls, doors and lights, drawn for the game master; tokens cannot walk through walls or closed doors.
+- Lighting: a scene can be dark (ambient light); each light lights a pool shaped by walls, tinted by its color and fading out over its soft edge (feather). The game master places, drags and edits lights with the light tool (undoable) and previews the real darkness from the layers menu; players only receive the pools they can reach.
 - Fog of war from vision computed on the server (players only receive what their tokens see), and "view as player" for the game master.
 - Export of a scene as Universal VTT.
 - Drawings, arrows, shapes, text and private note pins for the game master.

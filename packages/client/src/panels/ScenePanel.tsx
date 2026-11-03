@@ -107,6 +107,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
         gridSize: Number(f.get("gridSize")),
         gridDistance: Number(f.get("gridDistance")),
         distanceUnit: String(f.get("distanceUnit")),
+        ...(f.has("ambientLight") && { ambientLight: Number(f.get("ambientLight")) }),
         visionEnabled: f.get("visionEnabled") === "on",
         visionRadius: Number(f.get("visionRadius")),
       }),

@@ -210,7 +210,18 @@
     "playVideo": "Reproduzir animação do mapa",
     "pauseVideo": "Pausar animação do mapa",
     "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele.",
-    "draw": "Desenhar"
+    "draw": "Desenhar",
+    "light": "Luzes"
+  },
+  "light": {
+    "options": "Opções da luz",
+    "hint": "Clique no mapa para colocar uma luz, clique numa luz para editá-la e arraste para movê-la.",
+    "radius": "Alcance (casas)",
+    "feather": "Borda suave",
+    "intensity": "Brilho",
+    "color": "Cor",
+    "shadows": "Paredes bloqueiam a luz",
+    "delete": "Remover luz"
   },
   "chat": {
     "title": "Chat",
@@ -241,7 +252,7 @@
     "walls": "Paredes",
     "doors": "Portas",
     "lights": "Pontos de luz",
-    "lightRange": "Alcance das luzes",
+    "lightRange": "Pré-visualização da luz",
     "grid": "Grade",
     "floorBelow": "Andar de baixo, esmaecido",
     "previewOverrides": "Ao ver como jogador, as camadas ficam ocultas.",
@@ -286,6 +297,8 @@
     "vision": "Névoa de guerra",
     "visionHint": "Os jogadores só veem o que os próprios tokens enxergam, limitado por paredes, portas fechadas e luzes. Precisa de paredes no mapa.",
     "visionRadius": "Alcance da visão (casas)",
+    "ambientLight": "Luz ambiente",
+    "ambientLightHint": "{{percent}} % iluminada. Abaixo de 100 a cena fica escura: só as poças de luz e o que os tokens enxergam mostram o mapa.",
     "floorCount_one": "{{count}} andar",
     "floorCount_other": "{{count}} andares",
     "floorName": "Andar {{n}}",

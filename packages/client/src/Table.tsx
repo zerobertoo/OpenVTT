@@ -1,4 +1,4 @@
-import { floorOf, type UserDto } from "@openvtt/shared";
+import { DEFAULT_LIGHT_FEATHER, floorOf, type UserDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
 import { DrawOptions } from "./components/table/DrawOptions";
 import { FloorSwitcher } from "./components/table/FloorSwitcher";
+import { LightOptions } from "./components/table/LightOptions";
 import { MapLayersMenu } from "./components/table/MapLayersMenu";
 import { MapToolbar } from "./components/table/MapToolbar";
 import { OnlineChip } from "./components/table/OnlineChip";
@@ -26,7 +27,7 @@ import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
 import { AccountBox } from "./components/world/AccountBox";
 import { usePreferences } from "./lib/preferences";
-import { undoableActions } from "./lib/tableActions";
+import { type LightInput, undoableActions, withoutId } from "./lib/tableActions";
 import { useUndo } from "./lib/undo";
 import { MapView } from "./MapView";
 import { ChatPanel } from "./panels/ChatPanel";
@@ -41,6 +42,9 @@ import { useAction } from "./ui";
 import { useCan } from "./useCan";
 import { useFormat } from "./useFormat";
 import { useWorldState } from "./useWorldState";
+
+/** A light as placed with the light tool; the game master edits it afterwards. */
+const NEW_LIGHT: LightInput = { x: 0, y: 0, radius: 4, intensity: 1, color: "#ffffff", shadows: true, feather: DEFAULT_LIGHT_FEATHER };
 
 /** How often a table that cannot connect re-checks the session and the list of worlds. */
 const REVALIDATE_WHILE_OFFLINE_MS = 8000;
@@ -94,6 +98,10 @@ export function Table({ worldId, user }: Props) {
     if (new URLSearchParams(location.search).has("tv")) setView("tv");
   }, [setView]);
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  // Position in the floor's light list of the light being edited with the light tool.
+  const [selectedLight, setSelectedLight] = useState<number | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the selection only has to reset when the tool or the viewed floor changes
+  useEffect(() => setSelectedLight(null), [tool, gmViewSceneId, gmViewFloorId]);
 
   // A connection that stays down may mean the person lost access (removed, world deleted, session ended),
   // not only a bad network. Re-checking makes the router show the right screen instead of retrying forever.
@@ -158,6 +166,8 @@ export function Table({ worldId, user }: Props) {
     isGm && !viewAs && layers.floorBelow && scene && floor
       ? (scene.floors[scene.floors.findIndex((f) => f.id === floor.id) - 1] ?? null)
       : null;
+  const floorLights = floor?.lights.map(withoutId) ?? [];
+  const saveLights = (next: LightInput[]) => floor && actions.changeLights(floor, next);
   const floorTokens = state.tokens.filter((tk) => tk.floorId === floor?.id);
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
   // Tokens that vanished (deleted, out of sight) silently leave the selection.
@@ -289,6 +299,17 @@ export function Table({ worldId, user }: Props) {
               onMoved={actions.moved}
               onDropEntry={(entryId, x, y) => isGm && placeEntry(entryId, x, y)}
               canErase={(drawing) => isGm || drawing.authorId === user.id}
+              selectedLight={selectedLight}
+              onSelectLight={setSelectedLight}
+              onAddLight={(x, y) => {
+                if (!isGm) return;
+                const next = [...floorLights, { ...NEW_LIGHT, x: Math.round(x), y: Math.round(y) }];
+                saveLights(next);
+                setSelectedLight(next.length - 1);
+              }}
+              onMoveLight={(index, x, y) =>
+                isGm && saveLights(floorLights.map((l, i) => (i === index ? { ...l, x: Math.round(x), y: Math.round(y) } : l)))
+              }
             />
           ) : (
             <EmptyMap isGm={isGm} />
@@ -319,6 +340,16 @@ export function Table({ worldId, user }: Props) {
                   isGm={isGm}
                   lockedLayers={scene.lockedLayers}
                   onClear={() => floor && void api.clearDrawings(scene.id, floor.id).catch(() => undefined)}
+                />
+              )}
+              {tool === "light" && isGm && (
+                <LightOptions
+                  light={selectedLight === null ? null : (floorLights[selectedLight] ?? null)}
+                  onChange={(changes) => saveLights(floorLights.map((l, i) => (i === selectedLight ? { ...l, ...changes } : l)))}
+                  onDelete={() => {
+                    saveLights(floorLights.filter((_, i) => i !== selectedLight));
+                    setSelectedLight(null);
+                  }}
                 />
               )}
               {selectedTokens.length > 1 && (
@@ -358,6 +389,7 @@ export function Table({ worldId, user }: Props) {
                 tool={tool}
                 onToolChange={setTool}
                 canDraw={!can.isObserver}
+                canLight={isGm && !viewAs}
                 diceTrayOpen={diceTrayOpen}
                 onToggleDiceTray={() => setDiceTrayOpen(!diceTrayOpen)}
                 layersMenu={

@@ -60,7 +60,7 @@ test("a Universal VTT file and its video become a scene with the grid from the f
   // The game master chooses what is drawn from the Layers menu on the map.
   await page.getByRole("button", { name: "Layers", exact: true }).click();
   await expect(page.getByRole("switch", { name: "Walls" })).toBeChecked();
-  await expect(page.getByRole("switch", { name: "Light range" })).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "Lighting preview" })).not.toBeChecked();
   await page.getByRole("switch", { name: "Walls" }).uncheck();
   await expect(page.getByRole("switch", { name: "Walls" })).not.toBeChecked();
 });

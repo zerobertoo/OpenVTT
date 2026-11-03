@@ -210,7 +210,18 @@
     "playVideo": "Play map animation",
     "pauseVideo": "Pause map animation",
     "videoUnsupported": "This browser cannot play the map video, so the map is shown without it.",
-    "draw": "Draw"
+    "draw": "Draw",
+    "light": "Lights"
+  },
+  "light": {
+    "options": "Light options",
+    "hint": "Click the map to place a light, click a light to edit it, drag it to move it.",
+    "radius": "Reach (cells)",
+    "feather": "Soft edge",
+    "intensity": "Brightness",
+    "color": "Color",
+    "shadows": "Walls block the light",
+    "delete": "Remove light"
   },
   "chat": {
     "title": "Chat",
@@ -241,7 +252,7 @@
     "walls": "Walls",
     "doors": "Doors",
     "lights": "Light points",
-    "lightRange": "Light range",
+    "lightRange": "Lighting preview",
     "grid": "Grid",
     "floorBelow": "Floor below, faint",
     "previewOverrides": "While previewing a player, overlays are hidden.",
@@ -286,6 +297,8 @@
     "vision": "Fog of war",
     "visionHint": "Players only see what their own tokens can see, shaped by walls, closed doors and lights. Needs walls on the map.",
     "visionRadius": "Sight range (cells)",
+    "ambientLight": "Ambient light",
+    "ambientLightHint": "{{percent}} % lit. Below 100 the scene is dark: only light pools and what tokens see show the map.",
     "floorCount_one": "{{count}} floor",
     "floorCount_other": "{{count}} floors",
     "floorName": "Floor {{n}}",
