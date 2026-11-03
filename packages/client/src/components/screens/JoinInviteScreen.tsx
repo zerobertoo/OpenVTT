@@ -9,6 +9,7 @@ import { useUser } from "../../userContext";
 import { Avatar } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+import { ColorPicker } from "../ui/color-picker";
 import { Field } from "../ui/field";
 import { Input } from "../ui/input";
 
@@ -51,15 +52,7 @@ export function JoinInviteScreen({ code }: { code: string }) {
           </Field>
         </div>
         <Field label={t("invite.color")}>
-          {(control) => (
-            <input
-              {...control}
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="h-[2.6rem] w-24 cursor-pointer rounded-xl border-0 bg-transparent p-0.5"
-            />
-          )}
+          {(control) => <ColorPicker {...control} value={color} onChange={setColor} className="w-36" />}
         </Field>
         <ErrorMessage error={join.error} />
         <Button type="submit" pending={join.isPending} className="justify-self-start">

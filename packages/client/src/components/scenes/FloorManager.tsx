@@ -6,6 +6,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/dialog";
 import { Field } from "../ui/field";
+import { FilePicker } from "../ui/file-picker";
 import { Input } from "../ui/input";
 import { DropdownMenu } from "../ui/popover";
 
@@ -96,11 +97,10 @@ export function FloorManager({ floors, tableFloorId, onRename, onMove, onShowToT
         <Field label={t("floors.newName")}>{(control) => <Input {...control} name="name" required maxLength={60} />}</Field>
         <Field label={t("floors.background")} hint={t("floors.backgroundHint")}>
           {(control) => (
-            <Input
+            <FilePicker
               {...control}
-              type="file"
               accept="image/png,image/jpeg,image/webp,video/webm,video/mp4"
-              onChange={(e) => setBackground(e.target.files?.[0] ?? null)}
+              onChange={(files) => setBackground(files[0] ?? null)}
             />
           )}
         </Field>

@@ -5,7 +5,9 @@ import { UnsupportedMediaError } from "../../lib/media";
 import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
+import { Disclosure } from "../ui/disclosure";
 import { Field } from "../ui/field";
+import { FilePicker } from "../ui/file-picker";
 import { Input } from "../ui/input";
 
 /** What the game master confirmed: the drafts with name, grid and distance as edited. */
@@ -69,23 +71,21 @@ export function MapImportDialog({ open, onOpenChange, onCreate, pending, error }
     <Dialog open={open} onOpenChange={onOpenChange} title={t("scene.import.title")} description={t("scene.import.description")}>
       <Field label={t("scene.import.files")} hint={t("scene.import.filesHint")}>
         {(control) => (
-          <Input
+          <FilePicker
             {...control}
-            type="file"
             multiple
             accept=".dd2vtt,.uvtt,.json,image/png,image/jpeg,image/webp,video/webm,video/mp4"
-            onChange={(e) => void pick(Array.from(e.target.files ?? []))}
+            onChange={(files) => void pick(files)}
           />
         )}
       </Field>
-      <details className="rounded-lg bg-surface-2 p-3">
-        <summary className="cursor-pointer font-semibold">{t("scene.import.guide.title")}</summary>
-        <ul className="m-0 mt-2 grid gap-1.5 pl-5 text-ink-2">
+      <Disclosure title={t("scene.import.guide.title")} className="rounded-lg bg-surface-2 px-3">
+        <ul className="m-0 mb-3 grid gap-1.5 pl-5 text-ink-2">
           {(["universal", "foundry", "video", "image", "floors", "grid", "lights"] as const).map((step) => (
             <li key={step}>{t(`scene.import.guide.${step}`)}</li>
           ))}
         </ul>
-      </details>
+      </Disclosure>
       {reading && <p role="status">{t("scene.import.reading")}</p>}
       {errorKey && (
         <p role="alert" className="error">

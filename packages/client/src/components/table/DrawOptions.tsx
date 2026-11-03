@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type DrawSettings, useTableUi } from "../../tableStore";
 import { Button } from "../ui/button";
+import { ColorPicker } from "../ui/color-picker";
 import { ConfirmDialog } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
@@ -40,13 +41,7 @@ export function DrawOptions({ isGm, lockedLayers, onClear }: Props) {
         ))}
       </Select>
       {draw.kind !== "erase" && (
-        <input
-          type="color"
-          aria-label={t("draw.color")}
-          value={draw.color}
-          onChange={(e) => setDraw({ color: e.target.value })}
-          className="h-9 w-11 cursor-pointer rounded-md border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-dice focus-visible:outline-offset-2"
-        />
+        <ColorPicker aria-label={t("draw.color")} value={draw.color} onChange={(color) => setDraw({ color })} className="w-32" />
       )}
       {needsText && (
         <Input

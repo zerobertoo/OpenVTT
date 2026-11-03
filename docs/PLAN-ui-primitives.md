@@ -1,6 +1,6 @@
 # Plano: primitivos de formulário próprios
 
-Status: **proposto** (originado da auditoria `docs/AUDIT-ui.md`). Nada implementado.
+Status: **implementado** (Select, Slider, ColorPicker, Disclosure e FilePicker; `file-button` e `asset-picker` seguem como botões com input oculto).
 
 ## Decisão
 

@@ -8,6 +8,7 @@ import { Dialog } from "../ui/dialog";
 import { Field } from "../ui/field";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
+import { Slider } from "../ui/slider";
 
 const MIN_CELL = 10;
 const MAX_CELL = 500;
@@ -70,17 +71,16 @@ export function GridAdjuster({ open, onOpenChange, scene, background, onApply, p
       <div className="grid grid-cols-[1fr_auto] items-end gap-3">
         <Field label={t("scene.gridSize")}>
           {(control) => (
-            <input
+            <Slider
               {...control}
-              type="range"
+              aria-label={t("scene.gridSize")}
               min={MIN_CELL}
               max={MAX_CELL}
               value={size}
-              onChange={(e) => {
-                setSize(clamp(Number(e.target.value)));
-                setTyped(String(clamp(Number(e.target.value))));
+              onValueChange={(next) => {
+                setSize(clamp(next));
+                setTyped(String(clamp(next)));
               }}
-              className="w-full accent-accent"
             />
           )}
         </Field>

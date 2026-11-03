@@ -5,10 +5,12 @@ import { AssetPicker } from "../ui/asset-picker";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox, Switch } from "../ui/checkbox";
+import { ColorPicker } from "../ui/color-picker";
 import { ConfirmDialog } from "../ui/dialog";
 import { Field } from "../ui/field";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
+import { Slider } from "../ui/slider";
 
 interface Props {
   token: TokenDto;
@@ -27,10 +29,15 @@ interface Props {
 export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch, onUpload, onDelete }: Props) {
   const { t } = useTranslation();
   const [rotation, setRotation] = useState<number | null>(null);
+  const [color, setColor] = useState(token.color);
+  const changeColor = (next: string) => {
+    setColor(next);
+    onPatch({ color: next });
+  };
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const commitRotation = () => {
-    onPatch({ rotation: rotation ?? token.rotation });
+  const commitRotation = (degrees: number) => {
+    onPatch({ rotation: degrees });
     setRotation(null);
   };
 
@@ -40,16 +47,15 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
 
       <Field label={t("token.rotation")}>
         {(control) => (
-          <input
+          <Slider
             {...control}
-            type="range"
+            aria-label={t("token.rotation")}
             min={0}
             max={360}
             step={15}
             value={rotation ?? ((token.rotation % 360) + 360) % 360}
-            onChange={(e) => setRotation(Number(e.target.value))}
-            onPointerUp={commitRotation}
-            onKeyUp={commitRotation}
+            onValueChange={setRotation}
+            onValueCommit={commitRotation}
           />
         )}
       </Field>
@@ -166,15 +172,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               )}
             </Field>
             <Field label={t("token.color")}>
-              {(control) => (
-                <input
-                  {...control}
-                  type="color"
-                  defaultValue={token.color}
-                  onBlur={(e) => onPatch({ color: e.target.value })}
-                  className="h-[2.6rem] w-full cursor-pointer rounded-xl border-0 bg-transparent p-0.5"
-                />
-              )}
+              {(control) => <ColorPicker {...control} value={color} onChange={changeColor} className="w-full" />}
             </Field>
           </div>
 

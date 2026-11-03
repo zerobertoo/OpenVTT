@@ -346,6 +346,18 @@
     "modifier": "Modificador",
     "roll": "Rolar"
   },
+  "files": {
+    "choose": "Escolher arquivo",
+    "chooseMany": "Escolher arquivos",
+    "none": "Nenhum arquivo escolhido",
+    "count_one": "{{count}} arquivo",
+    "count_other": "{{count}} arquivos"
+  },
+  "color": {
+    "pick": "Escolher uma cor",
+    "swatches": "Cores",
+    "hex": "Código hexadecimal"
+  },
   "initiative": {
     "title": "Iniciativa",
     "list": "Ordem de iniciativa",

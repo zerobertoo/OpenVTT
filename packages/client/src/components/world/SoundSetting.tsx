@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../lib/preferences";
 import { Switch } from "../ui/checkbox";
 import { Field } from "../ui/field";
+import { Slider } from "../ui/slider";
 
 export function SoundSetting() {
   const { t } = useTranslation();
@@ -13,15 +14,14 @@ export function SoundSetting() {
       </Field>
       <Field label={t("alerts.musicVolume")}>
         {(control) => (
-          <input
+          <Slider
             {...control}
-            type="range"
+            aria-label={t("alerts.musicVolume")}
             min={0}
             max={1}
             step={0.05}
             value={musicVolume}
-            onChange={(e) => setMusicVolume(Number(e.target.value))}
-            className="w-full accent-accent"
+            onValueChange={setMusicVolume}
           />
         )}
       </Field>

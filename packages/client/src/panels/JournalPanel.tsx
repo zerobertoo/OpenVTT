@@ -5,6 +5,7 @@ import { api, assetUrl } from "../api";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { ConfirmDialog } from "../components/ui/dialog";
+import { Disclosure } from "../components/ui/disclosure";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { FileButton } from "../components/ui/file-button";
@@ -216,9 +217,8 @@ function AssetLibrary({ worldId, canInsert }: { worldId: string; canInsert: bool
   const load = () => run(async () => setAssets(await api.worldAssets(worldId)));
 
   return (
-    <details className="grid gap-2" onToggle={(e) => (e.currentTarget.open && assets === null ? void load() : undefined)}>
-      <summary className="cursor-pointer font-semibold">{t("journal.library")}</summary>
-      <div className="mt-2 grid gap-2">
+    <Disclosure title={t("journal.library")} onOpenChange={(open) => (open && assets === null ? void load() : undefined)}>
+      <div className="grid gap-2">
         <FileButton
           label={t("journal.upload")}
           accept="image/png,image/jpeg,image/webp"
@@ -251,6 +251,6 @@ function AssetLibrary({ worldId, canInsert }: { worldId: string; canInsert: bool
           ))}
         </ul>
       </div>
-    </details>
+    </Disclosure>
   );
 }

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Field } from "../ui/field";
+import { FilePicker } from "../ui/file-picker";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 
@@ -89,12 +90,11 @@ export function SceneCreateForm({ onSubmit, pending, imageFile, onImageChange }:
       <Field label={t("scene.name")}>{(control) => <Input {...control} name="name" required maxLength={80} />}</Field>
       <Field label={t("scene.image")} hint={imageFile ? t("scene.imageSizeFromFile") : undefined}>
         {(control) => (
-          <Input
+          <FilePicker
             {...control}
             name="image"
-            type="file"
             accept="image/png,image/jpeg,image/webp,video/webm,video/mp4"
-            onChange={(e) => onImageChange(e.target.files?.[0] ?? null)}
+            onChange={(files) => onImageChange(files[0] ?? null)}
           />
         )}
       </Field>
