@@ -75,6 +75,7 @@ const worldFileSchema = z.object({
           .optional(),
         tableFloorId: id.optional(),
         bakedLighting: z.boolean().default(false),
+        ambientLight: z.number().finite().min(0).max(1).default(1),
         visionEnabled: z.boolean().default(false),
         visionRadius: z.number().finite().min(1).max(200).default(12),
         drawings: z.array(createDrawingSchema).max(MAX_SCENE_DRAWINGS).default([]),

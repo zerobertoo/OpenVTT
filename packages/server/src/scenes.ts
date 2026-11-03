@@ -29,6 +29,7 @@ interface SceneRow {
   grid_distance: number;
   distance_unit: string;
   baked_lighting: number;
+  ambient_light: number;
   table_floor_id: string;
   vision_enabled: number;
   vision_radius: number;
@@ -66,6 +67,7 @@ interface LightRow {
   intensity: number;
   color: string;
   shadows: number;
+  feather: number;
 }
 
 interface DrawingRow {
@@ -89,6 +91,7 @@ const toLight = (r: LightRow): LightDto => ({
   intensity: r.intensity,
   color: r.color,
   shadows: r.shadows === 1,
+  feather: r.feather,
 });
 
 export const toDrawing = (r: DrawingRow): DrawingDto => ({
@@ -121,6 +124,7 @@ const toDto = (r: SceneRow, floors: FloorDto[]): SceneDto => ({
   gridDistance: r.grid_distance,
   distanceUnit: r.distance_unit,
   bakedLighting: r.baked_lighting === 1,
+  ambientLight: r.ambient_light,
   floors,
   tableFloorId: r.table_floor_id,
   visionEnabled: r.vision_enabled === 1,
@@ -234,10 +238,10 @@ export class SceneService {
       insertWall.run(randomUUID(), sceneId, floorId, w.x1, w.y1, w.x2, w.y2, w.kind, w.kind === "door" && w.open ? 1 : 0);
     }
     const insertLight = this.db.prepare(
-      "INSERT INTO lights (id, scene_id, floor_id, x, y, radius, intensity, color, shadows) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO lights (id, scene_id, floor_id, x, y, radius, intensity, color, shadows, feather) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     );
     for (const l of input.lights) {
-      insertLight.run(randomUUID(), sceneId, floorId, l.x, l.y, l.radius, l.intensity, l.color, l.shadows ? 1 : 0);
+      insertLight.run(randomUUID(), sceneId, floorId, l.x, l.y, l.radius, l.intensity, l.color, l.shadows ? 1 : 0, l.feather);
     }
   }
 
@@ -257,8 +261,8 @@ export class SceneService {
       this.db
         .prepare(
           `INSERT INTO scenes (id, world_id, name, width, height, grid_type, grid_size, grid_distance, distance_unit,
-             baked_lighting, vision_enabled, vision_radius, locked_layers, grid_hex, table_floor_id, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?)`,
+             baked_lighting, ambient_light, vision_enabled, vision_radius, locked_layers, grid_hex, table_floor_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?)`,
         )
         .run(
           id,
@@ -271,6 +275,7 @@ export class SceneService {
           input.gridDistance,
           input.distanceUnit,
           input.bakedLighting ? 1 : 0,
+          input.ambientLight,
           input.visionEnabled ? 1 : 0,
           input.visionRadius,
           JSON.stringify(input.lockedLayers),
@@ -293,7 +298,7 @@ export class SceneService {
     this.db
       .prepare(
         `UPDATE scenes SET name = ?, width = ?, height = ?, grid_type = ?, grid_size = ?,
-         grid_distance = ?, distance_unit = ?, baked_lighting = ?, vision_enabled = ?, vision_radius = ?, locked_layers = ?,
+         grid_distance = ?, distance_unit = ?, baked_lighting = ?, ambient_light = ?, vision_enabled = ?, vision_radius = ?, locked_layers = ?,
          grid_hex = ?, table_floor_id = ? WHERE id = ?`,
       )
       .run(
@@ -305,6 +310,7 @@ export class SceneService {
         next.gridDistance,
         next.distanceUnit,
         next.bakedLighting ? 1 : 0,
+        next.ambientLight,
         next.visionEnabled ? 1 : 0,
         next.visionRadius,
         JSON.stringify(next.lockedLayers),

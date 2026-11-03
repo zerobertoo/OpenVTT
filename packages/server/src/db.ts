@@ -247,6 +247,9 @@ CREATE INDEX tokens_floor ON tokens (floor_id);
 `,
   // When the game master last moved a token to another floor: a player looks at the floor of the token moved most recently.
   `ALTER TABLE tokens ADD COLUMN floor_changed_at INTEGER NOT NULL DEFAULT 0;`,
+  // Lighting: how dark a scene is (1 = fully lit, today's look) and how softly each light fades out at its edge.
+  `ALTER TABLE scenes ADD COLUMN ambient_light REAL NOT NULL DEFAULT 1;
+ALTER TABLE lights ADD COLUMN feather REAL NOT NULL DEFAULT 0.4;`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

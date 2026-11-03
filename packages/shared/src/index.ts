@@ -127,6 +127,8 @@ export interface LightDto {
   /** `#rrggbb`. */
   color: string;
   shadows: boolean;
+  /** Fraction of the radius, 0 to 1, over which the light fades out; the bright core is `radius * (1 - feather)`. */
+  feather: number;
 }
 
 export const DRAWING_KINDS = ["free", "line", "arrow", "rect", "circle", "text", "note"] as const;
@@ -198,6 +200,8 @@ export interface SceneDto {
   distanceUnit: string;
   /** True when the picture already has its lighting drawn in (imported "render lights in image"). */
   bakedLighting: boolean;
+  /** 0 (pitch dark) to 1 (fully lit, the default); below 1 only light pools and token sight show the map. Ignored when `bakedLighting`. */
+  ambientLight: number;
   /**
    * Floors from bottom to top. The game master receives all of them; a player receives only the one their own token
    * is on (or the table floor when they have none), so a hidden floor never leaves the server.
@@ -292,6 +296,20 @@ export interface ActorDto {
 export interface VisionDto {
   sceneId: string;
   polygons: number[][];
+  /** The lights that reach the visible area, each with the polygon it lights; raw lights and walls are never sent. */
+  lights: VisionLightDto[];
+}
+
+export interface VisionLightDto {
+  x: number;
+  y: number;
+  /** Outer edge in map pixels. */
+  radius: number;
+  intensity: number;
+  color: string;
+  feather: number;
+  /** The area the light reaches, flat `[x1, y1, ...]` like `VisionDto.polygons`. */
+  polygon: number[];
 }
 
 /** Initiative order of a world. Hidden tokens are left out for players, and so is a turn that belongs to one of them. */
@@ -431,6 +449,7 @@ export const wallInputSchema = z.object({
   kind: z.enum(["wall", "door"]).default("wall"),
   open: z.boolean().default(false),
 });
+export const DEFAULT_LIGHT_FEATHER = 0.4;
 export const lightInputSchema = z.object({
   x: mapCoordinate,
   y: mapCoordinate,
@@ -441,6 +460,7 @@ export const lightInputSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .default("#ffffff"),
   shadows: z.boolean().default(true),
+  feather: z.number().finite().min(0).max(1).default(DEFAULT_LIGHT_FEATHER),
 });
 export const MAX_SCENE_WALLS = 20000;
 export const MAX_SCENE_LIGHTS = 1000;
@@ -480,6 +500,7 @@ const sceneFields = {
   gridDistance: z.number().positive().max(1000),
   distanceUnit: z.string().trim().max(10),
   bakedLighting: z.boolean(),
+  ambientLight: z.number().finite().min(0).max(1),
   tableFloorId: z.string().uuid(),
   visionEnabled: z.boolean(),
   visionRadius: z.number().finite().min(1).max(200),
@@ -497,6 +518,7 @@ export const createSceneSchema = z
     gridDistance: sceneFields.gridDistance.default(5),
     distanceUnit: sceneFields.distanceUnit.default("ft"),
     bakedLighting: sceneFields.bakedLighting.default(false),
+    ambientLight: sceneFields.ambientLight.default(1),
     visionEnabled: sceneFields.visionEnabled.default(false),
     visionRadius: sceneFields.visionRadius.default(12),
     lockedLayers: sceneFields.lockedLayers.default([]),

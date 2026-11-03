@@ -262,12 +262,46 @@ describe("movement and vision per floor", () => {
   });
 });
 
+describe("lighting sent to players", () => {
+  it("sends the pool of a light the player can reach and never one behind a wall or on another floor", async () => {
+    const { app, gm, bob, scene, cellar, ground, token, open } = await setup();
+    await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { visionEnabled: true, ambientLight: 0.2 });
+    // Cellar: a lit light in Bob's room (50,50), one behind the wall at x=300, and a torch on another floor.
+    await call(app, gm.cookie, "PATCH", `/api/floors/${cellar.id}`, {
+      lights: [
+        { x: 50, y: 50, radius: 3, feather: 0.7, color: "#ffaa00" },
+        { x: 600, y: 400, radius: 3 },
+      ],
+    });
+    await call(app, gm.cookie, "PATCH", `/api/floors/${ground.id}`, { lights: [{ x: 120, y: 120, radius: 3 }] });
+    await token("Hero", cellar.id, { controllerIds: [bob.user.id], x: 100 });
+    const { conn, state } = await open(bob.cookie);
+    expect(state.vision?.lights).toHaveLength(1);
+    expect(state.vision?.lights[0]).toMatchObject({ x: 50, y: 50, feather: 0.7, color: "#ffaa00" });
+    // Raw lights and walls stay with the game master.
+    const floors = state.scenes.flatMap((s) => s.floors);
+    expect(floors.length).toBeGreaterThan(0);
+    expect(floors.every((f) => f.lights.length === 0 && f.walls.length === 0)).toBe(true);
+    conn.ws.close();
+  });
+
+  it("stores the ambient light and the feather and keeps old lights valid", async () => {
+    const { app, gm, scene, cellar } = await setup();
+    const updated = (await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { ambientLight: 0.3 })).json() as SceneDto;
+    expect(updated.ambientLight).toBe(0.3);
+    expect(scene.ambientLight).toBe(1);
+    expect(cellar.lights[0]?.feather).toBe(0.4);
+    const bad = await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { ambientLight: 2 });
+    expect(bad.statusCode).toBe(400);
+  });
+});
+
 describe("the migration to floors", () => {
   it("wraps every existing scene in one floor holding its background, walls, lights, drawings and tokens", () => {
     const db = new DatabaseSync(":memory:");
     db.exec("PRAGMA foreign_keys = ON");
-    // The floors migration is the second to last one; the last only adds a token column.
-    for (const sql of MIGRATIONS.slice(0, -2)) db.exec(sql);
+    // The floors migration is the third to last one; the next two only add columns.
+    for (const sql of MIGRATIONS.slice(0, -3)) db.exec(sql);
     db.exec(`
       INSERT INTO users (id, username, password_hash, role, created_at) VALUES ('u1', 'a', 'x', 'user', 1);
       INSERT INTO worlds (id, name, created_at) VALUES ('w1', 'World', 1);
@@ -277,8 +311,12 @@ describe("the migration to floors", () => {
       INSERT INTO lights (id, scene_id, x, y, radius, intensity, color) VALUES ('light1', 's1', 5, 5, 2, 1, '#ffffff');
       INSERT INTO tokens (id, scene_id, name, x, y, size, color) VALUES ('t1', 's1', 'Hero', 0, 0, 1, '#112233');
     `);
+    db.exec(MIGRATIONS.at(-3)!);
     db.exec(MIGRATIONS.at(-2)!);
     db.exec(MIGRATIONS.at(-1)!);
+    // Existing lights keep today's look: scene fully lit, light feathered at the default.
+    expect(db.prepare("SELECT ambient_light FROM scenes").get()).toEqual({ ambient_light: 1 });
+    expect(db.prepare("SELECT feather FROM lights").get()).toEqual({ feather: 0.4 });
     const floor = db.prepare("SELECT * FROM floors").all() as { id: string; scene_id: string; name: string; position: number }[];
     expect(floor).toHaveLength(1);
     expect(floor[0]).toMatchObject({ id: "s1", scene_id: "s1", name: "Crypt", position: 0 });

@@ -16,6 +16,7 @@ const scene: SceneDto = {
   gridDistance: 5,
   distanceUnit: "ft",
   bakedLighting: false,
+  ambientLight: 1,
   floors: [{ id: "f1", name: "Ground", assetId: null, assetKind: null, walls: [], lights: [], drawings: [] }],
   tableFloorId: "f1",
   visionEnabled: false,

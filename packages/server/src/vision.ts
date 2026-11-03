@@ -1,7 +1,18 @@
-import { type FloorDto, type Point, pointInPolygon, type SceneDto, type TokenDto, visibilityPolygon } from "@openvtt/shared";
+import {
+  type FloorDto,
+  type LightDto,
+  type Point,
+  pointInPolygon,
+  type SceneDto,
+  type TokenDto,
+  type VisionLightDto,
+  visibilityPolygon,
+} from "@openvtt/shared";
 
 export interface VisionRegion {
   polygons: Point[][];
+  /** The lights that reach the visible area, with the area each one lights. */
+  lit: { light: LightDto; polygon: Point[] }[];
   contains: (point: Point) => boolean;
 }
 
@@ -18,14 +29,30 @@ export function visionRegion(scene: SceneDto, floor: FloorDto, controlled: reado
     const half = (token.size * scene.gridSize) / 2;
     return visibilityPolygon({ x: token.x + half, y: token.y + half }, blockers, sight);
   });
+  const lit: VisionRegion["lit"] = [];
   for (const light of floor.lights) {
     const position = { x: light.x, y: light.y };
     if (polygons.some((polygon) => pointInPolygon(position, polygon))) {
-      polygons.push(visibilityPolygon(position, blockers, light.radius * scene.gridSize));
+      // A light without shadows ignores walls, so its pool is the plain circle.
+      const polygon = visibilityPolygon(position, light.shadows ? blockers : [], light.radius * scene.gridSize);
+      polygons.push(polygon);
+      lit.push({ light, polygon });
     }
   }
-  return { polygons, contains: (point) => polygons.some((polygon) => pointInPolygon(point, polygon)) };
+  return { polygons, lit, contains: (point) => polygons.some((polygon) => pointInPolygon(point, polygon)) };
 }
+
+/** What goes over the wire for the lights of a region: the pool each one lights, never the light list or the walls. */
+export const flattenLights = (region: VisionRegion, gridSize: number): VisionLightDto[] =>
+  region.lit.map(({ light, polygon }) => ({
+    x: light.x,
+    y: light.y,
+    radius: light.radius * gridSize,
+    intensity: light.intensity,
+    color: light.color,
+    feather: light.feather,
+    polygon: flattenPolygons([polygon])[0]!,
+  }));
 
 /** Flat coordinate lists, which is what goes over the wire and into the map's fog mask. */
 export const flattenPolygons = (polygons: readonly (readonly Point[])[]): number[][] =>

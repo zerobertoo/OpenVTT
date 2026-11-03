@@ -17,7 +17,7 @@ import { AppError } from "./errors.ts";
 import { sceneForViewer, withoutHiddenFloorData } from "./scenes.ts";
 import type { Services } from "./services.ts";
 import type { Viewer } from "./tokens.ts";
-import { flattenPolygons, visionRegion } from "./vision.ts";
+import { flattenLights, flattenPolygons, visionRegion } from "./vision.ts";
 
 interface Connection {
   socket: WebSocket;
@@ -249,7 +249,10 @@ export class Hub {
       const half = (t.size * scene.gridSize) / 2;
       return t.controllerIds.includes(subject.userId) || region.contains({ x: t.x + half, y: t.y + half });
     });
-    return { vision: { sceneId: scene.id, polygons: flattenPolygons(region.polygons) }, tokens };
+    return {
+      vision: { sceneId: scene.id, polygons: flattenPolygons(region.polygons), lights: flattenLights(region, scene.gridSize) },
+      tokens,
+    };
   }
 
   /** Brings one player's view in line with what their tokens see now: newly seen tokens appear, others vanish. */
