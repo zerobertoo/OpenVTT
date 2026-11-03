@@ -1,7 +1,7 @@
 import type { WorldSummaryDto } from "@openvtt/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api";
 import { queryKeys, useSystems, useWorlds } from "../../queries";
@@ -108,6 +108,11 @@ export function WorldListScreen() {
   const user = useUser();
   const queryClient = useQueryClient();
   const worldsQuery = useWorlds();
+  // Someone with a world is about to open it: start the table chunk (map, PixiJS) now instead of after the click.
+  const hasWorlds = (worldsQuery.data?.length ?? 0) > 0;
+  useEffect(() => {
+    if (hasWorlds) void import("../../Table");
+  }, [hasWorlds]);
   const systemsQuery = useSystems();
   const [creating, setCreating] = useState(false);
   const worlds = worldsQuery.data ?? [];
