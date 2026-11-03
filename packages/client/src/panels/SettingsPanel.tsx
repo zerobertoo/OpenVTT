@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { Button } from "../components/ui/button";
+import { Disclosure } from "../components/ui/disclosure";
 import { Field } from "../components/ui/field";
 import { Textarea } from "../components/ui/input";
 import { Select } from "../components/ui/select";
@@ -94,8 +95,10 @@ function ActionLog({ worldId }: { worldId: string }) {
   const [entries, setEntries] = useState<AuditEntryDto[] | null>(null);
   const { run, error } = useAction();
   return (
-    <details onToggle={(e) => e.currentTarget.open && void run(async () => setEntries(await api.auditLog(worldId)))}>
-      <summary className="cursor-pointer font-semibold">{t("members.actionLog")}</summary>
+    <Disclosure
+      title={t("members.actionLog")}
+      onOpenChange={(open) => open && void run(async () => setEntries(await api.auditLog(worldId)))}
+    >
       <ErrorMessage error={error} />
       {entries?.length === 0 && <p className="m-0 text-ink-2 text-sm">{t("members.actionLogEmpty")}</p>}
       <ol className="m-0 mt-2 grid list-none gap-1 p-0 text-sm">
@@ -109,7 +112,7 @@ function ActionLog({ worldId }: { worldId: string }) {
           </li>
         ))}
       </ol>
-    </details>
+    </Disclosure>
   );
 }
 

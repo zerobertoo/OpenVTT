@@ -1,5 +1,5 @@
 import { type ActorDto, type MemberDto, TOKEN_CONDITIONS, type TokenDto } from "@openvtt/shared";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AssetPicker } from "../ui/asset-picker";
 import { Button } from "../ui/button";
@@ -30,16 +30,18 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
   const { t } = useTranslation();
   const [rotation, setRotation] = useState<number | null>(null);
   const [color, setColor] = useState(token.color);
+  // The editor is not remounted when the color or angle changes (that would close the popover and drop slider focus),
+  // so the local values follow the token once the server confirms it.
+  useEffect(() => setColor(token.color), [token.color]);
+  useEffect(() => setRotation(null), [token.rotation]);
   const changeColor = (next: string) => {
     setColor(next);
     onPatch({ color: next });
   };
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const commitRotation = (degrees: number) => {
-    onPatch({ rotation: degrees });
-    setRotation(null);
-  };
+  // Keep the dragged value until the token reports it, so the thumb does not jump back between key presses.
+  const commitRotation = (degrees: number) => onPatch({ rotation: degrees });
 
   return (
     <Card variant="inset" className="grid gap-3" aria-label={t("token.edit")} as="section">

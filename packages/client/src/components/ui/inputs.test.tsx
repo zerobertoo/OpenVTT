@@ -81,6 +81,10 @@ describe("ColorPicker", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     fireEvent.change(hex, { target: { value: "#AABBCC" } });
     expect(onChange).toHaveBeenLastCalledWith("#aabbcc");
+    fireEvent.change(hex, { target: { value: "e5484d" } });
+    expect(onChange).toHaveBeenLastCalledWith("#e5484d");
+    fireEvent.change(hex, { target: { value: "#fa0" } });
+    expect(onChange).toHaveBeenLastCalledWith("#ffaa00");
   });
 });
 

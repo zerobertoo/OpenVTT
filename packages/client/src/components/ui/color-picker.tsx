@@ -22,6 +22,14 @@ export const COLOR_SWATCHES = [
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+/** Accepts `e5484d`, `#e5484d` and the `#fa0` shorthand; returns `#rrggbb` or null. */
+function normalizeHex(raw: string): string | null {
+  const body = raw.trim().replace(/^#/, "");
+  const full = /^[0-9a-fA-F]{3}$/.test(body) ? [...body].map((c) => c + c).join("") : body;
+  const hex = `#${full}`;
+  return HEX.test(hex) ? hex.toLowerCase() : null;
+}
+
 interface ColorPickerProps {
   /** A color as `#rrggbb`. */
   value: string;
@@ -61,7 +69,7 @@ export function ColorPicker({ value, onChange, className, id, ...aria }: ColorPi
           type="button"
           id={id}
           {...aria}
-          // The visible text is the hex, so the accessible name must contain it (WCAG 2.5.3 Label in Name).
+          // With an explicit name, include the visible hex in it (WCAG 2.5.3); inside a Field the label text names the button.
           aria-label={aria["aria-label"] ? `${aria["aria-label"]}: ${value}` : undefined}
           className={cn(
             "flex min-h-11 items-center gap-2 rounded-sm border-[1.5px] border-line bg-surface px-2 text-ink tabular-nums",
@@ -90,14 +98,15 @@ export function ColorPicker({ value, onChange, className, id, ...aria }: ColorPi
         {t("color.hex")}
         <Input
           value={typed}
-          maxLength={7}
+          maxLength={8}
           spellCheck={false}
           autoCapitalize="none"
           autoCorrect="off"
-          aria-invalid={HEX.test(typed) ? undefined : true}
+          aria-invalid={normalizeHex(typed) ? undefined : true}
           onChange={(e) => {
             setTyped(e.target.value);
-            if (HEX.test(e.target.value)) onChange(e.target.value.toLowerCase());
+            const hex = normalizeHex(e.target.value);
+            if (hex) onChange(hex);
           }}
         />
       </label>

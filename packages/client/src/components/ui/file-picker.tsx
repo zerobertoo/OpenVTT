@@ -5,6 +5,8 @@ import { cn } from "../../lib/cn";
 interface FilePickerProps {
   accept?: string;
   multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
   name?: string;
   id?: string;
   onChange?: (files: File[]) => void;
@@ -19,7 +21,7 @@ interface FilePickerProps {
  * name underneath are decoration that mirrors it.
  */
 export const FilePicker = forwardRef<HTMLInputElement, FilePickerProps>(function FilePicker(
-  { accept, multiple, name, id, onChange, className, ...aria },
+  { accept, multiple, disabled, required, name, id, onChange, className, ...aria },
   ref,
 ) {
   const { t } = useTranslation();
@@ -54,6 +56,8 @@ export const FilePicker = forwardRef<HTMLInputElement, FilePickerProps>(function
         type="file"
         accept={accept}
         multiple={multiple}
+        disabled={disabled}
+        required={required}
         onChange={change}
         {...aria}
         className="peer absolute inset-0 z-[1] size-full cursor-pointer opacity-0"

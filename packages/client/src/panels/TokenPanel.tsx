@@ -130,10 +130,8 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
             JSON.stringify([
               token.name,
               token.size,
-              token.color,
               token.hidden,
               token.actorId,
-              token.rotation,
               token.assetId,
               token.hp,
               token.hpMax,
