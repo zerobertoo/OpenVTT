@@ -74,7 +74,11 @@ export function useWorldState(worldId: string) {
         const message = JSON.parse(event.data) as ServerMessage;
         // Pings are moments, not state: they go straight to the map instead of through the reducer.
         if (message.type === "map.ping") useTableUi.getState().showPing(message.ping);
-        else dispatch(message);
+        // The server refused an action (locked layer, observer, bad input); say so instead of letting the change silently snap back.
+        else if (message.type === "error") {
+          const t = translate.current;
+          toast({ title: t(`errors.${message.code}`, { defaultValue: t("errors.internal_error") }), tone: "error" });
+        } else dispatch(message);
       };
       socket.onclose = () => {
         setConnected(false);
