@@ -8,7 +8,7 @@
   "scripts": {
     "typecheck": "tsc -p ."
   },
-  "devDependencies": { "typescript": "^6.0.3" },
+  "devDependencies": { "typescript": "^7.0.2" },
   "dependencies": {
     "@openvtt/sdk": "workspace:*",
     "zod": "^4.6.7"
