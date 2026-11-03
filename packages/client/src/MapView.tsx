@@ -75,6 +75,11 @@ const MAX_ZOOM = 8;
 /** How much one press of the zoom keys scales the view. */
 const ZOOM_STEP = 1.25;
 
+/** The smallest zoom allowed: a huge map must still fit a small screen, so the floor drops to the fit scale when needed. */
+function minZoomFor(screen: { width: number; height: number }, scene: { width: number; height: number } | null | undefined) {
+  return scene ? Math.min(MIN_ZOOM, screen.width / scene.width, screen.height / scene.height) : MIN_ZOOM;
+}
+
 /** Shows the whole map centered in the view, never enlarged past its real size. */
 function fitToScreen(world: Container, screen: { width: number; height: number }, scene: { width: number; height: number }) {
   const scale = Math.min(screen.width / scene.width, screen.height / scene.height, 1);
@@ -103,10 +108,24 @@ function loadTexture(assetId: string, inUse: () => Set<string>, still = false): 
           return Texture.from(bitmap);
         })
       : fetch(assetUrl(assetId))
-          .then((r) => r.blob())
+          .then((r) => {
+            if (!r.ok) throw new Error(`asset ${assetId}: ${r.status}`);
+            return r.blob();
+          })
           .then((blob) => createImageBitmap(blob))
           .then((bitmap) => Texture.from(bitmap)));
-  touchLru(textureCache, assetId, cached, MAX_TEXTURES, inUse(), (texture) => void texture.then((t) => t.destroy(true)));
+  touchLru(
+    textureCache,
+    assetId,
+    cached,
+    MAX_TEXTURES,
+    inUse(),
+    (texture) => void texture.then((t) => t.destroy(true)).catch(() => undefined),
+  );
+  // A failed load must not stay cached, or the picture could never be retried without reloading the page.
+  cached.catch(() => {
+    if (textureCache.get(assetId) === cached) textureCache.delete(assetId);
+  });
   return cached;
 }
 
@@ -421,7 +440,13 @@ export function MapView(props: Props) {
           e.stopPropagation();
           const next = currentTwoFingers();
           if (!next || !twoFingers) return;
-          const view = applyTwoFingerGesture({ scale: world.scale.x, x: world.x, y: world.y }, twoFingers, next, MIN_ZOOM, MAX_ZOOM);
+          const view = applyTwoFingerGesture(
+            { scale: world.scale.x, x: world.x, y: world.y },
+            twoFingers,
+            next,
+            minZoomFor(app.screen, latest.current.scene),
+            MAX_ZOOM,
+          );
           world.scale.set(view.scale);
           world.position.set(view.x, view.y);
           twoFingers = next;
@@ -447,7 +472,10 @@ export function MapView(props: Props) {
           const rect = element.getBoundingClientRect();
           const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
           const before = world.toLocal(cursor);
-          const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, world.scale.x * Math.exp(-e.deltaY * 0.0015)));
+          const next = Math.min(
+            MAX_ZOOM,
+            Math.max(minZoomFor(app.screen, latest.current.scene), world.scale.x * Math.exp(-e.deltaY * 0.0015)),
+          );
           world.scale.set(next);
           world.position.set(cursor.x - before.x * next, cursor.y - before.y * next);
         },
@@ -556,12 +584,17 @@ export function MapView(props: Props) {
         }
       } else if (floor.assetId) {
         disposeVideo(e);
-        const texture = await loadTexture(floor.assetId, assetsInUse);
+        const texture = await loadTexture(floor.assetId, assetsInUse).catch(() => null);
         if (run !== latestRun) return;
-        const sprite = new Sprite(texture);
-        sprite.width = scene.width;
-        sprite.height = scene.height;
-        e.background.addChild(sprite);
+        if (texture) {
+          const sprite = new Sprite(texture);
+          sprite.width = scene.width;
+          sprite.height = scene.height;
+          e.background.addChild(sprite);
+        } else {
+          // The picture did not load: keep the grid, tokens and view working over a plain background.
+          e.background.addChild(new Graphics().rect(0, 0, scene.width, scene.height).fill(0x2a2d34));
+        }
       } else {
         disposeVideo(e);
         e.background.addChild(new Graphics().rect(0, 0, scene.width, scene.height).fill(0x2a2d34));
@@ -904,15 +937,17 @@ export function MapView(props: Props) {
       view.addChild(drawStatus(token, px, gridSize));
       if (token.assetId) {
         const assetId = token.assetId;
-        void loadTexture(assetId, assetsInUse).then((texture) => {
-          if (view.destroyed) return;
-          const sprite = new Sprite(texture);
-          sprite.anchor.set(0.5);
-          sprite.width = sprite.height = px - 4;
-          const mask = new Graphics().circle(0, 0, px / 2 - 2).fill(0xffffff);
-          sprite.mask = mask;
-          view.addChild(mask, sprite);
-        });
+        void loadTexture(assetId, assetsInUse)
+          .catch(() => null)
+          .then((texture) => {
+            if (!texture || view.destroyed) return;
+            const sprite = new Sprite(texture);
+            sprite.anchor.set(0.5);
+            sprite.width = sprite.height = px - 4;
+            const mask = new Graphics().circle(0, 0, px / 2 - 2).fill(0xffffff);
+            sprite.mask = mask;
+            view.addChild(mask, sprite);
+          });
       } else {
         const initial = new Text({
           text: token.name.slice(0, 2).toUpperCase(),
@@ -960,7 +995,13 @@ export function MapView(props: Props) {
       return;
     }
     const before = e.world.toLocal(center);
-    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, e.world.scale.x * (viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP)));
+    const next = Math.min(
+      MAX_ZOOM,
+      Math.max(
+        minZoomFor(e.app.screen, latest.current.scene),
+        e.world.scale.x * (viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP),
+      ),
+    );
     e.world.scale.set(next);
     e.world.position.set(center.x - before.x * next, center.y - before.y * next);
   }, [viewCommand, latest]);
