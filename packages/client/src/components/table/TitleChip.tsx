@@ -31,8 +31,12 @@ export function TitleChip({ worldName, connected, onShowShortcuts, isGm }: Props
       </Tip>
       <Logo />
       <strong>{worldName}</strong>
+      {/* The live region stays mounted so the change is announced; the visible chip only mirrors it. */}
+      <span role="status" className="sr-only">
+        {connected ? "" : t("table.disconnected")}
+      </span>
       {!connected && (
-        <span className="status" role="status">
+        <span className="status" aria-hidden="true">
           {t("table.disconnected")}
         </span>
       )}

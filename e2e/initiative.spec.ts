@@ -39,6 +39,6 @@ test("the game master runs the initiative and a player sees it without the hidde
 
   await page.getByRole("button", { name: "Next turn" }).click();
   await expect(playerOrder.getByRole("listitem")).toHaveAttribute("aria-current", "true");
-  await expect(playerPage.getByText("Round 1")).toBeVisible();
+  await expect(playerPage.getByText("Round 1", { exact: true })).toBeVisible();
   await player.close();
 });

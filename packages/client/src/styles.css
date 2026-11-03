@@ -204,7 +204,8 @@ output { font-weight: 800; font-size: 1.1rem; }
 
 .drawer { position: absolute; top: 0.9rem; right: 0.9rem; bottom: 0.9rem; z-index: 2; width: var(--drawer-width); max-width: calc(100% - 1.8rem); display: grid; grid-template-columns: 4.1rem minmax(0, 1fr); overflow: hidden; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-chrome); }
 .drawer-resizer { position: absolute; top: 0; bottom: 0; left: 0; z-index: 1; width: 0.6rem; cursor: ew-resize; touch-action: none; }
-.drawer-resizer:hover, .drawer-resizer:focus-visible { background: color-mix(in srgb, var(--accent) 45%, transparent); outline: none; }
+.drawer-resizer:hover, .drawer-resizer:focus-visible { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.drawer-resizer:focus-visible { outline: 3px solid var(--dice); outline-offset: -3px; }
 .tv-view { cursor: none; }
 .focus-exit { position: absolute; top: 0.9rem; left: 0.9rem; z-index: 3; }
 @media (pointer: coarse) {

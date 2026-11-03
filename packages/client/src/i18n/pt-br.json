@@ -350,6 +350,7 @@
     "list": "Ordem de iniciativa",
     "round": "Rodada {{round}}",
     "turn": "Vez",
+    "turnAnnounce": "Vez de {{name}}, rodada {{round}}",
     "score": "Valor de iniciativa",
     "scoreFor": "Iniciativa de {{name}}",
     "add": "Adicionar à ordem",

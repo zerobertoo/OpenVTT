@@ -38,6 +38,16 @@ export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, 
         {combat && <Badge tone="accent">{t("initiative.round", { round: combat.round })}</Badge>}
       </div>
 
+      {/* Announces whose turn it is after the turn or round changes, for people who do not see the list. */}
+      <p role="status" className="sr-only">
+        {combat?.turnTokenId
+          ? t("initiative.turnAnnounce", {
+              name: combat.combatants.find((c) => c.tokenId === combat.turnTokenId)?.name ?? "",
+              round: combat.round,
+            })
+          : ""}
+      </p>
+
       {combat && combat.combatants.length > 0 && (
         <ol aria-label={t("initiative.list")} className="m-0 grid list-none gap-1 p-0">
           {combat.combatants.map((c) => (

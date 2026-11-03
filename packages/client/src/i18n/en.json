@@ -350,6 +350,7 @@
     "list": "Initiative order",
     "round": "Round {{round}}",
     "turn": "Turn",
+    "turnAnnounce": "{{name}}'s turn, round {{round}}",
     "score": "Initiative score",
     "scoreFor": "Initiative of {{name}}",
     "add": "Add to order",
