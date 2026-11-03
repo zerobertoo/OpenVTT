@@ -392,6 +392,7 @@
     "name": "Nome",
     "add": "Adicionar token",
     "noneSelected": "Selecione um token no mapa.",
+    "notYours": "Você não pode editar este token. Peça ao mestre se precisar mudar algo.",
     "rotation": "Rotação",
     "size": "Tamanho (células)",
     "color": "Cor",

@@ -152,6 +152,7 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
         />
       )}
       {sceneTokens.length > 0 && !token && <p className="muted">{t("token.noneSelected")}</p>}
+      {token && !canControl && <p className="muted">{t("token.notYours")}</p>}
       <Initiative
         combat={state.combat}
         isGm={isGm}

@@ -392,6 +392,7 @@
     "name": "Name",
     "add": "Add token",
     "noneSelected": "Select a token on the map.",
+    "notYours": "You cannot edit this token. Ask the game master if you need to change it.",
     "rotation": "Rotation",
     "size": "Size (cells)",
     "color": "Color",
