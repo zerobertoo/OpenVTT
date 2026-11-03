@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use OpenVTT in research or documentation, please cite it as below."
+title: "OpenVTT"
+abstract: "An open source, self-hosted virtual tabletop for tabletop RPGs."
+type: software
+authors:
+  - family-names: Roberto
+    given-names: José
+repository-code: "https://github.com/zerobertoo/OpenVTT"
+url: "https://zerobertoo.github.io/OpenVTT/"
+license: AGPL-3.0-only
