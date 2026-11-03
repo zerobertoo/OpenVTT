@@ -6,7 +6,8 @@ import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { Field } from "../ui/field";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 
 const MIN_CELL = 10;
 const MAX_CELL = 500;
@@ -104,7 +105,7 @@ export function GridAdjuster({ open, onOpenChange, scene, background, onApply, p
       </div>
       <Field label={t("scene.gridAdjust.zoom")}>
         {(control) => (
-          <Select {...control} value={zoom} onChange={(e) => setZoom(Number(e.target.value))}>
+          <Select {...control} value={zoom} onValueChange={(value) => setZoom(Number(value))}>
             <option value={1}>1×</option>
             <option value={2}>2×</option>
             <option value={3}>3×</option>

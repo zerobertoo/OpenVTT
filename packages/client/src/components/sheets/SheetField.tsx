@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Field } from "../ui/field";
-import { Input, Select, Textarea } from "../ui/input";
+import { Input, Textarea } from "../ui/input";
+import { Select } from "../ui/select";
 
 type Row = Record<string, string | number | boolean>;
 type LabelSource = { id: string; label?: SheetFieldDef["label"] };
@@ -86,7 +87,7 @@ export function SheetField({ field, value, label, labelFor, onCommit, readOnly }
       return (
         <Field label={label}>
           {(control) => (
-            <Select {...control} defaultValue={value as string} disabled={readOnly} onChange={(e) => onCommit(e.target.value)}>
+            <Select {...control} defaultValue={value as string} disabled={readOnly} onValueChange={(value) => onCommit(value)}>
               {field.options.map((option) => (
                 <option key={option.value} value={option.value}>
                   {labelFor({ id: option.value, label: option.label })}

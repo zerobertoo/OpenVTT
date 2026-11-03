@@ -1,5 +1,7 @@
 import {
   BookOpen,
+  Check,
+  ChevronDown,
   ChevronLeft,
   CircleUserRound,
   Dices,
@@ -24,6 +26,8 @@ import {
 
 const ICONS = {
   back: ChevronLeft,
+  chevronDown: ChevronDown,
+  check: Check,
   layers: Layers,
   chat: MessageSquare,
   tokens: CircleUserRound,

@@ -76,7 +76,8 @@ describe("ChatComposer", () => {
     render(<ChatComposer recipients={recipients} onSend={onSend} error={null} />);
 
     await userEvent.type(screen.getByLabelText(/Message, or/), "/r 2d6");
-    await userEvent.selectOptions(screen.getByLabelText("To"), "u2");
+    await userEvent.click(screen.getByRole("combobox", { name: "To" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Grace" }));
     await userEvent.click(screen.getByLabelText("GM only"));
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
 

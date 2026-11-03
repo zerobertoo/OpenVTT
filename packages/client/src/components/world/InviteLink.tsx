@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import { Field } from "../ui/field";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 import { toast } from "../ui/toast";
 
 export interface InviteOptions {
@@ -45,7 +46,7 @@ export function InviteLink({ link, onCreate, creating }: Props) {
             <Select
               {...control}
               value={options.expiresInHours ?? ""}
-              onChange={(e) => setOptions({ ...options, expiresInHours: number(e.target.value) })}
+              onValueChange={(value) => setOptions({ ...options, expiresInHours: number(value) })}
             >
               {EXPIRY_HOURS.map((hours) => (
                 <option key={hours ?? "never"} value={hours ?? ""}>
@@ -60,7 +61,7 @@ export function InviteLink({ link, onCreate, creating }: Props) {
             <Select
               {...control}
               value={options.maxUses ?? ""}
-              onChange={(e) => setOptions({ ...options, maxUses: number(e.target.value) })}
+              onValueChange={(value) => setOptions({ ...options, maxUses: number(value) })}
             >
               {USES.map((uses) => (
                 <option key={uses ?? "any"} value={uses ?? ""}>
@@ -75,7 +76,7 @@ export function InviteLink({ link, onCreate, creating }: Props) {
             <Select
               {...control}
               value={options.role}
-              onChange={(e) => setOptions({ ...options, role: e.target.value as InviteOptions["role"] })}
+              onValueChange={(value) => setOptions({ ...options, role: value as InviteOptions["role"] })}
             >
               <option value="player">{t("members.roles.player")}</option>
               <option value="observer">{t("members.roles.observer")}</option>

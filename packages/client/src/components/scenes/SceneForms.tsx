@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Field } from "../ui/field";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 
 function GridTypeSelect({ defaultValue }: { defaultValue: string }) {
   const { t } = useTranslation();

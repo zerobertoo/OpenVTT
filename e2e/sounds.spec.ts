@@ -30,7 +30,7 @@ test("a player is told it is their turn and hears the music the game master play
     mimeType: "audio/ogg",
     buffer: Buffer.concat([Buffer.from("OggS"), Buffer.alloc(4096, 1)]),
   });
-  await expect(music.getByLabel("Track")).not.toHaveValue("");
+  await expect(music.getByRole("combobox", { name: "Track" })).not.toHaveText("Choose a track");
   await music.getByRole("button", { name: "Play for everyone" }).click();
   await expect(music.getByRole("button", { name: "Stop the music" })).toBeVisible();
   await expect.poll(async () => (await worldState(page, worldId)).ambient?.playing).toBe(true);

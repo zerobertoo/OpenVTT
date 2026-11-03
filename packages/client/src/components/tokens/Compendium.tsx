@@ -7,7 +7,8 @@ import type { TableActions } from "../../lib/tableActions";
 import { useWorldSystem } from "../../queries";
 import { ErrorMessage, useAction } from "../../ui";
 import { Button } from "../ui/button";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 
 export const COMPENDIUM_DRAG_TYPE = "application/x-openvtt-compendium";
 
@@ -71,7 +72,7 @@ export function Compendium({ worldId, onPlace, actors, actions }: Props) {
         onChange={(e) => setQuery(e.target.value)}
       />
       {itemSheets.length > 0 && (
-        <Select aria-label={t("compendium.sheet")} value={target?.id} onChange={(e) => setSheetId(e.target.value)}>
+        <Select aria-label={t("compendium.sheet")} value={target?.id} onValueChange={(value) => setSheetId(value)}>
           {itemSheets.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}

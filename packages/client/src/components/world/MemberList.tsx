@@ -5,7 +5,7 @@ import { Avatar } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/dialog";
-import { Select } from "../ui/input";
+import { Select } from "../ui/select";
 
 interface Management {
   onRoleChange: (userId: string, role: WorldRole) => void;
@@ -37,7 +37,7 @@ export function MemberList({ members, manage }: { members: MemberDto[]; manage?:
                 <Select
                   aria-label={t("members.roleOf", { name: member.displayName })}
                   value={member.role}
-                  onChange={(e) => manage.onRoleChange(member.userId, e.target.value as WorldRole)}
+                  onValueChange={(value) => manage.onRoleChange(member.userId, value as WorldRole)}
                   className="w-auto py-1"
                 >
                   {ASSIGNABLE_ROLES.map((role) => (

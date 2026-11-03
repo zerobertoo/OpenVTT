@@ -1,7 +1,7 @@
-import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
 
-const controlStyles = [
+export const controlStyles = [
   "w-full min-w-0 rounded-sm border-[1.5px] border-line bg-surface px-[0.85rem] py-[0.6rem] text-ink caret-accent",
   "placeholder:text-ink-2 read-only:bg-surface-2 disabled:opacity-55 aria-invalid:border-danger",
 ].join(" ");
@@ -17,9 +17,4 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   ref,
 ) {
   return <textarea ref={ref} className={cn(controlStyles, "resize-y", className)} {...rest} />;
-});
-
-/** The platform `select` (menus, keyboard and mobile pickers come for free), styled to match. */
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, ...rest }, ref) {
-  return <select ref={ref} className={cn(controlStyles, className)} {...rest} />;
 });

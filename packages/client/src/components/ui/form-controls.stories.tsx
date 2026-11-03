@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Checkbox, Switch } from "./checkbox";
 import { Field } from "./field";
-import { Input, Select, Textarea } from "./input";
+import { Input, Textarea } from "./input";
+import { Select } from "./select";
 
 const meta = {
   title: "Primitives/Form controls",

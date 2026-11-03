@@ -4,8 +4,8 @@ import { Icon } from "../../icons";
 import type { MapLayers } from "../../tableStore";
 import { Switch } from "../ui/checkbox";
 import { Field } from "../ui/field";
-import { Select } from "../ui/input";
 import { Popover } from "../ui/popover";
+import { Select } from "../ui/select";
 
 interface Props {
   scene: SceneDto | null;
@@ -54,7 +54,7 @@ export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUse
             }
           >
             {(control) => (
-              <Select {...control} value={viewAsUserId ?? ""} onChange={(e) => onViewAsChange(e.target.value || null)}>
+              <Select {...control} value={viewAsUserId ?? ""} onValueChange={(value) => onViewAsChange(value || null)}>
                 <option value="">{t("layers.viewAsNobody")}</option>
                 {players.map((p) => (
                   <option key={p.userId} value={p.userId}>

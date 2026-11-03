@@ -7,7 +7,8 @@ import { Card } from "../ui/card";
 import { Checkbox, Switch } from "../ui/checkbox";
 import { ConfirmDialog } from "../ui/dialog";
 import { Field } from "../ui/field";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 
 interface Props {
   token: TokenDto;
@@ -130,7 +131,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
           {floors.length > 1 && (
             <Field label={t("token.floor")} hint={t("token.floorHint")}>
               {(control) => (
-                <Select {...control} defaultValue={token.floorId} onChange={(e) => onPatch({ floorId: e.target.value })}>
+                <Select {...control} defaultValue={token.floorId} onValueChange={(value) => onPatch({ floorId: value })}>
                   {[...floors].reverse().map((floor) => (
                     <option key={floor.id} value={floor.id}>
                       {floor.name}
@@ -192,7 +193,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
 
           <Field label={t("token.actor")}>
             {(control) => (
-              <Select {...control} defaultValue={token.actorId ?? ""} onChange={(e) => onPatch({ actorId: e.target.value || null })}>
+              <Select {...control} defaultValue={token.actorId ?? ""} onValueChange={(value) => onPatch({ actorId: value || null })}>
                 <option value="">{t("token.noActor")}</option>
                 {actors.map((actor) => (
                   <option key={actor.id} value={actor.id}>

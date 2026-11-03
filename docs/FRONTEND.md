@@ -28,7 +28,7 @@ Everything lives in `packages/client/src/components/`: `ui/` for primitives, `ta
 | `Button` | Any action | `primary` (teal), `secondary`, `ghost`, `danger`; `sm`, `md`; `icon` (square, requires `aria-label`) | hover, focus-visible, active, disabled, pending (spinner, `aria-busy`) | Real `<button>`; pending keeps width and announces via `aria-busy` | own (cva) |
 | `Input`, `Textarea` | Text entry | `md`; `invalid` | focus, disabled, read-only, invalid | Always inside `Field`; `aria-invalid`, `aria-describedby` | native |
 | `Field` | Label + control + hint + error | stacked, inline (checkbox/switch) | error, required | `label[for]`, hint and error linked by id, error is `role="alert"` | own |
-| `Select` | Pick one from a short list | `md` | focus, disabled, invalid | Native `<select>` (decided); custom arrow only | native |
+| `Select` | Pick one from a short list | `md` | focus, disabled, invalid | Radix Select, same look in every browser and on phones; options are written as `<option>` children, `Field` props go on the trigger | Radix |
 | `Checkbox` | Boolean in forms | default | checked, indeterminate, disabled | Native input | native |
 | `Switch` | Boolean that applies immediately | default | on, off, disabled | Native checkbox with `role="switch"` | native |
 | `Card` | Grouped content on a surface | `plain`, `interactive` (whole card is a link/button) | hover, focus | Heading level chosen by caller | own |
@@ -50,7 +50,7 @@ Everything lives in `packages/client/src/components/`: `ui/` for primitives, `ta
 | `VisuallyHidden` | Text for screen readers only | none | none | none | Radix |
 | `Toolbar` | Group of tools with one tab stop | horizontal | pressed (`aria-pressed`) | Roving tabindex, arrow keys | Radix Toolbar |
 
-Not wrapped on purpose: scroll areas (native scrolling), selects (native), date pickers (`<input type="date">`), command palette (not needed).
+Not wrapped on purpose: scroll areas (native scrolling), date pickers (`<input type="date">`), command palette (not needed).
 
 ### 2.2 Table composites (`components/table/`)
 

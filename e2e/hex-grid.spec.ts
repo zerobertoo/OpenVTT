@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { snapToHex } from "../packages/client/src/lib/hex";
-import { createAndOpenWorld, expectNoAxeViolations, registerNewUser, worldIdOf, worldState } from "./helpers";
+import { chooseOption, createAndOpenWorld, expectNoAxeViolations, registerNewUser, worldIdOf, worldState } from "./helpers";
 
 test("a scene switches to a hex grid and tokens moved by keyboard land on hex centers", async ({ page }) => {
   await registerNewUser(page);
@@ -15,7 +15,7 @@ test("a scene switches to a hex grid and tokens moved by keyboard land on hex ce
 
   await page.getByRole("tab", { name: "Scenes" }).click();
   const form = page.getByRole("form", { name: "Scene settings" });
-  await form.getByLabel("Grid").selectOption("hexPointy");
+  await chooseOption(form, "Grid", "Hexes, pointy top");
   await form.getByRole("button", { name: "Save" }).click();
   await expect.poll(async () => (await worldState(page, worldId)).scenes[0]?.gridType).toBe("hexPointy");
   await expectNoAxeViolations(page);

@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
-import { Select, Textarea } from "../components/ui/input";
+import { Textarea } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 import { InviteLink } from "../components/world/InviteLink";
 import { MemberList } from "../components/world/MemberList";
 import { MusicControls } from "../components/world/MusicControls";
@@ -52,7 +53,7 @@ function TemplateEditor({ worldId }: { worldId: string }) {
       <h3>{t("settings.template")}</h3>
       <Field label={t("sheet.type")}>
         {(control) => (
-          <Select {...control} value={type} onChange={(e) => setType(e.target.value as ActorType)}>
+          <Select {...control} value={type} onValueChange={(value) => setType(value as ActorType)}>
             {(Object.keys(system.manifest.actorTypes) as ActorType[]).map((k) => (
               <option key={k} value={k}>
                 {t(k === "npc" ? "sheet.npc" : "sheet.character")}

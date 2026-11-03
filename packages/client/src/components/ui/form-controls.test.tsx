@@ -4,7 +4,60 @@ import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { Checkbox, Switch } from "./checkbox";
 import { Field } from "./field";
-import { Input, Select, Textarea } from "./input";
+import { Input, Textarea } from "./input";
+import { Select } from "./select";
+
+describe("Select", () => {
+  it("opens a list, reports the chosen value and shows it", async () => {
+    const onValueChange = vi.fn();
+    render(
+      <Field label="Shape">
+        {(c) => (
+          <Select {...c} defaultValue="line" onValueChange={onValueChange}>
+            <option value="line">Line</option>
+            <option value="cone">Cone</option>
+          </Select>
+        )}
+      </Field>,
+    );
+    const select = screen.getByRole("combobox", { name: "Shape" });
+    expect(select).toHaveTextContent("Line");
+    await userEvent.click(select);
+    await userEvent.click(await screen.findByRole("option", { name: "Cone" }));
+    expect(onValueChange).toHaveBeenCalledWith("cone");
+    expect(select).toHaveTextContent("Cone");
+  });
+
+  it("supports an empty value for 'none' and sends the value with a form", async () => {
+    const onValueChange = vi.fn();
+    const { container } = render(
+      <form>
+        <Select aria-label="Owner" name="owner" defaultValue="" onValueChange={onValueChange}>
+          <option value="">Nobody</option>
+          <option value="u1">Ana</option>
+        </Select>
+      </form>,
+    );
+    expect(screen.getByRole("combobox", { name: "Owner" })).toHaveTextContent("Nobody");
+    await userEvent.click(screen.getByRole("combobox", { name: "Owner" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Ana" }));
+    expect(onValueChange).toHaveBeenCalledWith("u1");
+    expect(new FormData(container.querySelector("form") as HTMLFormElement).get("owner")).toBe("u1");
+    await userEvent.click(screen.getByRole("combobox", { name: "Owner" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Nobody" }));
+    expect(onValueChange).toHaveBeenLastCalledWith("");
+  });
+
+  it("does not open while disabled", async () => {
+    render(
+      <Select aria-label="Locked" disabled defaultValue="a">
+        <option value="a">A</option>
+      </Select>,
+    );
+    await userEvent.click(screen.getByRole("combobox", { name: "Locked" }));
+    expect(screen.queryByRole("option")).toBeNull();
+  });
+});
 
 describe("Field", () => {
   it("links the label, hint and error to the control", () => {

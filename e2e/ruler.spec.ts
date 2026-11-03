@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
+import { chooseOption, createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
 
 test("the ruler offers its shapes and measures in metric unless told otherwise", async ({ page }) => {
   await registerNewUser(page);
@@ -11,12 +11,12 @@ test("the ruler offers its shapes and measures in metric unless told otherwise",
   await expect(options).toHaveCount(0);
   await page.keyboard.press("r");
   await expect(options).toBeVisible();
-  await expect(options.getByLabel("Distances")).toHaveValue("metric");
-  await expect(options.getByLabel("Shape")).toHaveValue("line");
+  await expect(options.getByRole("combobox", { name: "Distances" })).toHaveText("Metric (m, km)");
+  await expect(options.getByRole("combobox", { name: "Shape" })).toHaveText("Line");
   await expect(options.getByLabel("Diagonals")).toBeVisible();
 
   // Diagonal rules only matter for a line; other shapes hide them.
-  await options.getByLabel("Shape").selectOption("cone");
+  await chooseOption(options, "Shape", "Cone");
   await expect(options.getByLabel("Diagonals")).toHaveCount(0);
   await expectNoAxeViolations(page);
 
@@ -24,7 +24,7 @@ test("the ruler offers its shapes and measures in metric unless told otherwise",
   await page.reload();
   await expect(page.getByRole("tablist")).toBeVisible();
   await page.keyboard.press("r");
-  await expect(options.getByLabel("Shape")).toHaveValue("cone");
+  await expect(options.getByRole("combobox", { name: "Shape" })).toHaveText("Cone");
   await page.keyboard.press("v");
   await expect(options).toHaveCount(0);
 });

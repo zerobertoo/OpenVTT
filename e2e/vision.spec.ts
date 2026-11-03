@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAndOpenWorld, registerNewUser } from "./helpers";
+import { chooseOption, createAndOpenWorld, registerNewUser } from "./helpers";
 
 test("with fog of war a player only gets the tokens their token can see, and a door changes that", async ({ page, browser }) => {
   await registerNewUser(page);
@@ -45,10 +45,10 @@ test("with fog of war a player only gets the tokens their token can see, and a d
   const gmList = page.getByRole("list", { name: "Tokens in this scene" });
   await expect(gmList.getByText("Ghoul")).toBeVisible();
   await page.getByRole("button", { name: "Layers", exact: true }).click();
-  await page.getByLabel("View as player").selectOption({ label: "Pat" });
+  await chooseOption(page, "View as player", "Pat");
   await expect(gmList.getByText("Ghoul")).toHaveCount(0);
   await expect(gmList.getByText("Rat")).toBeVisible();
-  await page.getByLabel("View as player").selectOption({ label: "Game master (see everything)" });
+  await chooseOption(page, "View as player", "Game master (see everything)");
   await expect(gmList.getByText("Ghoul")).toBeVisible();
   await player.close();
 });

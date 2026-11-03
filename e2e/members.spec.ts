@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAndOpenWorld, expectNoAxeViolations, registerNewUser, worldIdOf } from "./helpers";
+import { chooseOption, createAndOpenWorld, expectNoAxeViolations, registerNewUser, worldIdOf } from "./helpers";
 
 test("the game master invites an observer, promotes and mutes them, and reads the action log", async ({ page, browser }) => {
   await registerNewUser(page);
@@ -8,8 +8,8 @@ test("the game master invites an observer, promotes and mutes them, and reads th
   await page.request.post(`/api/worlds/${worldId}/scenes`, { data: { name: "Hall", width: 700, height: 500 } });
 
   await page.getByRole("tab", { name: "World" }).click();
-  await page.getByLabel("Joins as").selectOption("observer");
-  await page.getByLabel("Uses").selectOption("1");
+  await chooseOption(page, "Joins as", "Observer");
+  await chooseOption(page, "Uses", "1");
   await page.getByRole("button", { name: "Create invite link" }).click();
   const link = await page.getByLabel("Invite link").inputValue();
   await expectNoAxeViolations(page);
@@ -22,7 +22,7 @@ test("the game master invites an observer, promotes and mutes them, and reads th
   await guestPage.getByRole("button", { name: "Join", exact: true }).click();
   await expect(guestPage.getByText("Observers read the chat but cannot write in it.")).toBeVisible();
 
-  await page.getByLabel("Role of Olga").selectOption("player");
+  await chooseOption(page, "Role of Olga", "Player");
   await expect(guestPage.getByLabel(/^Message, or/)).toBeVisible();
   await page.getByRole("button", { name: "Mute Olga" }).click();
   await expect(guestPage.getByText("The game master muted you in this world.")).toBeVisible();

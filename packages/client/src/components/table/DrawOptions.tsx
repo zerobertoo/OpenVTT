@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { type DrawSettings, useTableUi } from "../../tableStore";
 import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/dialog";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 
 interface Props {
   isGm: boolean;
@@ -30,7 +31,7 @@ export function DrawOptions({ isGm, lockedLayers, onClear }: Props) {
         className="w-auto"
         aria-label={t("draw.kind")}
         value={draw.kind}
-        onChange={(e) => setDraw({ kind: e.target.value as DrawSettings["kind"] })}
+        onValueChange={(value) => setDraw({ kind: value as DrawSettings["kind"] })}
       >
         {kinds.map((kind) => (
           <option key={kind} value={kind}>
@@ -62,7 +63,7 @@ export function DrawOptions({ isGm, lockedLayers, onClear }: Props) {
           className="w-auto"
           aria-label={t("draw.layer")}
           value={draw.layer}
-          onChange={(e) => setDraw({ layer: e.target.value as DrawSettings["layer"] })}
+          onValueChange={(value) => setDraw({ layer: value as DrawSettings["layer"] })}
         >
           {DRAWING_LAYERS.map((layer) => (
             <option key={layer} value={layer}>

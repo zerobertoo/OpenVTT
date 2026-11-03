@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAndOpenWorld, expectNoAxeViolations, registerNewUser, worldIdOf } from "./helpers";
+import { chooseOption, createAndOpenWorld, expectNoAxeViolations, registerNewUser, worldIdOf } from "./helpers";
 
 test("a first visit shows the table tour once, and the look can change contrast, text size and accent", async ({ page }) => {
   await registerNewUser(page);
@@ -23,9 +23,9 @@ test("a first visit shows the table tour once, and the look can change contrast,
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   await page.getByRole("tab", { name: "World" }).click();
-  await page.getByLabel("Contrast").selectOption("high");
-  await page.getByLabel("Text size").selectOption("1.3");
-  await page.getByLabel("Accent color").selectOption("violet");
+  await chooseOption(page, "Contrast", "High");
+  await chooseOption(page, "Text size", "130%");
+  await chooseOption(page, "Accent color", "Violet");
   const html = page.locator("html");
   await expect(html).toHaveAttribute("data-contrast", "high");
   await expect(html).toHaveAttribute("data-accent", "violet");

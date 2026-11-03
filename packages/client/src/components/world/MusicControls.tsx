@@ -6,7 +6,7 @@ import { ErrorMessage, useAction } from "../../ui";
 import { Button } from "../ui/button";
 import { Field } from "../ui/field";
 import { FileButton } from "../ui/file-button";
-import { Select } from "../ui/input";
+import { Select } from "../ui/select";
 
 export function MusicControls({ worldId, ambient }: { worldId: string; ambient: AmbientDto | null }) {
   const { t } = useTranslation();
@@ -24,7 +24,7 @@ export function MusicControls({ worldId, ambient }: { worldId: string; ambient: 
       {tracks.length > 0 && (
         <Field label={t("alerts.track")}>
           {(control) => (
-            <Select {...control} value={choice} onChange={(e) => setChoice(e.target.value)}>
+            <Select {...control} value={choice} onValueChange={(value) => setChoice(value)}>
               <option value="">{t("alerts.noTrack")}</option>
               {tracks.map((track, i) => (
                 <option key={track.id} value={track.id}>

@@ -6,7 +6,8 @@ import { ErrorMessage } from "../../ui";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Field } from "../ui/field";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 
 interface Props {
   recipients: { userId: string; displayName: string }[];
@@ -77,7 +78,7 @@ export function ChatComposer({ recipients, onSend, error }: Props) {
       <div className="chat-options">
         <Field label={t("chat.to")}>
           {(control) => (
-            <Select {...control} value={recipient} onChange={(e) => setRecipient(e.target.value)} className="py-1.5">
+            <Select {...control} value={recipient} onValueChange={(value) => setRecipient(value)} className="py-1.5">
               <option value="">{t("chat.everyone")}</option>
               {recipients.map((member) => (
                 <option key={member.userId} value={member.userId}>

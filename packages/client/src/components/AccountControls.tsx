@@ -7,7 +7,7 @@ import { normalizeLocale, setLocale } from "../i18n";
 import { queryKeys, useMe } from "../queries";
 import { Button } from "./ui/button";
 import { Field } from "./ui/field";
-import { Select } from "./ui/input";
+import { Select } from "./ui/select";
 
 function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
   const { t, i18n } = useTranslation();
@@ -17,8 +17,8 @@ function LanguageSwitcher({ signedIn }: { signedIn: boolean }) {
         <Select
           {...control}
           value={normalizeLocale(i18n.language) ?? "en"}
-          onChange={(e) => {
-            const locale = normalizeLocale(e.target.value)!;
+          onValueChange={(value) => {
+            const locale = normalizeLocale(value)!;
             setLocale(locale);
             if (signedIn) void api.setLocale(locale);
           }}

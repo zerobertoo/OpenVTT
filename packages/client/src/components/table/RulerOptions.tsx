@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../lib/preferences";
 import { DIAGONAL_RULES, RULER_SHAPES } from "../../lib/ruler";
 import type { MeasureSystem } from "../../lib/units";
-import { Select } from "../ui/input";
+import { Select } from "../ui/select";
 
 const SYSTEMS: readonly MeasureSystem[] = ["metric", "imperial", "scene"];
 
@@ -20,7 +20,7 @@ export function RulerOptions({ scene }: { scene: SceneDto | null }) {
       <Select
         aria-label={t("ruler.shape")}
         value={rulerShape}
-        onChange={(e) => setRulerShape(e.target.value as (typeof RULER_SHAPES)[number])}
+        onValueChange={(value) => setRulerShape(value as (typeof RULER_SHAPES)[number])}
       >
         {RULER_SHAPES.map((shape) => (
           <option key={shape} value={shape}>
@@ -32,7 +32,7 @@ export function RulerOptions({ scene }: { scene: SceneDto | null }) {
         <Select
           aria-label={t("ruler.diagonal")}
           value={diagonalRule}
-          onChange={(e) => setDiagonalRule(e.target.value as (typeof DIAGONAL_RULES)[number])}
+          onValueChange={(value) => setDiagonalRule(value as (typeof DIAGONAL_RULES)[number])}
         >
           {DIAGONAL_RULES.map((rule) => (
             <option key={rule} value={rule}>
@@ -44,7 +44,7 @@ export function RulerOptions({ scene }: { scene: SceneDto | null }) {
       <Select
         aria-label={t("measure.system")}
         value={measure.system}
-        onChange={(e) => setMeasure({ system: e.target.value as MeasureSystem })}
+        onValueChange={(value) => setMeasure({ system: value as MeasureSystem })}
       >
         {SYSTEMS.map((system) => (
           <option key={system} value={system}>

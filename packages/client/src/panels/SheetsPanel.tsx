@@ -10,7 +10,8 @@ import { Button } from "../components/ui/button";
 import { ConfirmDialog } from "../components/ui/dialog";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
-import { Input, Select } from "../components/ui/input";
+import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 import { Loading, Skeleton } from "../components/ui/skeleton";
 import type { TableActions } from "../lib/tableActions";
 import { queryKeys, useWorldSystem } from "../queries";
@@ -112,9 +113,9 @@ export function SheetsPanel({ state, locale, actions }: Props) {
               <Select
                 {...control}
                 value={selected.ownerId ?? ""}
-                onChange={(e) => {
+                onValueChange={(value) => {
                   const before = { ownerId: selected.ownerId };
-                  const after = { ownerId: e.target.value || null };
+                  const after = { ownerId: value || null };
                   void run(() => api.updateActor(selected.id, after)).then(
                     (ok) => ok !== undefined && actions.edited(selected.id, api.updateActor, before, after),
                   );

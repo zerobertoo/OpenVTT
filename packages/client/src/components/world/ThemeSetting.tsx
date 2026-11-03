@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ACCENT_HUES, loadTheme, saveTheme, TEXT_SIZES, type Theme } from "../../lib/theme";
 import { Field } from "../ui/field";
-import { Select } from "../ui/input";
+import { Select } from "../ui/select";
 
 export function ThemeSetting() {
   const { t } = useTranslation();
@@ -16,7 +16,7 @@ export function ThemeSetting() {
     <>
       <Field label={t("theme.contrast")}>
         {(control) => (
-          <Select {...control} value={theme.contrast} onChange={(e) => change({ contrast: e.target.value as Theme["contrast"] })}>
+          <Select {...control} value={theme.contrast} onValueChange={(value) => change({ contrast: value as Theme["contrast"] })}>
             <option value="normal">{t("theme.contrastNormal")}</option>
             <option value="high">{t("theme.contrastHigh")}</option>
           </Select>
@@ -24,7 +24,7 @@ export function ThemeSetting() {
       </Field>
       <Field label={t("theme.textSize")}>
         {(control) => (
-          <Select {...control} value={theme.textSize} onChange={(e) => change({ textSize: Number(e.target.value) as Theme["textSize"] })}>
+          <Select {...control} value={theme.textSize} onValueChange={(value) => change({ textSize: Number(value) as Theme["textSize"] })}>
             {TEXT_SIZES.map((size) => (
               <option key={size} value={size}>
                 {`${Math.round(size * 100)}%`}
@@ -35,7 +35,7 @@ export function ThemeSetting() {
       </Field>
       <Field label={t("theme.accent")}>
         {(control) => (
-          <Select {...control} value={theme.accent} onChange={(e) => change({ accent: e.target.value as Theme["accent"] })}>
+          <Select {...control} value={theme.accent} onValueChange={(value) => change({ accent: value as Theme["accent"] })}>
             {(Object.keys(ACCENT_HUES) as Theme["accent"][]).map((accent) => (
               <option key={accent} value={accent}>
                 {t(`theme.accents.${accent}`)}

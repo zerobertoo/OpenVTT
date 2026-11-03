@@ -261,7 +261,7 @@ Near-black pills with the d20 logo, world name (ellipsized) and an amber status;
 - **Do** use teal for actions and focus, and amber only for dice and the active tool.
 - **Do** write state out as well as coloring it (online state, hidden tokens, dropped dice, natural 20 and 1).
 - **Do** keep 4.5:1 contrast in both themes, a visible 3px focus ring, and 44px touch targets.
-- **Do** use the Radix wrappers in `components/ui/` for tabs, tooltips and future dialogs, popovers, menus and toasts; keep native `select`, `input` and `checkbox`.
+- **Do** use the Radix wrappers in `components/ui/` for tabs, tooltips and future dialogs, popovers, menus and toasts; use the `Select` primitive instead of a native `select`; keep native `input` and `checkbox`.
 - **Do** write copy in plain second person and spell out "game master" and "player".
 - **Do** respect `prefers-reduced-motion`; animations are decorative.
 

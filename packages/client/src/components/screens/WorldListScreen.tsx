@@ -15,7 +15,8 @@ import { Dialog } from "../ui/dialog";
 import { EmptyState, ErrorState } from "../ui/empty-state";
 import { Field } from "../ui/field";
 import { FileButton } from "../ui/file-button";
-import { Input, Select } from "../ui/input";
+import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 import { Loading, Skeleton } from "../ui/skeleton";
 import { toast } from "../ui/toast";
 

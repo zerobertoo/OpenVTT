@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { WorldStateDto } from "@openvtt/shared";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 const TEST_PASSWORD = "e2e-test-password";
 
@@ -60,3 +60,10 @@ export function worldState(page: Page, worldId: string) {
 }
 
 export const worldIdOf = (page: Page) => page.url().split("/world/")[1]!.split(/[/?#]/)[0]!;
+
+/** Picks an option in one of our custom selects: opens the list under `scope`, then clicks the option by its visible name. */
+export async function chooseOption(scope: Page | Locator, label: string, option: string | RegExp) {
+  const page = "page" in scope && typeof scope.page === "function" ? scope.page() : (scope as Page);
+  await scope.getByRole("combobox", { name: label, exact: true }).click();
+  await page.getByRole("option", { name: option, exact: typeof option === "string" }).click();
+}
