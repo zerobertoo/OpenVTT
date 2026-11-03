@@ -52,7 +52,7 @@
       .button.primary:hover { background: var(--accent-strong); }
       .button:focus-visible, a:focus-visible { outline: 3px solid var(--dice); outline-offset: 3px; }
       .shot { margin: 2.5rem auto 0; }
-      .shot img { display: block; width: 100%; height: auto; border-radius: 1.25rem; border: 1px solid var(--line); box-shadow: 0 24px 60px rgb(0 0 0 / .45); }
+      .shot img, .shot video { display: block; width: 100%; height: auto; border-radius: 1.25rem; border: 1px solid var(--line); box-shadow: 0 24px 60px rgb(0 0 0 / .45); }
       section { padding: 3rem 0; }
       h2 { margin: 0 0 1.5rem; font-size: 1.7rem; letter-spacing: -0.02em; }
       .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
@@ -76,7 +76,7 @@
         <a class="button" href="#run">Run it yourself</a>
       </div>
       <div class="shot">
-        <img src="assets/table.png" width="1440" height="900" alt="The OpenVTT table: an oasis map with three tokens, the tool bar and a natural 20 in the chat." />
+        <video src="assets/demo.webm" poster="assets/table.png" width="1280" height="800" autoplay loop muted playsinline aria-label="OpenVTT in use: moving tokens on an oasis map and rolling dice in the chat."></video>
       </div>
     </header>
 
@@ -108,6 +108,7 @@ docker compose up -d --build</code></pre>
       <div class="wrap">
         English and Brazilian Portuguese UI. Core under AGPL-3.0, SDK and system schemas under MIT.
         <a href="https://github.com/zerobertoo/OpenVTT">Source on GitHub</a>.
+        <p>D&amp;D 5e content is from the System Reference Document 5.1 by Wizards of the Coast LLC, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode">CC BY 4.0</a>.</p>
       </div>
     </footer>
   </body>

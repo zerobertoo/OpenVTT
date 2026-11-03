@@ -2,6 +2,10 @@
 
 An open source, self-hosted virtual tabletop for tabletop RPGs, written from scratch. It runs in the browser: the game master hosts a world, players join by link.
 
+[Website](https://zerobertoo.github.io/OpenVTT/) · [Running with Docker](#running-with-docker) · [Contributing](CONTRIBUTING.md)
+
+![OpenVTT in use: moving tokens on a map and rolling dice in the chat](site/assets/demo.gif)
+
 ## Features
 
 - Local accounts (username + password, argon2). The first account becomes the installation administrator.
@@ -101,3 +105,5 @@ UI strings live in `packages/client/src/i18n/<locale>.json`. To add a language, 
 ## License
 
 The core (server, client, shared) is AGPL-3.0-only, see `LICENSE`. The SDK and system-format schemas are MIT, see `packages/sdk/LICENSE`, so authors of rules systems and modules can choose any license for their work. See `CONTRIBUTING.md` to contribute.
+
+The bundled D&D 5e system includes material from the System Reference Document 5.1 (SRD 5.1) by Wizards of the Coast LLC, available at <https://dnd.wizards.com/resources/systems-reference-document>, licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode).
