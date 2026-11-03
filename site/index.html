@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenVTT: open source virtual tabletop for RPGs</title>
+    <meta name="description" content="A self-hosted virtual tabletop for tabletop RPGs, written from scratch. Maps, tokens, fog of war, dynamic lighting, dice and sheets in the browser." />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="OpenVTT: open source virtual tabletop for RPGs" />
+    <meta property="og:description" content="Self-hosted, written from scratch. Maps, fog of war, lighting, dice and sheets in the browser." />
+    <meta property="og:url" content="https://zerobertoo.github.io/OpenVTT/" />
+    <meta property="og:image" content="https://zerobertoo.github.io/OpenVTT/assets/social-preview.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      :root {
+        --bg: #14201f;
+        --surface: #1b2a28;
+        --line: #2f4340;
+        --text: #eef6f4;
+        --text-2: #a9bfbb;
+        --accent: #2f9a85;
+        --accent-strong: #3db89f;
+        --dice: #f2b84b;
+        --on-accent: #07211c;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 400 1rem/1.55 ui-rounded, "SF Pro Rounded", "Segoe UI Variable Text", system-ui, sans-serif;
+      }
+      a { color: var(--accent-strong); }
+      .wrap { width: min(1080px, 100% - 2rem); margin-inline: auto; }
+      header.hero { padding: 4rem 0 2.5rem; text-align: center; }
+      .logo { width: 72px; height: 72px; }
+      h1 { margin: 1rem 0 .5rem; font-size: clamp(2.4rem, 7vw, 3.8rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+      .lead { max-width: 40rem; margin: 0 auto 1.75rem; color: var(--text-2); font-size: 1.15rem; }
+      .actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+      .button {
+        display: inline-block; padding: .7rem 1.3rem; border-radius: 999px; font-weight: 700; text-decoration: none;
+        border: 2px solid var(--accent); color: var(--text);
+      }
+      .button.primary { background: var(--accent); color: var(--on-accent); }
+      .button:hover { border-color: var(--accent-strong); }
+      .button.primary:hover { background: var(--accent-strong); }
+      .button:focus-visible, a:focus-visible { outline: 3px solid var(--dice); outline-offset: 3px; }
+      .shot { margin: 2.5rem auto 0; }
+      .shot img { display: block; width: 100%; height: auto; border-radius: 1.25rem; border: 1px solid var(--line); box-shadow: 0 24px 60px rgb(0 0 0 / .45); }
+      section { padding: 3rem 0; }
+      h2 { margin: 0 0 1.5rem; font-size: 1.7rem; letter-spacing: -0.02em; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+      .card { background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; padding: 1.25rem; }
+      .card h3 { margin: 0 0 .4rem; font-size: 1.05rem; }
+      .card p { margin: 0; color: var(--text-2); font-size: .95rem; }
+      .card h3::before { content: ""; display: inline-block; width: .6rem; height: .6rem; margin-right: .55rem; border-radius: 2px; background: var(--dice); transform: rotate(45deg); }
+      pre { overflow-x: auto; margin: 0 0 1rem; padding: 1rem 1.25rem; background: #0e1716; border: 1px solid var(--line); border-radius: .9rem; font-size: .95rem; }
+      code { font-family: ui-monospace, monospace; }
+      .muted { color: var(--text-2); }
+      footer { padding: 2rem 0 3rem; border-top: 1px solid var(--line); color: var(--text-2); font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <header class="hero wrap">
+      <img class="logo" src="assets/favicon.svg" alt="" width="72" height="72" />
+      <h1>OpenVTT</h1>
+      <p class="lead">An open source, self-hosted virtual tabletop for tabletop RPGs, written from scratch. The game master hosts a world; players join by link.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/zerobertoo/OpenVTT">View on GitHub</a>
+        <a class="button" href="#run">Run it yourself</a>
+      </div>
+      <div class="shot">
+        <img src="assets/table.png" width="1440" height="900" alt="The OpenVTT table: an oasis map with three tokens, the tool bar and a natural 20 in the chat." />
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section aria-labelledby="features">
+        <h2 id="features">What is in it</h2>
+        <div class="grid">
+          <article class="card"><h3>Maps and scenes</h3><p>Images or animated video maps, square grid or none, smooth pan and zoom, and a distance ruler in feet, meters or squares.</p></article>
+          <article class="card"><h3>Map import</h3><p>Universal VTT (Dungeon Alchemist and others), Foundry-style exports and plain images, with walls, doors, lights and multi-floor maps.</p></article>
+          <article class="card"><h3>Fog of war and lighting</h3><p>Players only see what their tokens see, shaped by walls, closed doors and light. Walls stay on the server.</p></article>
+          <article class="card"><h3>Dice and chat</h3><p>Rolls like <code>/r 1d20 adv</code> happen on the server. Whispers, GM-only rolls and a persisted history.</p></article>
+          <article class="card"><h3>Sheets and rules systems</h3><p>JSON templates with computed fields, editable without code. A generic system and D&amp;D 5e SRD are included; add your own.</p></article>
+          <article class="card"><h3>Yours to keep</h3><p>One SQLite file and a folder of assets. Export a whole world as a zip and import it anywhere.</p></article>
+        </div>
+        <p class="muted">The server is authoritative: every action is checked by role, and hidden tokens, whispers and other players' sheets are never sent to clients that cannot see them.</p>
+      </section>
+
+      <section id="run" aria-labelledby="run-title">
+        <h2 id="run-title">Run it yourself</h2>
+        <p class="muted">OpenVTT needs a small server (WebSocket and SQLite), so it cannot run on static hosting. With Docker:</p>
+        <pre><code>git clone https://github.com/zerobertoo/OpenVTT.git
+cd OpenVTT
+docker compose up -d --build</code></pre>
+        <p class="muted">Then open <code>http://localhost:3000</code>. The first account becomes the administrator. From source (Node.js 24+ and pnpm): <code>pnpm install &amp;&amp; pnpm start</code>. See the <a href="https://github.com/zerobertoo/OpenVTT#readme">README</a> for backups, reverse proxies and map import.</p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        English and Brazilian Portuguese UI. Core under AGPL-3.0, SDK and system schemas under MIT.
+        <a href="https://github.com/zerobertoo/OpenVTT">Source on GitHub</a>.
+      </div>
+    </footer>
+  </body>
+</html>
