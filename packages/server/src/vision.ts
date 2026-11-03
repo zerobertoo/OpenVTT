@@ -33,8 +33,9 @@ export function visionRegion(scene: SceneDto, floor: FloorDto, controlled: reado
   for (const light of floor.lights) {
     const position = { x: light.x, y: light.y };
     if (polygons.some((polygon) => pointInPolygon(position, polygon))) {
-      // A light without shadows ignores walls, so its pool is the plain circle.
-      const polygon = visibilityPolygon(position, light.shadows ? blockers : [], light.radius * scene.gridSize);
+      // Walls always clip what a player is sent, whatever the light's `shadows`: an unclipped circle would open the
+      // fog (and the tokens) behind a wall. The game master's own preview still draws such a light through walls.
+      const polygon = visibilityPolygon(position, blockers, light.radius * scene.gridSize);
       polygons.push(polygon);
       lit.push({ light, polygon });
     }

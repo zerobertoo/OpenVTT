@@ -75,8 +75,8 @@ export function planShade(scene: SceneDto, floor: FloorDto, vision: VisionDto | 
   const base = scene.bakedLighting ? 0 : 1 - scene.ambientLight;
   const sees = vision !== null && vision.sceneId === scene.id;
   const darkness = sees ? base : base * (preview ? 1 : GM_DARKNESS_SHARE);
+  // A player always gets fog outside what they see, even in a fully lit scene and even when they see nothing.
   if (!sees && darkness <= 0) return null;
-  if (sees && darkness <= 0 && vision.polygons.length === 0) return null;
   return {
     darkness,
     fogHoles: sees ? vision.polygons : null,

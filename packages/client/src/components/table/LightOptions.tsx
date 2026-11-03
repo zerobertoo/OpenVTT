@@ -75,7 +75,7 @@ export function LightOptions({ light, onChange, onDelete }: Props) {
             label={t("light.intensity")}
             value={light.intensity}
             min={0}
-            max={2}
+            max={1}
             step={0.1}
             onCommit={(intensity) => onChange({ intensity })}
           />

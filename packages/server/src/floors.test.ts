@@ -285,6 +285,18 @@ describe("lighting sent to players", () => {
     conn.ws.close();
   });
 
+  it("keeps a light without shadows from opening the view behind a wall", async () => {
+    const { app, gm, bob, scene, cellar, token, open } = await setup();
+    await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { visionEnabled: true });
+    // A lamp right next to the cellar wall (x=300) whose circle reaches well past it.
+    await call(app, gm.cookie, "PATCH", `/api/floors/${cellar.id}`, { lights: [{ x: 250, y: 100, radius: 4, shadows: false }] });
+    await token("Hero", cellar.id, { controllerIds: [bob.user.id], x: 200 });
+    await token("Behind wall", cellar.id, { x: 400 });
+    const { conn, state } = await open(bob.cookie);
+    expect(state.tokens.map((t) => t.name)).toEqual(["Hero"]);
+    conn.ws.close();
+  });
+
   it("stores the ambient light and the feather and keeps old lights valid", async () => {
     const { app, gm, scene, cellar } = await setup();
     const updated = (await call(app, gm.cookie, "PATCH", `/api/scenes/${scene.id}`, { ambientLight: 0.3 })).json() as SceneDto;

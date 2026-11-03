@@ -302,13 +302,13 @@ export function Table({ worldId, user }: Props) {
               selectedLight={selectedLight}
               onSelectLight={setSelectedLight}
               onAddLight={(x, y) => {
-                if (!isGm) return;
+                if (!isGm || viewAs) return;
                 const next = [...floorLights, { ...NEW_LIGHT, x: Math.round(x), y: Math.round(y) }];
                 saveLights(next);
                 setSelectedLight(next.length - 1);
               }}
               onMoveLight={(index, x, y) =>
-                isGm && saveLights(floorLights.map((l, i) => (i === index ? { ...l, x: Math.round(x), y: Math.round(y) } : l)))
+                isGm && !viewAs && saveLights(floorLights.map((l, i) => (i === index ? { ...l, x: Math.round(x), y: Math.round(y) } : l)))
               }
             />
           ) : (
@@ -342,7 +342,7 @@ export function Table({ worldId, user }: Props) {
                   onClear={() => floor && void api.clearDrawings(scene.id, floor.id).catch(() => undefined)}
                 />
               )}
-              {tool === "light" && isGm && (
+              {tool === "light" && isGm && !viewAs && (
                 <LightOptions
                   light={selectedLight === null ? null : (floorLights[selectedLight] ?? null)}
                   onChange={(changes) => saveLights(floorLights.map((l, i) => (i === selectedLight ? { ...l, ...changes } : l)))}

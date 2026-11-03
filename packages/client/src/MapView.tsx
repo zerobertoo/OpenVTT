@@ -284,7 +284,18 @@ export function MapView(props: Props) {
       });
 
     // The light marker being dragged with the light tool; its map data is rebuilt after the drop saves.
-    let lightDrag: { index: number; marker: Graphics; x: number; y: number; moved: boolean } | null = null;
+    let lightDrag: {
+      index: number;
+      marker: Graphics;
+      x: number;
+      y: number;
+      moved: boolean;
+      /** Screen position of the press and the light's offset from the pressed map point. */
+      startX: number;
+      startY: number;
+      dx: number;
+      dy: number;
+    } | null = null;
 
     function bindInteractions(app: Application, world: Container, ruler: Graphics, label: Text) {
       let panning: { x: number; y: number } | null = null;
@@ -329,16 +340,18 @@ export function MapView(props: Props) {
       });
       app.stage.on("pointermove", (e) => {
         if (lightDrag) {
+          // A few pixels of jitter during a click are not a drag.
+          if (!lightDrag.moved && Math.hypot(e.global.x - lightDrag.startX, e.global.y - lightDrag.startY) < 4) return;
           const point = toWorld(e);
-          lightDrag.x = point.x;
-          lightDrag.y = point.y;
+          lightDrag.x = point.x + lightDrag.dx;
+          lightDrag.y = point.y + lightDrag.dy;
           lightDrag.moved = true;
           // Selecting the light redraws the map data under the pointer; follow the marker that replaced the dragged one.
           if (lightDrag.marker.destroyed) {
             const replacement = engine.current?.mapData.children[0]?.children[lightDrag.index];
             if (replacement instanceof Graphics) lightDrag.marker = replacement;
           }
-          if (!lightDrag.marker.destroyed) lightDrag.marker.position.set(point.x, point.y);
+          if (!lightDrag.marker.destroyed) lightDrag.marker.position.set(lightDrag.x, lightDrag.y);
           return;
         }
         if (sketch) {
@@ -690,7 +703,19 @@ export function MapView(props: Props) {
             if (event.button !== 0) return;
             event.stopPropagation();
             if (props_().selectedLight !== index) props_().onSelectLight(index);
-            lightDrag = { index, marker, x: light.x, y: light.y, moved: false };
+            // The light keeps its distance from the grab point, so a click never nudges it.
+            const grab = e.world.toLocal(event.global);
+            lightDrag = {
+              index,
+              marker,
+              x: light.x,
+              y: light.y,
+              moved: false,
+              startX: event.global.x,
+              startY: event.global.y,
+              dx: light.x - grab.x,
+              dy: light.y - grab.y,
+            };
           });
         }
         lights.addChild(marker);

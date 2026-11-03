@@ -65,6 +65,12 @@ describe("planShade", () => {
     expect(FOG_ALPHA).toBeGreaterThan(0.9);
   });
 
+  it("still fogs everything for a player who sees nothing in a fully lit scene", () => {
+    const vision: VisionDto = { sceneId: "s1", polygons: [], lights: [] };
+    const plan = planShade({ ...scene, ambientLight: 1 }, floor, vision, false)!;
+    expect(plan.fogHoles).toEqual([]);
+  });
+
   it("ignores a vision that belongs to another scene", () => {
     const vision: VisionDto = { sceneId: "other", polygons: [[0, 0, 10, 0, 10, 10]], lights: [] };
     expect(planShade({ ...scene, ambientLight: 1 }, floor, vision, false)).toBeNull();
