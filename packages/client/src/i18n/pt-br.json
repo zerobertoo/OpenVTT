@@ -61,6 +61,7 @@
     "panels": "Mostrar ou ocultar os painéis",
     "help": "Mostrar esta lista",
     "moved": "{{name}} foi para a coluna {{column}}, linha {{row}}",
+    "tokensLocked": "O mestre travou os tokens, então eles não podem ser movidos agora.",
     "draw": "Ferramenta de desenho",
     "focus": "Modo foco: só o mapa",
     "undo": "Desfazer sua última mudança (mestre)",

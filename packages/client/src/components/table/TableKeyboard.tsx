@@ -85,7 +85,12 @@ export function TableKeyboard({
         case "remove":
           return onRemove();
         case "move": {
-          if (!scene || movableTokens.length === 0 || scene.lockedLayers.includes("tokens")) return;
+          if (!scene || movableTokens.length === 0) return;
+          if (scene.lockedLayers.includes("tokens")) {
+            event.preventDefault();
+            setAnnouncement(t("shortcuts.tokensLocked"));
+            return;
+          }
           event.preventDefault();
           let landed: { name: string; x: number; y: number } | null = null;
           const moves: { token: TokenDto; x: number; y: number }[] = [];
