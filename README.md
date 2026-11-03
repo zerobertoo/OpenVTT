@@ -1,8 +1,15 @@
 # OpenVTT
 
+[![CI](https://github.com/zerobertoo/OpenVTT/actions/workflows/ci.yml/badge.svg)](https://github.com/zerobertoo/OpenVTT/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/zerobertoo/OpenVTT/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/zerobertoo/OpenVTT/security/code-scanning)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Status: 0.x](https://img.shields.io/badge/status-0.x-orange.svg)](CHANGELOG.md)
+
 An open source, self-hosted virtual tabletop for tabletop RPGs, written from scratch. It runs in the browser: the game master hosts a world, players join by link.
 
-[Website](https://zerobertoo.github.io/OpenVTT/) · [Running with Docker](#running-with-docker) · [Contributing](CONTRIBUTING.md)
+[Website](https://zerobertoo.github.io/OpenVTT/) · [Documentation](docs/index.md) · [Getting started](docs/getting-started.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+
+> OpenVTT is on 0.x: it is usable at a real table, but data formats and APIs can still change before 1.0.0. Keep [backups](docs/backup-and-restore.md).
 
 ![OpenVTT in use: moving tokens on a map and rolling dice in the chat](site/assets/demo.gif)
 
@@ -37,7 +44,7 @@ Use `compose.dokploy.yaml`, which publishes no host port, so it works even when 
 
 ## Running from source
 
-Requires Node.js 24+ (uses the built-in `node:sqlite`) and pnpm 9.
+Requires Node.js 24 (uses the built-in `node:sqlite`) and pnpm 9.
 
 ```sh
 pnpm install
@@ -45,24 +52,11 @@ pnpm start          # builds the client and serves everything on http://localhos
 pnpm dev            # development with hot reload (server :3000, client :5173)
 ```
 
-Environment variables:
+The first account you create becomes the installation administrator. More in [Getting started](docs/getting-started.md).
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` / `HOST` | `3000` / `0.0.0.0` | Listen address |
-| `OPENVTT_DB` | `data/openvtt.db` | SQLite file; assets and installed systems are stored next to it |
-| `OPENVTT_SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
-| `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video or music file (MP3, Ogg) accepted; images stay capped at 15 MiB |
-| `OPENVTT_BACKUP_INTERVAL_HOURS` | off | Copies the database into `backups/` next to it every this many hours (at most 504, three weeks) |
-| `OPENVTT_BACKUP_KEEP` | `7` | How many of those copies are kept; older ones are deleted |
+### Configuration, backup and operations
 
-### Backup and restore
-
-Everything lives in the data directory (`OPENVTT_DB`'s folder, the `openvtt-data` volume in Docker): the database, `assets/` and `systems/`.
-
-- **Scheduled copies.** Set `OPENVTT_BACKUP_INTERVAL_HOURS` (for example `24`). The server writes `backups/openvtt-<date>.db` while it runs, with SQLite's `VACUUM INTO`, so the copy is consistent even mid-session. Uploaded files are never changed after upload, so copying `assets/` from time to time (or with any file sync tool) completes the backup.
-- **One world.** The game master can download a world as a `.openvtt.zip` (World tab) and import it on any installation.
-- **Restore.** Stop the server, replace `openvtt.db` with the chosen copy, delete `openvtt.db-wal` and `openvtt.db-shm` if present, put `assets/` back if it was lost, and start again. In Docker: `docker compose stop`, copy the file into the volume (for example with `docker run --rm -v openvtt-data:/data -v "$PWD":/backup alpine cp /backup/openvtt-<date>.db /data/openvtt.db`), then `docker compose start`.
+Settings are environment variables (`PORT`, `HOST`, `OPENVTT_DB`, `OPENVTT_SECURE_COOKIES`, `OPENVTT_MAX_VIDEO_BYTES`, `OPENVTT_BACKUP_INTERVAL_HOURS`, `OPENVTT_BACKUP_KEEP`): see [Configuration](docs/configuration.md). Related guides: [Reverse proxy and HTTPS](docs/reverse-proxy.md), [Backup and restore](docs/backup-and-restore.md), [Upgrading](docs/upgrading.md) and [Troubleshooting](docs/troubleshooting.md).
 
 ### Animated maps
 
@@ -78,19 +72,31 @@ In the Scenes tab, **Import map** reads a Universal VTT file (`.dd2vtt`, `.uvtt`
 
 Limits (no new server settings): the map data file is read in the browser up to 100 MiB, a scene keeps up to 20,000 wall segments, 1,000 lights and 2,000 drawings, an embedded picture follows the 15 MiB image limit and a video follows `OPENVTT_MAX_VIDEO_BYTES`. The map picture itself is not hidden by fog: it is darkened on screen, so keep secrets out of the image if players are not to see them.
 
-A forgotten password is reset by the administrator through `POST /api/admin/reset-password` (no email server involved).
+A forgotten password is reset by the administrator through `POST /api/admin/reset-password` (no email server involved); see [Troubleshooting](docs/troubleshooting.md#signing-in).
 
 ## Checks
 
 ```sh
-pnpm test           # sdk and server tests (auth, permissions, leaks, sync, import/export, systems)
-pnpm typecheck
+pnpm lint
 pnpm check:i18n     # every locale must have the same keys as en.json
+pnpm typecheck
+pnpm test           # unit tests (auth, permissions, leaks, sync, import/export, systems)
+pnpm test:e2e       # Playwright, builds the client first
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 
 ## Translations
 
 UI strings live in `packages/client/src/i18n/<locale>.json`. To add a language, add a JSON file with the same keys and register the locale in `packages/shared/src/index.ts` and `packages/client/src/i18n/index.ts`. Missing keys fall back to English. The server only returns error codes; the client translates them. Rules systems carry their own `locales/` files.
+
+## Documentation
+
+Everything is indexed in [docs/index.md](docs/index.md): [getting started](docs/getting-started.md), tutorials ([first session](docs/tutorial-first-session.md), [importing maps](docs/tutorial-importing-maps.md), [lighting and fog](docs/tutorial-lighting-and-fog.md)), [architecture](docs/ARCHITECTURE.md) and the [roadmap](docs/ROADMAP.md).
+
+## Community
+
+Questions and bug reports: [SUPPORT.md](SUPPORT.md). Security issues: [SECURITY.md](SECURITY.md). Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Project decisions: [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Layout
 
