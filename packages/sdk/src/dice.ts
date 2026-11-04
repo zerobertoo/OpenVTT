@@ -25,7 +25,8 @@ const MAX_TERMS = 20;
 /** Returns an integer in [1, sides]. */
 export type Rng = (sides: number) => number;
 
-const TERM = /([+-])?\s*(?:(\d*)d(\d+)|(\d+))/gy;
+// Unambiguous alternatives (digits with an optional dN, or a bare dN), so matching never backtracks over long digit runs.
+const TERM = /([+-])?\s*(?:(\d+)(?:d(\d+))?|d(\d+))/gy;
 
 /**
  * Rolls dice notation such as `2d6+3`, `d20-1` or `1d20 adv`.
@@ -55,12 +56,12 @@ export function rollDice(input: string, rng: Rng): RollResult {
     consumed = TERM.lastIndex;
     if (++terms > MAX_TERMS) throw new DiceError("too many terms");
 
-    if (m[4] !== undefined) {
-      modifier += sign * Number(m[4]);
+    if (m[3] === undefined && m[4] === undefined) {
+      modifier += sign * Number(m[2]);
       continue;
     }
-    const count = m[2] === "" ? 1 : Number(m[2]);
-    const sides = Number(m[3]);
+    const count = m[2] === undefined ? 1 : Number(m[2]);
+    const sides = Number(m[3] ?? m[4]);
     if (count < 1 || count > MAX_DICE || sides < 2 || sides > MAX_SIDES) throw new DiceError("out of range");
 
     const useAdvantage = advantage !== null && !advantageUsed && count === 1 && sides === 20 && sign === 1;
