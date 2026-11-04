@@ -235,7 +235,7 @@ Checks: `pnpm test` (unit, axe), `pnpm test:e2e` (flows with axe in desktop and 
 - **Hover / Focus / Active:** teal glow on hover, scale to 0.96 on press, 3px teal outline with 2px offset on focus (amber inside chrome). Disabled drops to 55% opacity.
 
 ### Inputs / Fields
-- **Style:** surface fill, 1.5px line border, 0.6rem radius, 0.6rem 0.85rem padding, full width; teal caret.
+- **Style:** surface fill, 1.5px border in `field-line`, 0.6rem radius, 0.6rem 0.85rem padding, full width; teal caret. `field-line` is darker than `line` so a field edge keeps 3:1 against its fill in both themes (WCAG 1.4.11); `line` stays for dividers and cards.
 - **Focus:** the global 3px teal outline. Errors are written text in danger, 600 weight, with `role="alert"`.
 
 ### Cards / Containers

@@ -195,8 +195,8 @@ export function Table({ worldId, user }: Props) {
   };
 
   const tabs: TableTab[] = isGm
-    ? ["chat", "tokens", "sheets", "journal", "scenes", "settings"]
-    : ["chat", "tokens", "sheets", "journal", "settings"];
+    ? ["chat", "tokens", "sheets", "journal", "scenes", "world"]
+    : ["chat", "tokens", "sheets", "journal", "world"];
 
   const stageStyle = {
     "--drawer-space": drawerOpen && view === "normal" ? "calc(var(--drawer-width) + 1.8rem)" : "0px",
@@ -247,7 +247,7 @@ export function Table({ worldId, user }: Props) {
             onAddFloor={actions.addFloor}
           />
         );
-      case "settings":
+      case "world":
         return <SettingsPanel state={state} />;
     }
   };

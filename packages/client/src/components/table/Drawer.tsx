@@ -14,7 +14,7 @@ const TAB_ICONS: Record<TableTab, IconName> = {
   sheets: "sheets",
   journal: "journal",
   scenes: "scenes",
-  settings: "world",
+  world: "world",
 };
 
 interface Props {

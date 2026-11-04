@@ -122,6 +122,7 @@ export function SignInScreen() {
           </form.Subscribe>
         </form>
         {registering && <p className="m-0 text-ink-2 text-sm">{t("auth.firstUserHint")}</p>}
+        {!registering && <p className="m-0 text-ink-2 text-sm">{t("auth.forgotPasswordHint")}</p>}
         <Button type="button" variant="link" className="justify-self-start" onClick={switchMode}>
           {t(registering ? "auth.switchToLogin" : "auth.switchToRegister")}
         </Button>

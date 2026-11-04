@@ -16,7 +16,7 @@ interface Step {
 const GM_STEPS: Step[] = [
   { id: "gmScene", title: "guide.gmScene.title", text: "guide.gmScene.text", action: "guide.gmScene.action", tab: "scenes" },
   { id: "gmToken", title: "guide.gmToken.title", text: "guide.gmToken.text", action: "guide.gmToken.action", tab: "tokens" },
-  { id: "gmInvite", title: "guide.gmInvite.title", text: "guide.gmInvite.text", action: "guide.gmInvite.action", tab: "settings" },
+  { id: "gmInvite", title: "guide.gmInvite.title", text: "guide.gmInvite.text", action: "guide.gmInvite.action", tab: "world" },
 ];
 const PLAYER_STEPS: Step[] = [
   { id: "playerChat", title: "guide.playerChat.title", text: "guide.playerChat.text", action: "guide.playerChat.action", tab: "chat" },

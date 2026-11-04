@@ -10,6 +10,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { FileButton } from "../components/ui/file-button";
 import { Input, Textarea } from "../components/ui/input";
+import { PanelSection } from "../components/ui/panel-section";
 import { Markdown } from "../lib/markdown";
 import type { TableActions } from "../lib/tableActions";
 import { ErrorMessage, useAction } from "../ui";
@@ -39,8 +40,7 @@ export function JournalPanel({ state, isGm, actions }: Props) {
     });
 
   return (
-    <section aria-label={t("tabs.journal")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
-      <h3>{t("tabs.journal")}</h3>
+    <PanelSection title={t("tabs.journal")} error={<ErrorMessage error={error} />}>
       {state.handouts.length === 0 ? (
         <EmptyState title={t("journal.none")} description={t(isGm ? "journal.noneGm" : "journal.nonePlayer")} />
       ) : (
@@ -67,7 +67,6 @@ export function JournalPanel({ state, isGm, actions }: Props) {
           {t("journal.new")}
         </Button>
       )}
-      <ErrorMessage error={error} />
       {selected &&
         (editing && isGm ? (
           <HandoutEditor key={selected.id} handout={selected} state={state} actions={actions} onDone={() => setEditing(false)} />
@@ -106,7 +105,7 @@ export function JournalPanel({ state, isGm, actions }: Props) {
           </article>
         ))}
       {isGm && <AssetLibrary worldId={state.id} canInsert={editing && selected !== null} />}
-    </section>
+    </PanelSection>
   );
 }
 

@@ -8,15 +8,17 @@ interface DisclosureProps {
   title: ReactNode;
   children: ReactNode;
   defaultOpen?: boolean;
+  /** Controls the open state from outside; `onOpenChange` then reports every change. */
+  open?: boolean;
   /** Called when it opens or closes; handy to load the content on first open. */
   onOpenChange?: (open: boolean) => void;
   className?: string;
 }
 
 /** A section the reader can open and close. The toggle is a real button (`aria-expanded`), and closed content is not in the page. */
-export function Disclosure({ title, children, defaultOpen, onOpenChange, className }: DisclosureProps) {
+export function Disclosure({ title, children, defaultOpen, open, onOpenChange, className }: DisclosureProps) {
   return (
-    <Collapsible.Root defaultOpen={defaultOpen} onOpenChange={onOpenChange} className={className}>
+    <Collapsible.Root defaultOpen={defaultOpen} open={open} onOpenChange={onOpenChange} className={className}>
       <Collapsible.Trigger className="group flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-sm bg-transparent p-0 text-left font-semibold text-ink hover:not-disabled:shadow-none">
         <span>{title}</span>
         <span

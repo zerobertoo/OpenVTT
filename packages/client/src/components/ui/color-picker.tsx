@@ -73,7 +73,7 @@ export function ColorPicker({ value, onChange, className, id, ...aria }: ColorPi
           // With an explicit name, include the visible hex in it (WCAG 2.5.3); inside a Field the label text names the button.
           aria-label={aria["aria-label"] ? `${aria["aria-label"]}: ${value}` : undefined}
           className={cn(
-            "flex min-h-11 items-center gap-2 rounded-sm border-[1.5px] border-line bg-surface px-2 text-ink tabular-nums",
+            "flex min-h-11 items-center gap-2 rounded-sm border-[1.5px] border-field-line bg-surface px-2 text-ink tabular-nums",
             className,
           )}
         >

@@ -6,6 +6,7 @@ import { reconnectDelay } from "./lib/backoff";
 import { useTableUi } from "./tableStore";
 
 const MAX_CLIENT_MESSAGES = 300;
+const DROP_NOTICE_INTERVAL_MS = 5000;
 
 function reducer(state: WorldStateDto | null, msg: ServerMessage): WorldStateDto | null {
   if (msg.type === "world.state") return msg.state;
@@ -104,8 +105,14 @@ export function useWorldState(worldId: string) {
     };
   }, [worldId]);
 
+  const lastDropNotice = useRef(0);
   const send = useCallback((message: ClientMessage) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify(message));
+    if (socketRef.current?.readyState === WebSocket.OPEN) return socketRef.current.send(JSON.stringify(message));
+    // A change made while offline is lost, so say so (at most every few seconds, to not bury a drag in toasts).
+    if (Date.now() - lastDropNotice.current > DROP_NOTICE_INTERVAL_MS) {
+      lastDropNotice.current = Date.now();
+      toast({ title: translate.current("table.notSent"), tone: "error" });
+    }
   }, []);
 
   return { state, connected, send };

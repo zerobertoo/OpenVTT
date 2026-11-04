@@ -18,6 +18,7 @@
   --text: light-dark(oklch(0.243 0.02 173.5), oklch(0.957 0.01 174.3)); /* light #16231f, dark #eaf3f0 */
   --text-2: light-dark(oklch(0.466 0.028 172.7), oklch(0.787 0.028 173.5)); /* light #4a5f58, dark #a8c0b8 */
   --line: light-dark(oklch(0.873 0.017 172.6), oklch(0.407 0.035 179.5)); /* light #cbd9d4, dark #34504a */
+  --field-line: light-dark(oklch(0.62 0.03 172), oklch(0.58 0.035 178)); /* borders of inputs and selects: 3:1 against their fill in both themes (WCAG 1.4.11) */
   --accent: light-dark(oklch(0.537 0.08 177.2), oklch(0.72 0.094 177.6)); /* light #2f7d6d, dark #5bb8a4 */
   --accent-text: light-dark(oklch(0.463 0.072 175.5), oklch(0.72 0.094 177.6)); /* light #236657 (links on the page background), dark same as accent */
   --accent-soft: light-dark(oklch(0.923 0.024 176.8), oklch(0.356 0.039 177.8)); /* light #d6ebe5, dark #24433c */
@@ -57,6 +58,7 @@
   --text: light-dark(oklch(0 0 0), oklch(1 0 0));
   --text-2: var(--text);
   --line: light-dark(oklch(0.45 0.02 175), oklch(0.78 0.03 175));
+  --field-line: var(--line);
   --on-chrome-2: var(--on-chrome);
 }
 :root[data-theme="light"] { color-scheme: light; }
@@ -92,6 +94,7 @@
   --color-ink: var(--text);
   --color-ink-2: var(--text-2);
   --color-line: var(--line);
+  --color-field-line: var(--field-line);
   --color-accent: var(--accent);
   --color-accent-text: var(--accent-text);
   --color-accent-soft: var(--accent-soft);
@@ -138,12 +141,12 @@ input:not([type="checkbox"], [type="range"], [type="color"], [type="file"]), sel
   padding: 0.6rem 0.85rem;
   color: var(--text);
   background: var(--surface);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--field-line);
   border-radius: var(--radius-sm);
   width: 100%;
   min-width: 0;
 }
-input[type="color"] { width: 3rem; height: 2.3rem; padding: 0.15rem; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+input[type="color"] { width: 3rem; height: 2.3rem; padding: 0.15rem; border: 1.5px solid var(--field-line); border-radius: var(--radius-sm); background: var(--surface); }
 input[type="file"] { font-size: 0.85rem; max-width: 100%; }
 button {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
