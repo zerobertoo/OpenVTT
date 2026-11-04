@@ -1,12 +1,13 @@
 import { resolve } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
+import { chooseAddSceneOption, createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
 
 // A 2-second, 128x96 VP9 clip. The test browser has no H.264, so WebM is what the browser tests use.
 const VIDEO = resolve(import.meta.dirname, "fixtures/map-loop.webm");
 
 async function createSceneFrom(page: Page, name: string, file: string | { name: string; mimeType: string; buffer: Buffer }) {
   await page.getByRole("tab", { name: "Scenes" }).click();
+  await chooseAddSceneOption(page, "New scene");
   const form = page.getByRole("form", { name: "New scene" });
   await form.getByLabel("Name").fill(name);
   await form.getByLabel(/Map image or video/).setInputFiles(file);

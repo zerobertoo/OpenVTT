@@ -67,3 +67,14 @@ export async function chooseOption(scope: Page | Locator, label: string, option:
   await scope.getByRole("combobox", { name: label, exact: true }).click();
   await page.getByRole("option", { name: option, exact: typeof option === "string" }).click();
 }
+
+/** Opens the "Add scene" menu on the Scenes tab and picks one of its entries. */
+export async function chooseAddSceneOption(page: Page, option: "New scene" | "Import map") {
+  await page.getByRole("button", { name: "Add scene" }).click();
+  await page.getByRole("menuitem", { name: option }).click();
+}
+
+/** Opens the "New token" popover on the Tokens tab, where the name field and the add button are. */
+export async function openNewTokenForm(page: Page) {
+  await page.getByRole("button", { name: "New token" }).click();
+}

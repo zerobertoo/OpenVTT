@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
-import { createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
+import { chooseAddSceneOption, createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
 
 // The clip is 128x96; the Universal VTT file describes the same map as 4x3 cells of 32 px.
 const VIDEO = {
@@ -45,7 +45,7 @@ test("a Universal VTT file and its video become a scene with the grid from the f
   await registerNewUser(page);
   await createAndOpenWorld(page, "Import world");
   await page.getByRole("tab", { name: "Scenes" }).click();
-  await page.getByRole("button", { name: "Import map" }).click();
+  await chooseAddSceneOption(page, "Import map");
 
   const dialog = page.getByRole("dialog", { name: "Import maps" });
   await dialog.getByLabel("Map files").setInputFiles([UVTT, VIDEO]);
@@ -69,7 +69,7 @@ test("a file that is not a map is explained", async ({ page }) => {
   await registerNewUser(page);
   await createAndOpenWorld(page, "Bad import world");
   await page.getByRole("tab", { name: "Scenes" }).click();
-  await page.getByRole("button", { name: "Import map" }).click();
+  await chooseAddSceneOption(page, "Import map");
   await page
     .getByRole("dialog", { name: "Import maps" })
     .getByLabel("Map files")
@@ -81,7 +81,7 @@ test("the grid can be lined up by eye and applied to the scene", async ({ page }
   await registerNewUser(page);
   await createAndOpenWorld(page, "Grid world");
   await page.getByRole("tab", { name: "Scenes" }).click();
-  await page.getByRole("button", { name: "Import map" }).click();
+  await chooseAddSceneOption(page, "Import map");
   await page.getByRole("dialog", { name: "Import maps" }).getByLabel("Map files").setInputFiles([UVTT, VIDEO]);
   await page.getByRole("dialog", { name: "Import maps" }).getByRole("button", { name: "Create scene" }).click();
   await page.getByRole("button", { name: "Adjust grid on the map" }).click();

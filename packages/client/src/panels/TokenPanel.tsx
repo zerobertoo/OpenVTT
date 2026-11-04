@@ -1,5 +1,5 @@
 import type { TokenDto, WorldStateDto } from "@openvtt/shared";
-import { type ChangeEvent, type FormEvent, useRef } from "react";
+import { type ChangeEvent, type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { Initiative } from "../components/tokens/Initiative";
@@ -9,6 +9,9 @@ import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import { PanelSection } from "../components/ui/panel-section";
+import { Popover } from "../components/ui/popover";
+import { Icon } from "../icons";
 import { bulkPosition, MAX_BULK_TOKENS, tokenNameFromFile } from "../lib/bulkTokens";
 import { shrinkImage } from "../lib/shrinkImage";
 import type { TableActions } from "../lib/tableActions";
@@ -35,6 +38,7 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
   const scene = state.scenes.find((s) => s.id === viewSceneId);
   const sceneTokens = state.tokens.filter((candidate) => candidate.sceneId === viewSceneId);
 
+  const [adding, setAdding] = useState(false);
   const add = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!scene) return;
@@ -51,6 +55,7 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
       });
       actions.tokenCreated(created);
       form.reset();
+      setAdding(false);
       return created;
     });
   };
@@ -96,24 +101,48 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
   const canControl = token && canControlToken(token);
 
   return (
-    <section aria-label={t("token.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
-      <h3>{t("token.title")}</h3>
+    <PanelSection
+      title={t("token.title")}
+      error={<ErrorMessage error={error} />}
+      action={
+        isGm && scene ? (
+          <Popover
+            open={adding}
+            onOpenChange={setAdding}
+            label={t("token.new")}
+            trigger={
+              <Button size="sm">
+                <Icon name="plus" />
+                {t("token.new")}
+              </Button>
+            }
+          >
+            <div className="grid gap-3">
+              <form onSubmit={add} className="flex items-end gap-2">
+                <Field label={t("token.name")} className="flex-1">
+                  {(control) => <Input {...control} name="name" required maxLength={60} />}
+                </Field>
+                <Button type="submit">{t("token.add")}</Button>
+              </form>
+              <div className="grid gap-1.5 border-line border-t-[1.5px] pt-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setAdding(false);
+                    bulkInput.current?.click();
+                  }}
+                >
+                  {t("token.importImages")}
+                </Button>
+                <p className="m-0 text-ink-2 text-sm">{t("token.importImagesHint", { max: MAX_BULK_TOKENS })}</p>
+              </div>
+            </div>
+          </Popover>
+        ) : undefined
+      }
+    >
       {isGm && scene && (
-        <form onSubmit={add} className="flex items-end gap-2">
-          <Field label={t("token.name")} className="flex-1">
-            {(control) => <Input {...control} name="name" required maxLength={60} />}
-          </Field>
-          <Button type="submit">{t("token.add")}</Button>
-        </form>
-      )}
-      {isGm && scene && (
-        <>
-          <input ref={bulkInput} type="file" multiple accept="image/png,image/jpeg,image/webp" hidden onChange={importImages} />
-          <Button variant="secondary" onClick={() => bulkInput.current?.click()}>
-            {t("token.importImages")}
-          </Button>
-          <p className="muted">{t("token.importImagesHint", { max: MAX_BULK_TOKENS })}</p>
-        </>
+        <input ref={bulkInput} type="file" multiple accept="image/png,image/jpeg,image/webp" hidden onChange={importImages} />
       )}
 
       {sceneTokens.length > 0 ? (
@@ -149,8 +178,8 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
           onDelete={() => void run(() => api.deleteToken(token.id))}
         />
       )}
-      {sceneTokens.length > 0 && !token && <p className="muted">{t("token.noneSelected")}</p>}
-      {token && !canControl && <p className="muted">{t("token.notYours")}</p>}
+      {sceneTokens.length > 0 && !token && <p className="m-0 text-ink-2">{t("token.noneSelected")}</p>}
+      {token && !canControl && <p className="m-0 text-ink-2">{t("token.notYours")}</p>}
       <Initiative
         combat={state.combat}
         isGm={isGm}
@@ -160,7 +189,6 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
         onNextTurn={() => void run(() => api.nextTurn(state.id))}
         onEnd={() => void run(() => api.endCombat(state.id))}
       />
-      <ErrorMessage error={error} />
-    </section>
+    </PanelSection>
   );
 }

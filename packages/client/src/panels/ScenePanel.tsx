@@ -8,7 +8,11 @@ import { type MapImportChoice, MapImportDialog } from "../components/scenes/MapI
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
 import { Button } from "../components/ui/button";
+import { Dialog } from "../components/ui/dialog";
 import { EmptyState } from "../components/ui/empty-state";
+import { PanelSection } from "../components/ui/panel-section";
+import { DropdownMenu } from "../components/ui/popover";
+import { Icon } from "../icons";
 import { groupFloors } from "../lib/mapImport";
 import { readMediaSize, UnsupportedMediaError } from "../lib/media";
 import { ErrorMessage, useAction } from "../ui";
@@ -28,6 +32,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
   const { run, error, pending } = useAction();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [adjustingGrid, setAdjustingGrid] = useState(false);
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
   const walls = current?.floors.reduce((sum, f) => sum + f.walls.length, 0) ?? 0;
@@ -54,6 +59,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
       });
       form.reset();
       setImageFile(null);
+      setCreating(false);
       onView(scene.id);
     });
   };
@@ -115,8 +121,25 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
   };
 
   return (
-    <section aria-label={t("scene.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
-      <h3>{t("scene.title")}</h3>
+    <PanelSection
+      title={t("scene.title")}
+      error={<ErrorMessage error={error} />}
+      className="gap-5"
+      action={
+        <DropdownMenu
+          trigger={
+            <Button size="sm">
+              <Icon name="plus" />
+              {t("scene.add")}
+            </Button>
+          }
+          items={[
+            { id: "new", label: t("scene.new"), onSelect: () => setCreating(true) },
+            { id: "import", label: t("scene.import.open"), onSelect: () => setImporting(true) },
+          ]}
+        />
+      }
+    >
       {state.scenes.length === 0 ? (
         <EmptyState title={t("scene.none")} description={t("scene.noneHint")} headingLevel={4} />
       ) : (
@@ -138,14 +161,16 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
       {current && (walls > 0 || lights > 0) && <p className="m-0 text-ink-2 text-sm">{t("scene.mapDataSummary", { walls, lights })}</p>}
 
       {current && (
-        // The key makes the uncontrolled inputs reset when another scene (or a server update) is shown.
-        <SceneSettingsForm
-          key={JSON.stringify(current)}
-          scene={current}
-          onSubmit={save}
-          pending={pending}
-          onAdjustGrid={() => setAdjustingGrid(true)}
-        />
+        <PanelSection title={t("scene.settingsOf", { name: current.name })} className="border-line border-t-[1.5px] pt-4">
+          {/* The key makes the uncontrolled inputs reset when another scene (or a server update) is shown. */}
+          <SceneSettingsForm
+            key={JSON.stringify(current)}
+            scene={current}
+            onSubmit={save}
+            pending={pending}
+            onAdjustGrid={() => setAdjustingGrid(true)}
+          />
+        </PanelSection>
       )}
 
       {current && (
@@ -169,11 +194,10 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
         />
       )}
 
-      <h3>{t("scene.new")}</h3>
-      <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
-      <Button variant="secondary" onClick={() => setImporting(true)} className="justify-self-start">
-        {t("scene.import.open")}
-      </Button>
+      <Dialog open={creating} onOpenChange={setCreating} title={t("scene.new")}>
+        <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
+        <ErrorMessage error={error} />
+      </Dialog>
       {current && (
         <GridAdjuster
           key={`${current.id}-${current.gridSize}`}
@@ -197,7 +221,6 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
         <option value="m" />
         <option value="sq" />
       </datalist>
-      <ErrorMessage error={error} />
-    </section>
+    </PanelSection>
   );
 }
