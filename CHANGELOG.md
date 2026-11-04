@@ -16,4 +16,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Dice notation parsing no longer uses backtracking regexes that could be slow on long input.
 - The CI workflow token is read-only.
 
+### Changed
+
+- CI skips jobs a change cannot affect (docs, landing page, repo metadata; Docker build only when its inputs change), splits the e2e suite across four runners and cancels superseded pull request runs.
+
 [Unreleased]: https://github.com/zerobertoo/OpenVTT/commits/main
