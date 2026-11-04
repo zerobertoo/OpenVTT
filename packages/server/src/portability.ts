@@ -133,13 +133,17 @@ interface Guards {
 
 const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value));
 
+/** Route options: these routes are heavy, so each client may call them only so often. */
+const exportLimit = { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } };
+const importLimit = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
+
 /**
  * World export/import as a single zip: `world.json` plus `assets/*`.
  * Accounts are not part of the file: member links (token controllers, actor owners) and
  * private messages are dropped, and the importer becomes the GM of the new world.
  */
 export function registerPortabilityRoutes(app: FastifyInstance, s: Services, guards: Guards) {
-  app.get<{ Params: { id: string } }>("/api/worlds/:id/export", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
+  app.get<{ Params: { id: string } }>("/api/worlds/:id/export", exportLimit, async (req, reply) => {
     const worldId = req.params.id;
     guards.requireGm(req, worldId);
     const world = s.db.prepare("SELECT name, system_id, template_overrides, active_scene_id FROM worlds WHERE id = ?").get(worldId) as {
@@ -211,7 +215,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
   });
 
   // A scene as a Universal VTT file. Videos cannot be embedded, so `image` stays empty and the video is downloaded separately.
-  app.get<{ Params: { id: string } }>("/api/scenes/:id/export.dd2vtt", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
+  app.get<{ Params: { id: string } }>("/api/scenes/:id/export.dd2vtt", exportLimit, async (req, reply) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     guards.requireGm(req, worldId);
@@ -230,7 +234,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       .send(JSON.stringify(buildUvtt({ ...scene, walls: floor.walls, lights: floor.lights }, image)));
   });
 
-  app.post("/api/worlds/import", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req) => {
+  app.post("/api/worlds/import", importLimit, async (req) => {
     const user = guards.requireUser(req);
     if (!(req.body instanceof Readable)) throw new AppError("import_invalid");
 
@@ -370,7 +374,6 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     guards.broadcastState(worldId);
     return { id: worldId, name: file.world.name, role: "gm" };
   }
-
 
   /** What was found in an archive: `world.json` in memory, everything else as a temp file. */
   interface ArchiveEntry {
