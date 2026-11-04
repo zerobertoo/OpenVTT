@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Icon, Logo } from "../../icons";
 import { Button } from "../ui/button";
 import { Tip } from "../ui/tooltip";
+import { AccountMenu } from "../world/AccountMenu";
 import { GuideButton } from "./GuideButton";
 
 interface Props {
@@ -30,7 +31,7 @@ export function TitleChip({ worldName, connected, onShowShortcuts, isGm }: Props
         </Button>
       </Tip>
       <Logo />
-      <strong>{worldName}</strong>
+      <h1 className="m-0 font-bold text-base">{worldName}</h1>
       {/* The live region stays mounted so the change is announced; the visible chip only mirrors it. */}
       <span role="status" className="sr-only">
         {connected ? "" : t("table.disconnected")}
@@ -41,6 +42,7 @@ export function TitleChip({ worldName, connected, onShowShortcuts, isGm }: Props
         </span>
       )}
       <GuideButton isGm={isGm} />
+      <AccountMenu />
       {/* Phones have no keyboard, so the shortcut help stays out of the way there. */}
       <Tip label={t("shortcuts.title")}>
         <Button

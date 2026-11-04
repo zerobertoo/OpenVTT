@@ -187,9 +187,9 @@ A tinted teal-green neutral field, one teal accent, one amber signal, and a cool
 ### Hierarchy
 - **Display** (800, 2.2rem, 1.2, -0.02em; 1.8rem on narrow screens): the welcome headline, balanced wrapping.
 - **Headline** (700, 1.6rem, -0.02em): page titles.
-- **Title** (700, 1.3rem `h2`; 1.05rem `h3`; 0.95rem `h4`): section and panel headings.
+- **Title** (700, 1.3rem dialog titles and `h2`; 1.05rem `h3` panel sections; 0.95rem `h4`): section and panel headings. The world name is the page `h1`; the drawer carries a hidden `h2` so the outline never skips a level.
 - **Body** (400, 1rem, 1.45): everything else; welcome copy is capped at 34ch.
-- **Label** (600, 0.9rem): form labels; buttons are 700; dock and tab labels are 0.78rem and 0.68rem.
+- **Label** (600, 0.9rem): form labels; buttons are 700. **Caption** (0.75rem, 12px): the floor for dock and tab labels. The scale is named in `styles.css` (`text-caption`, `text-label`, `text-title`, `text-headline`, `text-display`); arbitrary `text-[…rem]` sizes are not used.
 - **Roll total** (800, 2.4rem, 1, -0.02em, amber): the number on a roll card.
 
 ### Named Rules
@@ -199,7 +199,7 @@ A tinted teal-green neutral field, one teal accent, one amber signal, and a cool
 
 The table is a **stage**: `.table-stage` is a fixed full-viewport map host, and chrome is absolutely positioned on top. The title chip sits top left, the tool dock bottom center (re-centered over the free map area when the drawer is open, via `--drawer-space`), the online chip top right, and the drawer on the right (26rem wide, inset 0.9rem). The drawer's left strip holds icon-and-name tabs; its panel scrolls.
 
-Below **52rem** the drawer becomes a bottom sheet (up to 62dvh) with a horizontal tab row, the dock moves to the top left under the title chip, and the map hint and online chip are hidden. Players on phones are first-class: touch targets of at least 44px, no hover-only information.
+Below **52rem** the drawer becomes a bottom sheet (up to 62dvh) with a horizontal tab row. The dock moves to the bottom, where a thumb reaches, wraps if needed and rides above the sheet while it is open (`data-drawer` on the stage). Tool options, the selection bar and notices stack under the title chip, each in its own spot so they never overlap; the floor switcher moves to the right edge. The map hint and online chip are hidden. The first-use card centers in the free area and scrolls when the sheet leaves little room. Players on phones are first-class: touch targets of at least 44px, no hover-only information.
 
 Signed-out and world-list screens are a single centered column (max 40rem) on the page background, with cards stacked at 1rem. Spacing is a loose rem scale (0.25 / 0.5 / 0.8 / 1.25 / 2); forms stack at 0.8rem, rows wrap at 0.5rem.
 
@@ -223,7 +223,7 @@ Round and soft. Radii are 0.6rem (inputs, small chips, tooltips), 0.9rem (rows, 
 
 Components are Tailwind v4 utilities in markup plus a few named classes in `styles.css`; accessible widgets are **Radix UI** primitives wrapped in `components/ui/` (Tabs for the drawer, Tooltip).
 
-Primitives live in `components/ui/` (Button, Field, Input/Textarea/Select, Checkbox/Switch, Card, Badge, Avatar, Skeleton, EmptyState, Dialog, Popover/DropdownMenu, Tooltip, Toast, Tabs, Toolbar, AssetPicker, FileButton), each with a unit test and a Storybook story; table, chat, token, sheet, scene, world and screen components compose them. Live table state stays in `useWorldState`; UI state (tab, drawer, tool, selection) is the Zustand `tableStore`. Every screen has loading, empty, error and offline states; the empty table doubles as the first-run guide (`TableGuide`, also reachable from the title chip).
+Primitives live in `components/ui/` (Button, DockButton and DockGroup, ListItemButton, PanelSection, Field, Input/Textarea/Select, Checkbox/Switch, Card, Badge, Avatar, Skeleton, EmptyState, Dialog, Popover/DropdownMenu, Tooltip, Toast, Tabs, Toolbar, AssetPicker, FileButton), each with a unit test and a Storybook story; table, chat, token, sheet, scene, world and screen components compose them. Live table state stays in `useWorldState`; UI state (tab, drawer, tool, selection) is the Zustand `tableStore`. Every screen has loading, empty, error and offline states; the empty table doubles as the first-run guide (`TableGuide`, also reachable from the title chip).
 
 Checks: `pnpm test` (unit, axe), `pnpm test:e2e` (flows with axe in desktop and mobile-dark), `pnpm test:visual` (screenshots of key screens; baselines come from Linux CI, other platforms are git-ignored), `pnpm storybook`, `pnpm check:i18n`, `pnpm check:bundle`.
 
@@ -235,7 +235,7 @@ Checks: `pnpm test` (unit, axe), `pnpm test:e2e` (flows with axe in desktop and 
 - **Hover / Focus / Active:** teal glow on hover, scale to 0.96 on press, 3px teal outline with 2px offset on focus (amber inside chrome). Disabled drops to 55% opacity.
 
 ### Inputs / Fields
-- **Style:** surface fill, 1.5px line border, 0.6rem radius, 0.6rem 0.85rem padding, full width; teal caret.
+- **Style:** surface fill, 1.5px border in `field-line`, 0.6rem radius, 0.6rem 0.85rem padding, full width; teal caret. `field-line` is darker than `line` so a field edge keeps 3:1 against its fill in both themes (WCAG 1.4.11); `line` stays for dividers and cards.
 - **Focus:** the global 3px teal outline. Errors are written text in danger, 600 weight, with `role="alert"`.
 
 ### Cards / Containers
@@ -243,10 +243,10 @@ Checks: `pnpm test` (unit, axe), `pnpm test:e2e` (flows with axe in desktop and 
 - **Background:** `surface`, with the Card shadow, 1.25rem padding; stacked cards are 1rem apart. Inner rows use `surface-2` at 0.9rem radius.
 
 ### Tool Dock
-Floating near-black bar, bottom center. Icon over label buttons, `on-chrome-2` text; hover lifts to `chrome-2`; the active tool (`aria-pressed`) fills dice amber with dark text.
+Two floating near-black groups, bottom center: the map tools (one is always active, `ToolbarChoices`) and, apart from them, the utilities (dice tray and the game master's layers menu). Icon over label buttons share `dockItemStyles`, `on-chrome-2` text; hover lifts to `chrome-2`; a pressed item fills dice amber with dark text. The one exception is Layers, which fills teal while previewing a player: that is a state of the view, not the active tool.
 
 ### Drawer
-Right-hand panel: a near-black icon-and-name tab strip on the left of a `surface` panel. Selected tab fills teal. Becomes a bottom sheet under 52rem. Panels and chat messages animate in (the `motion` library); everything is shortened to nothing under `prefers-reduced-motion`.
+Right-hand panel: a near-black icon-and-name tab strip on the left of a `surface` panel. Selected tab fills teal. Every panel is built from `PanelSection`: a bold heading, the one main action beside it (New token, Add scene), an inline error slot under the title and then the content. Lists are `ListItemButton` rows with the picked one outlined in teal; a detail (token editor, scene settings) follows its list. Personal settings (language, distances, dice, sounds, theme, log-out) live in the account menu in the title chip, not in the World tab. Becomes a bottom sheet under 52rem. Panels and chat messages animate in (the `motion` library); everything is shortened to nothing under `prefers-reduced-motion`. That is deliberate: every state in the interface is also a change of color, text or position, so an instant change loses no feedback. The token editor reads as three groups (look, health and conditions, access) and the initiative list folds away, opening by itself when a fight begins. A change made while offline is not sent and says so in a toast, at most every 5 seconds.
 
 ### Chat and Roll Cards
 Messages have an avatar in the player's color and a bubble in `surface-2`. Whispers are italic in a dashed teal outline and tagged. Rolls are near-black cards with the notation in mono, drawn dice in amber, struck-through dropped dice, and a large amber total; natural 20 is green and natural 1 coral, and both are also written out. Natural 20 triggers confetti, loaded on demand.
@@ -272,3 +272,6 @@ Near-black pills with the d20 logo, world name (ellipsized) and an amber status;
 - **Don't** make the chrome follow the page theme; it stays near-black over the map.
 - **Don't** hand-style a raw `button` or `input` in a screen; use the primitive or the shared element styles.
 - **Don't** add a named CSS class until the same utility set repeats three times (or the markup is generated).
+
+### Saving
+Live play saves on the spot: moving or editing a token, initiative and rolls need no button. Configuration (scene settings, sheet templates, world options) is a form with a Save button that shows its pending state and reports a failure next to itself. Do not mix the two inside one section.

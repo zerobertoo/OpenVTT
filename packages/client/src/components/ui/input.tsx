@@ -2,7 +2,7 @@ import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } fro
 import { cn } from "../../lib/cn";
 
 export const controlStyles = [
-  "w-full min-w-0 rounded-sm border-[1.5px] border-line bg-surface px-[0.85rem] py-[0.6rem] text-ink caret-accent",
+  "w-full min-w-0 rounded-sm border-[1.5px] border-field-line bg-surface px-[0.85rem] py-[0.6rem] text-ink caret-accent",
   "placeholder:text-ink-2 read-only:bg-surface-2 disabled:opacity-55 aria-invalid:border-danger",
 ].join(" ");
 

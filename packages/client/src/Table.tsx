@@ -25,7 +25,7 @@ import { Compendium } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
-import { AccountBox } from "./components/world/AccountBox";
+import { OnlineContext } from "./lib/online";
 import { usePreferences } from "./lib/preferences";
 import { type LightInput, undoableActions, withoutId } from "./lib/tableActions";
 import { useUndo } from "./lib/undo";
@@ -196,8 +196,8 @@ export function Table({ worldId, user }: Props) {
   };
 
   const tabs: TableTab[] = isGm
-    ? ["chat", "tokens", "sheets", "journal", "scenes", "settings"]
-    : ["chat", "tokens", "sheets", "journal", "settings"];
+    ? ["chat", "tokens", "sheets", "journal", "scenes", "world"]
+    : ["chat", "tokens", "sheets", "journal", "world"];
 
   const stageStyle = {
     "--drawer-space": drawerOpen && view === "normal" ? "calc(var(--drawer-width) + 1.8rem)" : "0px",
@@ -248,27 +248,28 @@ export function Table({ worldId, user }: Props) {
             onAddFloor={actions.addFloor}
           />
         );
-      case "settings":
-        return (
-          <>
-            <SettingsPanel state={state} />
-            <AccountBox />
-          </>
-        );
+      case "world":
+        return <SettingsPanel state={state} />;
     }
   };
 
   // A disabled fieldset turns off every control inside it, so nothing can be sent into a dead connection.
   const renderPanelWhenOnline = (id: TableTab) => (
-    <fieldset disabled={!connected} className="contents">
-      {renderPanel(id)}
-    </fieldset>
+    <OnlineContext.Provider value={connected}>
+      <fieldset disabled={!connected} className="contents">
+        {renderPanel(id)}
+      </fieldset>
+    </OnlineContext.Provider>
   );
 
   return (
     <MotionConfig reducedMotion="user">
       <TipProvider>
-        <main className={view === "tv" ? "table-stage tv-view" : "table-stage"} style={stageStyle}>
+        <main
+          className={view === "tv" ? "table-stage tv-view" : "table-stage"}
+          style={stageStyle}
+          data-drawer={drawerOpen ? "open" : "closed"}
+        >
           {scene ? (
             <MapView
               scene={scene}

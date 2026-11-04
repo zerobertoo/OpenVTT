@@ -2,7 +2,7 @@ import type { DrawingKind, DrawingLayer, PingDto } from "@openvtt/shared";
 import { create } from "zustand";
 import type { MapTool } from "./MapView";
 
-export type TableTab = "chat" | "tokens" | "sheets" | "journal" | "scenes" | "settings";
+export type TableTab = "chat" | "tokens" | "sheets" | "journal" | "scenes" | "world";
 
 /** What the game master draws over the map; only the game master receives walls, doors and lights at all. */
 export interface MapLayers {
@@ -95,6 +95,9 @@ interface TableUiState {
   /** Whether the dice tray is open over the map. */
   diceTrayOpen: boolean;
   setDiceTrayOpen: (open: boolean) => void;
+  /** Whether the initiative list is unfolded; kept here so it survives switching tabs. */
+  initiativeOpen: boolean;
+  setInitiativeOpen: (open: boolean) => void;
   setTab: (tab: TableTab) => void;
   toggleDrawer: () => void;
   setTool: (tool: MapTool) => void;
@@ -121,6 +124,7 @@ const initialState = {
   ping: null,
   minimapOpen: true,
   diceTrayOpen: false,
+  initiativeOpen: true,
   mapCenter: () => null,
   view: "normal" as "normal" | "focus" | "tv",
   draw: { kind: "free", color: "#ffc914", text: "", layer: "objects" } as DrawSettings,
@@ -135,6 +139,7 @@ export const useTableUi = create<TableUiState>((set) => ({
   showPing: (ping) => set((state) => ({ ping: { ...ping, id: (state.ping?.id ?? 0) + 1 } })),
   toggleMinimap: () => set((state) => ({ minimapOpen: !state.minimapOpen })),
   setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
+  setInitiativeOpen: (initiativeOpen) => set({ initiativeOpen }),
   setView: (view) => set({ view }),
   setDraw: (draw) => set((state) => ({ draw: { ...state.draw, ...draw } })),
   setTab: (tab) => set({ tab }),

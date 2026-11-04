@@ -14,7 +14,7 @@ const TAB_ICONS: Record<TableTab, IconName> = {
   sheets: "sheets",
   journal: "journal",
   scenes: "scenes",
-  settings: "world",
+  world: "world",
 };
 
 interface Props {
@@ -80,7 +80,7 @@ export function Drawer({ open, onToggle, tab, onTabChange, tabs, renderPanel }: 
           size="icon"
           className="drawer-toggle bg-chrome text-on-chrome"
           aria-expanded={open}
-          aria-controls="drawer"
+          aria-controls={open ? "drawer" : undefined}
           aria-label={toggleLabel}
           onClick={onToggle}
         >
@@ -101,7 +101,9 @@ export function Drawer({ open, onToggle, tab, onTabChange, tabs, renderPanel }: 
               transition={{ type: "spring", stiffness: 380, damping: 34 }}
             >
               <DrawerResizer />
-              <TabList aria-label={t("table.panels")}>
+              {/* Keeps the heading outline whole (title, panels, sections) for screen readers. */}
+              <h2 className="sr-only">{t("table.panels")}</h2>
+              <TabList aria-label={t("table.tabs")}>
                 {tabs.map((id) => (
                   <TabTrigger key={id} value={id}>
                     <Icon name={TAB_ICONS[id]} />

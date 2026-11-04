@@ -1,5 +1,5 @@
 import { floorOf, type SceneDto, type WorldStateDto } from "@openvtt/shared";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
 import { FloorManager } from "../components/scenes/FloorManager";
@@ -8,9 +8,14 @@ import { type MapImportChoice, MapImportDialog } from "../components/scenes/MapI
 import { SceneCard } from "../components/scenes/SceneCard";
 import { SceneCreateForm, SceneSettingsForm } from "../components/scenes/SceneForms";
 import { Button } from "../components/ui/button";
+import { Dialog } from "../components/ui/dialog";
 import { EmptyState } from "../components/ui/empty-state";
+import { PanelSection } from "../components/ui/panel-section";
+import { DropdownMenu } from "../components/ui/popover";
+import { Icon } from "../icons";
 import { groupFloors } from "../lib/mapImport";
 import { readMediaSize, UnsupportedMediaError } from "../lib/media";
+import { useOnline } from "../lib/online";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
@@ -25,10 +30,19 @@ interface Props {
 
 export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRenameFloor, onAddFloor }: Props) {
   const { t } = useTranslation();
-  const { run, error, pending } = useAction();
+  const { run, error, pending, clear } = useAction();
+  const online = useOnline();
+  const addButton = useRef<HTMLButtonElement>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [adjustingGrid, setAdjustingGrid] = useState(false);
+  // A dialog shows the failure itself, so the panel does not repeat it behind the overlay.
+  const dialogOpen = creating || importing || adjustingGrid;
+  const openDialog = (open: () => void) => {
+    clear();
+    open();
+  };
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
   const walls = current?.floors.reduce((sum, f) => sum + f.walls.length, 0) ?? 0;
   const lights = current?.floors.reduce((sum, f) => sum + f.lights.length, 0) ?? 0;
@@ -54,6 +68,7 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
       });
       form.reset();
       setImageFile(null);
+      setCreating(false);
       onView(scene.id);
     });
   };
@@ -115,8 +130,25 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
   };
 
   return (
-    <section aria-label={t("scene.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
-      <h3>{t("scene.title")}</h3>
+    <PanelSection
+      title={t("scene.title")}
+      error={dialogOpen ? null : <ErrorMessage error={error} />}
+      className="gap-5"
+      action={
+        <DropdownMenu
+          trigger={
+            <Button ref={addButton} size="sm">
+              <Icon name="plus" />
+              {t("scene.add")}
+            </Button>
+          }
+          items={[
+            { id: "new", label: t("scene.new"), onSelect: () => openDialog(() => setCreating(true)) },
+            { id: "import", label: t("scene.import.open"), onSelect: () => openDialog(() => setImporting(true)) },
+          ]}
+        />
+      }
+    >
       {state.scenes.length === 0 ? (
         <EmptyState title={t("scene.none")} description={t("scene.noneHint")} headingLevel={4} />
       ) : (
@@ -138,14 +170,16 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
       {current && (walls > 0 || lights > 0) && <p className="m-0 text-ink-2 text-sm">{t("scene.mapDataSummary", { walls, lights })}</p>}
 
       {current && (
-        // The key makes the uncontrolled inputs reset when another scene (or a server update) is shown.
-        <SceneSettingsForm
-          key={JSON.stringify(current)}
-          scene={current}
-          onSubmit={save}
-          pending={pending}
-          onAdjustGrid={() => setAdjustingGrid(true)}
-        />
+        <PanelSection title={t("scene.settingsOf", { name: current.name })} className="border-line border-t-[1.5px] pt-4">
+          {/* The key makes the uncontrolled inputs reset when another scene (or a server update) is shown. */}
+          <SceneSettingsForm
+            key={JSON.stringify(current)}
+            scene={current}
+            onSubmit={save}
+            pending={pending}
+            onAdjustGrid={() => setAdjustingGrid(true)}
+          />
+        </PanelSection>
       )}
 
       {current && (
@@ -169,11 +203,21 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
         />
       )}
 
-      <h3>{t("scene.new")}</h3>
-      <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
-      <Button variant="secondary" onClick={() => setImporting(true)} className="justify-self-start">
-        {t("scene.import.open")}
-      </Button>
+      <Dialog
+        open={creating}
+        onOpenChange={(open) => {
+          setCreating(open);
+          // The form unmounts on close, so a picked image must not outlive it.
+          if (!open) setImageFile(null);
+        }}
+        returnFocusRef={addButton}
+        title={t("scene.new")}
+      >
+        <fieldset disabled={!online} className="m-0 min-w-0 border-0 p-0">
+          <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
+        </fieldset>
+        <ErrorMessage error={error} />
+      </Dialog>
       {current && (
         <GridAdjuster
           key={`${current.id}-${current.gridSize}`}
@@ -191,13 +235,19 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
           }
         />
       )}
-      <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} error={error} />
+      <MapImportDialog
+        open={importing}
+        onOpenChange={setImporting}
+        onCreate={importMap}
+        pending={pending || !online}
+        error={error}
+        returnFocusRef={addButton}
+      />
       <datalist id="distance-units">
         <option value="ft" />
         <option value="m" />
         <option value="sq" />
       </datalist>
-      <ErrorMessage error={error} />
-    </section>
+    </PanelSection>
   );
 }

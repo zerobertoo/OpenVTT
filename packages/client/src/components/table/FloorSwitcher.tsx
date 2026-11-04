@@ -1,6 +1,6 @@
 import type { FloorDto } from "@openvtt/shared";
 import { useTranslation } from "react-i18next";
-import { cn } from "../../lib/cn";
+import { DockButton, DockGroup } from "../ui/dock";
 
 interface Props {
   /** Bottom to top, as the scene lists them. */
@@ -19,21 +19,16 @@ export function FloorSwitcher({ floors, currentId, tableFloorId, onChange, disab
   const current = floors.find((f) => f.id === currentId);
   return (
     <nav aria-label={t("floors.switcher")} className="floor-switcher">
-      <ul className="m-0 flex list-none flex-col gap-1 rounded-[1.2rem] bg-chrome p-1.5 shadow-float">
+      <DockGroup as="ul" className="m-0 list-none flex-col">
         {[...floors].reverse().map((floor) => {
           const here = floor.id === currentId;
           return (
             <li key={floor.id}>
-              <button
-                type="button"
+              <DockButton
                 aria-pressed={here}
                 disabled={disabled}
                 onClick={() => onChange(floor.id)}
-                className={cn(
-                  "flex w-full min-w-[4.5rem] max-w-40 cursor-pointer items-center gap-1.5 rounded-xl border-0 bg-transparent px-3 py-1.5 text-left text-on-chrome-2 text-sm",
-                  "hover:not-disabled:bg-chrome-2 hover:not-disabled:text-on-chrome focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-                  "aria-pressed:bg-accent aria-pressed:text-on-accent disabled:cursor-default disabled:opacity-60 pointer-coarse:min-h-11",
-                )}
+                className="w-full min-w-18 max-w-40 flex-row justify-start gap-1.5 px-3 py-1.5 text-left text-sm"
               >
                 <span className="truncate">{floor.name}</span>
                 {floor.id === tableFloorId && (
@@ -42,11 +37,11 @@ export function FloorSwitcher({ floors, currentId, tableFloorId, onChange, disab
                     <span className="sr-only">{t("floors.tableFloorMark")}</span>
                   </>
                 )}
-              </button>
+              </DockButton>
             </li>
           );
         })}
-      </ul>
+      </DockGroup>
       {/* Says which floor is on screen after a change, for people who do not see the map. */}
       <p role="status" className="sr-only">
         {current ? t("floors.showing", { name: current.name }) : ""}

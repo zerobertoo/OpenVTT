@@ -11,6 +11,7 @@ import { ConfirmDialog } from "../components/ui/dialog";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import { PanelSection } from "../components/ui/panel-section";
 import { Select } from "../components/ui/select";
 import { Loading, Skeleton } from "../components/ui/skeleton";
 import type { TableActions } from "../lib/tableActions";
@@ -73,9 +74,7 @@ export function SheetsPanel({ state, locale, actions }: Props) {
   };
 
   return (
-    <section aria-label={t("sheet.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
-      <h3>{t("sheet.title")}</h3>
-
+    <PanelSection title={t("sheet.title")} error={<ErrorMessage error={error} />}>
       {isGm && (
         <form onSubmit={create} className="grid grid-cols-[1fr_auto] items-end gap-2">
           <Field label={t("sheet.name")}>{(control) => <Input {...control} name="name" required maxLength={80} />}</Field>
@@ -166,7 +165,6 @@ export function SheetsPanel({ state, locale, actions }: Props) {
           <SheetView actor={selected} template={template} system={system} locale={locale} onSave={saveField} />
         </>
       )}
-      <ErrorMessage error={error} />
-    </section>
+    </PanelSection>
   );
 }

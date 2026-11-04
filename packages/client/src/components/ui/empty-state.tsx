@@ -20,7 +20,7 @@ export function EmptyState({ title, description, action, icon, headingLevel = 3,
   return (
     <div className={cn("grid justify-items-center gap-2 px-4 py-6 text-center", className)}>
       {icon && <span className="text-ink-2">{icon}</span>}
-      <Heading className="m-0 font-bold text-[1.05rem]">{title}</Heading>
+      <Heading className="m-0 font-bold text-base">{title}</Heading>
       {description && <p className="m-0 max-w-[34ch] text-ink-2">{description}</p>}
       {action && <div className="mt-1">{action}</div>}
     </div>

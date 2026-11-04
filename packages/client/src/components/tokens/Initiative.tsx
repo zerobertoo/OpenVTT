@@ -1,8 +1,10 @@
 import type { CombatDto, TokenDto } from "@openvtt/shared";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useTableUi } from "../../tableStore";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { Disclosure } from "../ui/disclosure";
 import { Field } from "../ui/field";
 import { Input } from "../ui/input";
 
@@ -21,6 +23,13 @@ interface Props {
 export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, onNextTurn, onEnd }: Props) {
   const { t } = useTranslation();
   const [score, setScore] = useState("");
+  // Opens by itself when a fight begins, so players never miss the order; the game master can fold it away.
+  const hasCombat = !!combat;
+  const open = useTableUi((ui) => ui.initiativeOpen);
+  const setOpen = useTableUi((ui) => ui.setInitiativeOpen);
+  useEffect(() => {
+    if (hasCombat) setOpen(true);
+  }, [hasCombat, setOpen]);
   const inOrder = !!selectedToken && !!combat?.combatants.some((c) => c.tokenId === selectedToken.id);
   if (!combat && !isGm) return null;
 
@@ -33,12 +42,7 @@ export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, 
 
   return (
     <section aria-label={t("initiative.title")} className="grid grid-cols-[minmax(0,1fr)] gap-2 border-line border-t-[1.5px] pt-3">
-      <div className="flex items-center justify-between gap-2">
-        <h4>{t("initiative.title")}</h4>
-        {combat && <Badge tone="accent">{t("initiative.round", { round: combat.round })}</Badge>}
-      </div>
-
-      {/* Announces whose turn it is after the turn or round changes, for people who do not see the list. */}
+      {/* Announces whose turn it is after the turn or round changes, for people who do not see the list. It stays mounted when the list is folded. */}
       <p role="status" className="sr-only">
         {combat?.turnTokenId
           ? t("initiative.turnAnnounce", {
@@ -47,64 +51,82 @@ export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, 
             })
           : ""}
       </p>
-
-      {combat && combat.combatants.length > 0 && (
-        <ol aria-label={t("initiative.list")} className="m-0 grid list-none gap-1 p-0">
-          {combat.combatants.map((c) => (
-            <li
-              key={c.tokenId}
-              aria-current={c.tokenId === combat.turnTokenId ? "true" : undefined}
-              className="flex items-center gap-2 rounded-xl px-2 py-1.5 aria-[current=true]:bg-accent-soft aria-[current=true]:shadow-[inset_0_0_0_1.5px_var(--accent)]"
-            >
-              <span className="w-9 shrink-0 text-right font-bold tabular-nums">{c.score}</span>
-              <span className="min-w-0 flex-1 truncate font-semibold">{c.name}</span>
-              {c.tokenId === combat.turnTokenId && <Badge tone="accent">{t("initiative.turn")}</Badge>}
-              {isGm && (
-                <Button variant="ghost" size="sm" onClick={() => onRemove(c.tokenId)} aria-label={t("initiative.remove", { name: c.name })}>
-                  {t("initiative.removeShort")}
-                </Button>
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {isGm && (
-        <>
-          <form onSubmit={add} className="flex items-end gap-2">
-            <Field
-              label={selectedToken ? t("initiative.scoreFor", { name: selectedToken.name }) : t("initiative.score")}
-              className="flex-1"
-            >
-              {(control) => (
-                <Input
-                  {...control}
-                  type="number"
-                  step="any"
-                  inputMode="decimal"
-                  value={score}
-                  onChange={(e) => setScore(e.target.value)}
-                  disabled={!selectedToken}
-                />
-              )}
-            </Field>
-            <Button type="submit" variant="secondary" disabled={!selectedToken || score.trim() === ""}>
-              {inOrder ? t("initiative.update") : t("initiative.add")}
-            </Button>
-          </form>
-          {!selectedToken && <p className="muted">{t("initiative.selectHint")}</p>}
-          {combat && (
-            <div className="flex gap-2">
-              <Button onClick={onNextTurn} disabled={combat.combatants.length === 0}>
-                {t("initiative.next")}
-              </Button>
-              <Button variant="dangerLink" onClick={onEnd}>
-                {t("initiative.end")}
-              </Button>
-            </div>
+      <Disclosure
+        open={open}
+        onOpenChange={setOpen}
+        headingLevel={4}
+        title={
+          <span className="flex items-center gap-2">
+            <span className="font-bold">{t("initiative.title")}</span>
+            {combat && <Badge tone="accent">{t("initiative.round", { round: combat.round })}</Badge>}
+          </span>
+        }
+      >
+        <div className="grid gap-2">
+          {combat && combat.combatants.length > 0 && (
+            <ol aria-label={t("initiative.list")} className="m-0 grid list-none gap-1 p-0">
+              {combat.combatants.map((c) => (
+                <li
+                  key={c.tokenId}
+                  aria-current={c.tokenId === combat.turnTokenId ? "true" : undefined}
+                  className="flex items-center gap-2 rounded-xl px-2 py-1.5 aria-[current=true]:bg-accent-soft aria-[current=true]:shadow-[inset_0_0_0_1.5px_var(--accent)]"
+                >
+                  <span className="w-9 shrink-0 text-right font-bold tabular-nums">{c.score}</span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{c.name}</span>
+                  {c.tokenId === combat.turnTokenId && <Badge tone="accent">{t("initiative.turn")}</Badge>}
+                  {isGm && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemove(c.tokenId)}
+                      aria-label={t("initiative.remove", { name: c.name })}
+                    >
+                      {t("initiative.removeShort")}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ol>
           )}
-        </>
-      )}
+
+          {isGm && (
+            <>
+              <form onSubmit={add} className="flex items-end gap-2">
+                <Field
+                  label={selectedToken ? t("initiative.scoreFor", { name: selectedToken.name }) : t("initiative.score")}
+                  className="flex-1"
+                >
+                  {(control) => (
+                    <Input
+                      {...control}
+                      type="number"
+                      step="any"
+                      inputMode="decimal"
+                      value={score}
+                      onChange={(e) => setScore(e.target.value)}
+                      disabled={!selectedToken}
+                    />
+                  )}
+                </Field>
+                <Button type="submit" variant="secondary" disabled={!selectedToken || score.trim() === ""}>
+                  {inOrder ? t("initiative.update") : t("initiative.add")}
+                </Button>
+              </form>
+              {!selectedToken && <p className="m-0 text-ink-2">{t("initiative.selectHint")}</p>}
+              {combat && (
+                <div className="flex gap-2">
+                  <Button onClick={onNextTurn} disabled={combat.combatants.length === 0}>
+                    {t("initiative.next")}
+                  </Button>
+                  <Button variant="dangerLink" onClick={onEnd}>
+                    {t("initiative.end")}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </Disclosure>
     </section>
   );
 }

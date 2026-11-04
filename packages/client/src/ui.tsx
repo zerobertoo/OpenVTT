@@ -33,5 +33,6 @@ export function useAction() {
       setPending(false);
     }
   }, []);
-  return { run, error, pending };
+  const clear = useCallback(() => setError(null), []);
+  return { run, error, pending, clear };
 }

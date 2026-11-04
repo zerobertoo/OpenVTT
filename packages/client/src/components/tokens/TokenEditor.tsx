@@ -1,5 +1,5 @@
 import { type ActorDto, type MemberDto, TOKEN_CONDITIONS, type TokenDto } from "@openvtt/shared";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AssetPicker } from "../ui/asset-picker";
 import { Button } from "../ui/button";
@@ -9,6 +9,7 @@ import { ColorPicker } from "../ui/color-picker";
 import { ConfirmDialog } from "../ui/dialog";
 import { Field } from "../ui/field";
 import { Input } from "../ui/input";
+import { PanelSection } from "../ui/panel-section";
 import { Select } from "../ui/select";
 import { Slider } from "../ui/slider";
 
@@ -25,7 +26,21 @@ interface Props {
   onDelete: () => void;
 }
 
-/** Fields of the selected token. Each change is saved as soon as it is made. */
+/** A named block of related fields, so a long editor reads as a few short parts. */
+function Group({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <PanelSection
+      variant="group"
+      headingLevel={5}
+      title={title}
+      className="border-line border-t-[1.5px] pt-3 first-of-type:border-t-0 first-of-type:pt-0"
+    >
+      {children}
+    </PanelSection>
+  );
+}
+
+/** Fields of the selected token, in three groups (look, health, access). Each change is saved as soon as it is made. */
 export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch, onUpload, onDelete }: Props) {
   const { t } = useTranslation();
   const [rotation, setRotation] = useState<number | null>(null);
@@ -44,61 +59,96 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
   const commitRotation = (degrees: number) => onPatch({ rotation: degrees });
 
   return (
-    <Card variant="inset" className="grid gap-3" aria-label={t("token.edit")} as="section">
+    <Card variant="inset" className="grid gap-4" aria-label={t("token.edit")} as="section">
       <h4 className="m-0 text-base">{token.name}</h4>
 
-      <Field label={t("token.rotation")}>
-        {(control) => (
-          <Slider
-            {...control}
-            aria-label={t("token.rotation")}
-            min={0}
-            max={360}
-            step={15}
-            value={rotation ?? ((token.rotation % 360) + 360) % 360}
-            onValueChange={setRotation}
-            onValueCommit={commitRotation}
-          />
+      <Group title={t("token.groupAppearance")}>
+        {isGm && (
+          <Field label={t("token.name")}>
+            {(control) => (
+              <Input
+                {...control}
+                defaultValue={token.name}
+                maxLength={60}
+                onBlur={(e) => e.target.value.trim() && e.target.value !== token.name && onPatch({ name: e.target.value })}
+              />
+            )}
+          </Field>
         )}
-      </Field>
-
-      {!isGm && token.hp !== null && token.hpMax !== null && (
-        <Field label={t("token.hp", { max: token.hpMax })}>
+        <Field label={t("token.rotation")}>
           {(control) => (
-            <Input
+            <Slider
               {...control}
-              type="number"
-              min={-9999}
-              max={99999}
-              step={1}
-              defaultValue={token.hp ?? ""}
-              onBlur={(e) =>
-                e.target.value !== "" && Number(e.target.value) !== token.hp && onPatch({ hp: Math.round(Number(e.target.value)) })
-              }
+              aria-label={t("token.rotation")}
+              min={0}
+              max={360}
+              step={15}
+              value={rotation ?? ((token.rotation % 360) + 360) % 360}
+              onValueChange={setRotation}
+              onValueCommit={commitRotation}
             />
           )}
         </Field>
-      )}
+        {isGm && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("token.size")}>
+                {(control) => (
+                  <Input
+                    {...control}
+                    type="number"
+                    min={0.25}
+                    max={20}
+                    step={0.25}
+                    defaultValue={token.size}
+                    onBlur={(e) => {
+                      const size = Number(e.target.value);
+                      // An empty or unchanged field sends nothing (an empty one would read as 0, below the minimum).
+                      if (e.target.value.trim() !== "" && size !== token.size) onPatch({ size });
+                    }}
+                  />
+                )}
+              </Field>
+              <Field label={t("token.color")}>
+                {(control) => <ColorPicker {...control} value={color} onChange={changeColor} className="w-full" />}
+              </Field>
+            </div>
+            <AssetPicker
+              label={t("token.image")}
+              assetId={token.assetId}
+              name={token.name}
+              color={token.color}
+              onPick={onUpload}
+              onRemove={() => onPatch({ assetId: null })}
+            />
+            <Field label={t("token.showName")} inline>
+              {(control) => (
+                <Switch {...control} defaultChecked={token.showName} onChange={(e) => onPatch({ showName: e.target.checked })} />
+              )}
+            </Field>
+          </>
+        )}
+      </Group>
 
-      <fieldset className="m-0 grid grid-cols-2 gap-x-3 gap-y-1.5 border-0 p-0">
-        <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("token.conditions")}</legend>
-        {TOKEN_CONDITIONS.map((id) => (
-          <Field key={id} label={t(`condition.${id}`)} inline>
+      <Group title={t("token.groupState")}>
+        {!isGm && token.hp !== null && token.hpMax !== null && (
+          <Field label={t("token.hp", { max: token.hpMax })}>
             {(control) => (
-              <Checkbox
+              <Input
                 {...control}
-                defaultChecked={token.conditions.includes(id)}
-                onChange={(e) =>
-                  onPatch({ conditions: e.target.checked ? [...token.conditions, id] : token.conditions.filter((c) => c !== id) })
+                type="number"
+                min={-9999}
+                max={99999}
+                step={1}
+                defaultValue={token.hp ?? ""}
+                onBlur={(e) =>
+                  e.target.value !== "" && Number(e.target.value) !== token.hp && onPatch({ hp: Math.round(Number(e.target.value)) })
                 }
               />
             )}
           </Field>
-        ))}
-      </fieldset>
-
-      {isGm && (
-        <>
+        )}
+        {isGm && (
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("token.hpCurrent")}>
               {(control) => (
@@ -132,10 +182,27 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               )}
             </Field>
           </div>
-          <Field label={t("token.showName")} inline>
-            {(control) => <Switch {...control} defaultChecked={token.showName} onChange={(e) => onPatch({ showName: e.target.checked })} />}
-          </Field>
+        )}
+        <fieldset className="m-0 grid grid-cols-2 gap-x-3 gap-y-1.5 border-0 p-0">
+          <legend className="mb-1 p-0 font-semibold text-label">{t("token.conditions")}</legend>
+          {TOKEN_CONDITIONS.map((id) => (
+            <Field key={id} label={t(`condition.${id}`)} inline>
+              {(control) => (
+                <Checkbox
+                  {...control}
+                  defaultChecked={token.conditions.includes(id)}
+                  onChange={(e) =>
+                    onPatch({ conditions: e.target.checked ? [...token.conditions, id] : token.conditions.filter((c) => c !== id) })
+                  }
+                />
+              )}
+            </Field>
+          ))}
+        </fieldset>
+      </Group>
 
+      {isGm && (
+        <Group title={t("token.groupAccess")}>
           {floors.length > 1 && (
             <Field label={t("token.floor")} hint={t("token.floorHint")}>
               {(control) => (
@@ -149,48 +216,9 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               )}
             </Field>
           )}
-          <Field label={t("token.name")}>
-            {(control) => (
-              <Input
-                {...control}
-                defaultValue={token.name}
-                maxLength={60}
-                onBlur={(e) => e.target.value.trim() && e.target.value !== token.name && onPatch({ name: e.target.value })}
-              />
-            )}
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("token.size")}>
-              {(control) => (
-                <Input
-                  {...control}
-                  type="number"
-                  min={0.25}
-                  max={20}
-                  step={0.25}
-                  defaultValue={token.size}
-                  onBlur={(e) => onPatch({ size: Number(e.target.value) })}
-                />
-              )}
-            </Field>
-            <Field label={t("token.color")}>
-              {(control) => <ColorPicker {...control} value={color} onChange={changeColor} className="w-full" />}
-            </Field>
-          </div>
-
-          <AssetPicker
-            label={t("token.image")}
-            assetId={token.assetId}
-            name={token.name}
-            color={token.color}
-            onPick={onUpload}
-            onRemove={() => onPatch({ assetId: null })}
-          />
-
           <Field label={t("token.hidden")} inline>
             {(control) => <Switch {...control} defaultChecked={token.hidden} onChange={(e) => onPatch({ hidden: e.target.checked })} />}
           </Field>
-
           <Field label={t("token.actor")}>
             {(control) => (
               <Select {...control} defaultValue={token.actorId ?? ""} onValueChange={(value) => onPatch({ actorId: value || null })}>
@@ -203,10 +231,9 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               </Select>
             )}
           </Field>
-
           {players.length > 0 && (
             <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-              <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("token.controllers")}</legend>
+              <legend className="mb-1 p-0 font-semibold text-label">{t("token.controllers")}</legend>
               {players.map((member) => (
                 <Field key={member.userId} label={member.displayName} inline>
                   {(control) => (
@@ -226,7 +253,11 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               ))}
             </fieldset>
           )}
+        </Group>
+      )}
 
+      {isGm && (
+        <div className="border-line border-t-[1.5px] pt-3">
           <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
             {t("common.delete")}
           </Button>
@@ -243,7 +274,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               onDelete();
             }}
           />
-        </>
+        </div>
       )}
     </Card>
   );

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
+import { chooseAddSceneOption, createAndOpenWorld, expectNoAxeViolations, openNewTokenForm, registerNewUser } from "./helpers";
 
 test("sign-in screen has no accessibility violations", async ({ page }) => {
   await page.goto("/");
@@ -63,13 +63,15 @@ test("a game master can set up a scene, a token, a sheet and an invite, with no 
   await createAndOpenWorld(page, "Tour world");
 
   await page.getByRole("tab", { name: "Scenes" }).click();
+  await chooseAddSceneOption(page, "New scene");
   await page.getByRole("form", { name: "New scene" }).getByLabel("Name").fill("Tavern");
   await page.getByRole("button", { name: "Create scene" }).click();
   await expect(page.getByRole("list", { name: "Scenes" }).getByText("Tavern")).toBeVisible();
   await expectNoAxeViolations(page);
 
   await page.getByRole("tab", { name: "Tokens" }).click();
-  await page.getByLabel("Name").first().fill("Goblin");
+  await openNewTokenForm(page);
+  await page.getByRole("dialog", { name: "New token" }).getByLabel("Name").fill("Goblin");
   await page.getByRole("button", { name: "Add token" }).click();
   await page
     .getByRole("list", { name: "Tokens in this scene" })

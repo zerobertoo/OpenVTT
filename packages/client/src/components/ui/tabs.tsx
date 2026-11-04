@@ -24,7 +24,7 @@ export const TabTrigger = forwardRef<HTMLButtonElement, ComponentProps<typeof Ta
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex cursor-pointer flex-col items-center gap-0.5 rounded-xl border-0 bg-transparent px-0.5 py-2 text-[0.68rem] text-on-chrome-2",
+      "flex cursor-pointer flex-col items-center gap-0.5 rounded-xl border-0 bg-transparent px-0.5 py-2 text-caption text-on-chrome-2",
       "hover:bg-chrome-2 hover:text-on-chrome",
       "focus-visible:outline-2 focus-visible:outline-dice focus-visible:outline-offset-2",
       "data-[state=active]:bg-accent data-[state=active]:text-on-accent",

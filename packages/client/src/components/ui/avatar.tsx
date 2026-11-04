@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { cn } from "../../lib/cn";
 
 const avatarStyles = cva("relative inline-grid flex-none place-items-center rounded-full font-extrabold", {
-  variants: { size: { sm: "size-7 text-[0.7rem]", md: "size-[1.9rem] text-[0.8rem]", lg: "size-11 text-base" } },
+  variants: { size: { sm: "size-7 text-caption", md: "size-[1.9rem] text-caption", lg: "size-11 text-base" } },
   defaultVariants: { size: "md" },
 });
 

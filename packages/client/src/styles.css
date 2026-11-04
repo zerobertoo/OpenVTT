@@ -18,6 +18,7 @@
   --text: light-dark(oklch(0.243 0.02 173.5), oklch(0.957 0.01 174.3)); /* light #16231f, dark #eaf3f0 */
   --text-2: light-dark(oklch(0.466 0.028 172.7), oklch(0.787 0.028 173.5)); /* light #4a5f58, dark #a8c0b8 */
   --line: light-dark(oklch(0.873 0.017 172.6), oklch(0.407 0.035 179.5)); /* light #cbd9d4, dark #34504a */
+  --field-line: light-dark(oklch(0.62 0.03 172), oklch(0.58 0.035 178)); /* borders of inputs and selects: 3:1 against their fill in both themes (WCAG 1.4.11) */
   --accent: light-dark(oklch(0.537 0.08 177.2), oklch(0.72 0.094 177.6)); /* light #2f7d6d, dark #5bb8a4 */
   --accent-text: light-dark(oklch(0.463 0.072 175.5), oklch(0.72 0.094 177.6)); /* light #236657 (links on the page background), dark same as accent */
   --accent-soft: light-dark(oklch(0.923 0.024 176.8), oklch(0.356 0.039 177.8)); /* light #d6ebe5, dark #24433c */
@@ -57,6 +58,7 @@
   --text: light-dark(oklch(0 0 0), oklch(1 0 0));
   --text-2: var(--text);
   --line: light-dark(oklch(0.45 0.02 175), oklch(0.78 0.03 175));
+  --field-line: var(--line);
   --on-chrome-2: var(--on-chrome);
 }
 :root[data-theme="light"] { color-scheme: light; }
@@ -64,6 +66,12 @@
 
 /* Skeletons stay invisible for the first 150ms so a fast load never flashes them. */
 @theme {
+  /* Type scale from DESIGN.md: caption is the floor for any label (12px), title and up are headings. */
+  --text-caption: 0.75rem;
+  --text-label: 0.9rem;
+  --text-title: 1.3rem;
+  --text-headline: 1.6rem;
+  --text-display: 2.2rem;
   --animate-appear-late: appear-late 0.2s linear 0.15s backwards;
   --animate-overlay-in: overlay-in 0.15s ease-out;
   --animate-dialog-in: dialog-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
@@ -86,6 +94,7 @@
   --color-ink: var(--text);
   --color-ink-2: var(--text-2);
   --color-line: var(--line);
+  --color-field-line: var(--field-line);
   --color-accent: var(--accent);
   --color-accent-text: var(--accent-text);
   --color-accent-soft: var(--accent-soft);
@@ -123,7 +132,6 @@ h3 { font-size: 1.05rem; margin: 0.25rem 0 0.5rem; }
 h4 { font-size: 0.95rem; margin: 0; }
 a { color: var(--accent-text); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.muted { color: var(--text-2); }
 .error { color: var(--danger); font-weight: 600; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
@@ -133,12 +141,12 @@ input:not([type="checkbox"], [type="range"], [type="color"], [type="file"]), sel
   padding: 0.6rem 0.85rem;
   color: var(--text);
   background: var(--surface);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--field-line);
   border-radius: var(--radius-sm);
   width: 100%;
   min-width: 0;
 }
-input[type="color"] { width: 3rem; height: 2.3rem; padding: 0.15rem; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+input[type="color"] { width: 3rem; height: 2.3rem; padding: 0.15rem; border: 1.5px solid var(--field-line); border-radius: var(--radius-sm); background: var(--surface); }
 input[type="file"] { font-size: 0.85rem; max-width: 100%; }
 button {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
@@ -151,19 +159,11 @@ button {
 button:hover:not(:disabled) { box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 45%, transparent); }
 button:active:not(:disabled) { transform: scale(0.96); }
 button:disabled { opacity: 0.55; cursor: default; }
-button.secondary { color: var(--text); background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--line); }
-button.secondary[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); box-shadow: none; }
-button.link { padding: 0.15rem 0.1rem; color: var(--accent-text); background: none; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-button.link:hover:not(:disabled) { box-shadow: none; }
-button.danger { color: var(--on-danger); background: var(--danger); }
-button.link.danger { color: var(--danger); background: none; }
 label { display: grid; gap: 0.25rem; font-weight: 600; font-size: 0.9rem; }
 label.inline { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
 fieldset { margin: 0; padding: 0.7rem 0.9rem 0.9rem; display: grid; gap: 0.6rem; border: 1.5px solid var(--line); border-radius: var(--radius); min-width: 0; }
 legend { padding: 0 0.4rem; font-weight: 700; font-size: 0.85rem; }
 form { display: grid; gap: 0.8rem; }
-form.compact, div.compact { display: grid; gap: 0.6rem; margin-block: 0.4rem; }
-form.row, .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; }
 output { font-weight: 800; font-size: 1.1rem; }
 
 }
@@ -191,14 +191,16 @@ output { font-weight: 800; font-size: 1.1rem; }
 .chrome :focus-visible { outline-color: var(--dice); }
 .title-chip { top: 0.9rem; left: 0.9rem; max-width: calc(100% - 1.8rem); padding: 0.3rem 1rem 0.3rem 0.4rem; }
 .title-chip .logo { width: 1.9rem; height: 1.9rem; }
-.title-chip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title-chip h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .title-chip .status { color: var(--dice); font-size: 0.85rem; }
 .minimap { position: absolute; right: calc(var(--drawer-space, 0px) + 0.9rem); bottom: 1rem; z-index: 1; border-radius: var(--radius); box-shadow: var(--shadow-chrome); cursor: crosshair; }
 .minimap canvas { display: block; border-radius: var(--radius); touch-action: none; }
 .dock { position: absolute; bottom: 1rem; left: calc((100% - var(--drawer-space, 0px)) / 2); transform: translateX(-50%); }
 .ruler-options { position: absolute; bottom: 6.6rem; left: calc((100% - var(--drawer-space, 0px)) / 2); transform: translateX(-50%); max-width: calc(100% - 2rem); }
-.music-unlock { position: absolute; top: 4.4rem; left: 0.9rem; z-index: 2; }
-.map-hint { position: absolute; left: 0.9rem; bottom: 1rem; margin: 0; max-width: 16rem; padding: 0.4rem 0.8rem; font-size: 0.78rem; color: var(--on-chrome-2); background: color-mix(in srgb, var(--chrome) 85%, transparent); border-radius: var(--radius); }
+.music-unlock { position: absolute; top: 8rem; left: 0.9rem; z-index: 2; }
+.selection-bar { position: absolute; top: 0.75rem; left: 50%; z-index: 1; transform: translateX(-50%); }
+.empty-map { position: absolute; inset: 0 var(--drawer-space, 0px) 0 0; display: grid; place-content: safe center; padding: 1rem; overflow-y: auto; }
+.map-hint { position: absolute; left: 0.9rem; bottom: 6.4rem; margin: 0; max-width: 16rem; padding: 0.4rem 0.8rem; font-size: 0.78rem; color: var(--on-chrome-2); background: color-mix(in srgb, var(--chrome) 85%, transparent); border-radius: var(--radius); }
 .online-chip { top: 0.9rem; right: calc(var(--drawer-space, 0px) + 0.9rem); padding: 0.3rem 0.75rem 0.3rem 0.5rem; font-size: 0.85rem; color: var(--on-chrome-2); }
 .drawer-toggle { position: absolute; top: 0.9rem; right: 0.9rem; z-index: 3; box-shadow: var(--shadow-chrome); }
 
@@ -259,7 +261,6 @@ output { font-weight: 800; font-size: 1.1rem; }
 .sheet fieldset { grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); align-items: end; background: var(--surface-2); border-color: transparent; }
 .sheet fieldset > :is(label:has(textarea), fieldset) { grid-column: 1 / -1; }
 .sheet label { grid-template-columns: 1fr; }
-.sheet .row > label { flex: 1 1 5rem; }
 .scene-row .name { font-weight: 700; flex: 1; }
 
 /* --- tooltip (Radix, rendered in a portal) --- */
@@ -273,8 +274,15 @@ output { font-weight: 800; font-size: 1.1rem; }
   .drawer { top: auto; left: 0.6rem; right: 0.6rem; bottom: 0.6rem; width: auto; max-width: none; height: min(62dvh, 34rem); grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
   .drawer-panel { padding: 0.8rem; }
   .drawer-toggle { top: auto; right: 1.2rem; }
-  .dock { top: 4.2rem; bottom: auto; left: 0.9rem; transform: none; }
-  .ruler-options { top: 9.4rem; bottom: auto; left: 0.9rem; transform: none; }
+  /* Phones: the dock sits at the bottom, where a thumb reaches, and rides above the sheet while it is open. Tool options and notices stack under the title chip without sharing a spot. */
+  .dock { top: auto; bottom: 0.9rem; left: 0.9rem; right: 0.9rem; transform: none; flex-wrap: wrap; justify-content: center; }
+  .table-stage[data-drawer="open"] .dock { bottom: calc(min(62dvh, 34rem) + 1.2rem); }
+  .empty-map { inset: 4.4rem 0 0 0; padding-bottom: 6.5rem; }
+  .table-stage[data-drawer="open"] .empty-map { padding-bottom: calc(min(62dvh, 34rem) + 7.5rem); }
+  .selection-bar { top: 4.4rem; left: 0.9rem; transform: none; max-width: calc(100% - 7.5rem); }
+  .video-control { top: 8rem; }
+  .music-unlock { top: 11rem; }
+  .ruler-options { top: 4.4rem; bottom: auto; left: 0.9rem; transform: none; max-width: calc(100% - 7.5rem); }
   .map-hint, .online-chip, .minimap { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -282,6 +290,13 @@ output { font-weight: 800; font-size: 1.1rem; }
 }
 }
 
+/* Windows high contrast removes backgrounds: give buttons, tabs and the floating bars a visible edge.
+   Unlayered on purpose: a layered rule would lose to utilities such as `border-0`. */
+@media (forced-colors: active) {
+  button, [role="tab"], [role="radio"], .chrome, .drawer, .dock > * { border: 1px solid ButtonText; }
+  :focus-visible { outline-color: Highlight; }
+}
+
 /* Floors: the game master's switcher sits at the middle of the left edge, under the title chip. */
 .floor-switcher { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); z-index: 1; }
-@media (max-width: 52rem) { .floor-switcher { top: 8.4rem; transform: none; } }
+@media (max-width: 52rem) { .floor-switcher { top: 4.4rem; left: auto; right: 0.9rem; transform: none; } }

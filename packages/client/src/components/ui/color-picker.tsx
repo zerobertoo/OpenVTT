@@ -73,12 +73,12 @@ export function ColorPicker({ value, onChange, className, id, ...aria }: ColorPi
           // With an explicit name, include the visible hex in it (WCAG 2.5.3); inside a Field the label text names the button.
           aria-label={aria["aria-label"] ? `${aria["aria-label"]}: ${value}` : undefined}
           className={cn(
-            "flex min-h-11 items-center gap-2 rounded-sm border-[1.5px] border-line bg-surface px-2 text-ink tabular-nums",
+            "flex min-h-11 items-center gap-2 rounded-sm border-[1.5px] border-field-line bg-surface px-2 text-ink tabular-nums",
             className,
           )}
         >
           <span aria-hidden="true" className="size-6 shrink-0 rounded-full border-2 border-ink-2" style={{ backgroundColor: value }} />
-          <span className="font-mono text-[0.85rem] uppercase">{value}</span>
+          <span className="font-mono text-label uppercase">{value}</span>
         </button>
       }
     >
@@ -95,7 +95,7 @@ export function ColorPicker({ value, onChange, className, id, ...aria }: ColorPi
           />
         ))}
       </div>
-      <label htmlFor={hexFieldId} className="mt-3 grid gap-1 font-semibold text-[0.9rem]">
+      <label htmlFor={hexFieldId} className="mt-3 grid gap-1 font-semibold text-label">
         {t("color.hex")}
         <Input
           id={hexFieldId}

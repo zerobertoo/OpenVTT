@@ -38,7 +38,7 @@ export function JoinInviteScreen({ code }: { code: string }) {
 
   return (
     <Card as="section" aria-labelledby="join-title" className="grid gap-4">
-      <h1 id="join-title" className="m-0 font-bold text-[1.6rem] tracking-tight">
+      <h1 id="join-title" className="m-0 font-bold text-headline tracking-tight">
         {t("invite.title")}
       </h1>
       <p className="m-0 text-ink-2">{t("invite.intro")}</p>
