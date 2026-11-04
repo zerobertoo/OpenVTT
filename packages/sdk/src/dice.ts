@@ -32,9 +32,15 @@ const TERM = /([+-])?\s*(?:(\d*)d(\d+)|(\d+))/gy;
  * `adv`/`dis` roll the first single d20 twice and keep the higher/lower result.
  */
 export function rollDice(input: string, rng: Rng): RollResult {
-  const match = /^\s*(.*?)\s*(adv|dis)?\s*$/i.exec(input);
-  const body = (match?.[1] ?? "").replace(/\s*([+-])\s*/g, "$1");
-  const advantage = (match?.[2]?.toLowerCase() as "adv" | "dis" | undefined) ?? null;
+  // Plain string handling instead of backtracking regexes, so long runs of spaces cannot make it slow.
+  const trimmed = input.trim();
+  const suffix = trimmed.slice(-3).toLowerCase();
+  const advantage = suffix === "adv" || suffix === "dis" ? suffix : null;
+  const body = (advantage ? trimmed.slice(0, -3) : trimmed)
+    .trim()
+    .split(/([+-])/)
+    .map((piece) => piece.trim())
+    .join("");
   if (!body) throw new DiceError("empty");
 
   const parts: RollPart[] = [];
