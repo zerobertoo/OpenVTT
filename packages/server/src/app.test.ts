@@ -221,3 +221,16 @@ describe("persistence", () => {
     expect((await call(second, gm.cookie, "GET", "/api/worlds")).json()[0].name).toBe("Persistent");
   });
 });
+
+describe("rate limiting", () => {
+  it("answers 429 with an error code once the world import limit is passed", async () => {
+    const app = newApp();
+    const { cookie } = await signUp(app, "alice");
+    const statuses: number[] = [];
+    for (let i = 0; i < 12; i++) statuses.push((await call(app, cookie, "POST", "/api/worlds/import")).statusCode);
+    expect(statuses.slice(0, 10)).not.toContain(429);
+    expect(statuses.at(-1)).toBe(429);
+    const blocked = await call(app, cookie, "POST", "/api/worlds/import");
+    expect(blocked.json()).toEqual({ error: "too_many_attempts" });
+  });
+});

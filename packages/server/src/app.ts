@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import fastifyCookie from "@fastify/cookie";
+import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import {
   ALLOWED_AUDIO_TYPES,
@@ -84,6 +85,8 @@ export function buildApp(options: AppOptions) {
   const app = Fastify({ logger: false });
 
   app.register(fastifyCookie);
+  // Opt-in per route (`config.rateLimit`); a client IP behind a reverse proxy is the proxy's, so limits are generous.
+  app.register(fastifyRateLimit, { global: false });
   hub.attach(app.server);
   const backupTimer = options.backupIntervalHours
     ? setInterval(() => {
@@ -105,11 +108,15 @@ export function buildApp(options: AppOptions) {
   );
   // Videos are never buffered: the route receives the raw request stream and writes it to disk.
   app.addContentTypeParser([...ALLOWED_VIDEO_TYPES, ...ALLOWED_AUDIO_TYPES], (_req, payload, done) => done(null, payload));
+  // Zip bodies (world and system packages) reach the routes as raw streams; routes that want the bytes collect them.
+  app.addContentTypeParser("application/zip", (_req, payload, done) => done(null, payload));
 
   app.setErrorHandler((error, _req, reply) => {
     if (error instanceof AppError) return reply.status(error.status).send({ error: error.code });
     if (error instanceof ZodError || (error as { validation?: unknown }).validation)
       return reply.status(400).send({ error: "invalid_input" satisfies ErrorCode });
+    if ((error as { statusCode?: number }).statusCode === 429)
+      return reply.status(429).send({ error: "too_many_attempts" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 413)
       return reply.status(413).send({ error: "asset_invalid" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 415)
@@ -170,9 +177,12 @@ export function buildApp(options: AppOptions) {
     return startSession(reply, await s.auth.register(username, password));
   });
 
-  app.post("/api/auth/login", async (req, reply) => {
-    const { username, password } = credentialsSchema.parse(req.body);
-    return startSession(reply, await s.auth.login(username, password));
+  // Registered in its own scope so it loads after the rate-limit plugin, which only limits routes added once it is ready.
+  app.register(async (scope) => {
+    scope.post("/api/auth/login", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (req, reply) => {
+      const { username, password } = credentialsSchema.parse(req.body);
+      return startSession(reply, await s.auth.login(username, password));
+    });
   });
 
   app.post("/api/auth/logout", async (req, reply) => {
@@ -652,7 +662,9 @@ export function buildApp(options: AppOptions) {
     return { ok: true };
   });
 
-  registerPortabilityRoutes(app, s, { requireUser, requireGm, broadcastState: (id) => hub.broadcastState(id) });
+  app.register(async (scope) => {
+    registerPortabilityRoutes(scope, s, { requireUser, requireGm, broadcastState: (id) => hub.broadcastState(id) });
+  });
 
   if (options.clientDir && existsSync(options.clientDir)) {
     app.register(fastifyStatic, {

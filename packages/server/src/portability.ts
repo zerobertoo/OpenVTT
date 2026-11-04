@@ -139,7 +139,7 @@ const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value
  * private messages are dropped, and the importer becomes the GM of the new world.
  */
 export function registerPortabilityRoutes(app: FastifyInstance, s: Services, guards: Guards) {
-  app.get<{ Params: { id: string } }>("/api/worlds/:id/export", async (req, reply) => {
+  app.get<{ Params: { id: string } }>("/api/worlds/:id/export", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
     const worldId = req.params.id;
     guards.requireGm(req, worldId);
     const world = s.db.prepare("SELECT name, system_id, template_overrides, active_scene_id FROM worlds WHERE id = ?").get(worldId) as {
@@ -211,7 +211,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
   });
 
   // A scene as a Universal VTT file. Videos cannot be embedded, so `image` stays empty and the video is downloaded separately.
-  app.get<{ Params: { id: string } }>("/api/scenes/:id/export.dd2vtt", async (req, reply) => {
+  app.get<{ Params: { id: string } }>("/api/scenes/:id/export.dd2vtt", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     guards.requireGm(req, worldId);
@@ -230,7 +230,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       .send(JSON.stringify(buildUvtt({ ...scene, walls: floor.walls, lights: floor.lights }, image)));
   });
 
-  app.post("/api/worlds/import", async (req) => {
+  app.post("/api/worlds/import", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req) => {
     const user = guards.requireUser(req);
     if (!(req.body instanceof Readable)) throw new AppError("import_invalid");
 
@@ -371,8 +371,6 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     return { id: worldId, name: file.world.name, role: "gm" };
   }
 
-  // Zip bodies reach the routes as raw streams; routes that want the bytes in memory collect them themselves.
-  app.addContentTypeParser("application/zip", (_req, payload, done) => done(null, payload));
 
   /** What was found in an archive: `world.json` in memory, everything else as a temp file. */
   interface ArchiveEntry {
