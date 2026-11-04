@@ -141,7 +141,7 @@ export function WorldListScreen() {
     <section className="grid gap-4">
       <Card className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="m-0 font-bold text-[1.6rem] tracking-tight">{t("worlds.title")}</h1>
+          <h1 className="m-0 font-bold text-headline tracking-tight">{t("worlds.title")}</h1>
           {worlds.length > 0 && newWorldButton}
         </div>
         {worldsQuery.isPending && <WorldRowsSkeleton />}
@@ -167,7 +167,7 @@ export function WorldListScreen() {
       </Card>
 
       <Card as="section" aria-label={t("worlds.moreTitle")} className="grid gap-3">
-        <h2 className="m-0 text-[1.05rem]">{t("worlds.moreTitle")}</h2>
+        <h2 className="m-0 text-base">{t("worlds.moreTitle")}</h2>
         <div className="flex flex-wrap gap-2">
           <FileButton
             label={t("worlds.import")}

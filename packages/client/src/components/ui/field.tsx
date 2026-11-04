@@ -34,13 +34,13 @@ export function Field({ label, hint, error, inline = false, className, children 
       {inline ? (
         <div className="flex items-center gap-2">
           {control}
-          <label htmlFor={id} className="font-medium text-[0.95rem]">
+          <label htmlFor={id} className="font-medium text-label">
             {label}
           </label>
         </div>
       ) : (
         <>
-          <label htmlFor={id} className="font-semibold text-[0.9rem]">
+          <label htmlFor={id} className="font-semibold text-label">
             {label}
           </label>
           {control}

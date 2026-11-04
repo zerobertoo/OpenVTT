@@ -177,7 +177,7 @@ function HandoutEditor({
         )}
       </Field>
       <fieldset className="m-0 grid gap-2 border-0 p-0">
-        <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("journal.audience")}</legend>
+        <legend className="mb-1 p-0 font-semibold text-label">{t("journal.audience")}</legend>
         <Field label={t("journal.everyone")} inline>
           {(control) => <Checkbox {...control} checked={everyone} onChange={(e) => setAudience(e.target.checked ? ["*"] : [])} />}
         </Field>

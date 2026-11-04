@@ -7,6 +7,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { ConfirmDialog } from "../ui/dialog";
+import { ListItemButton } from "../ui/list-item-button";
 import { DropdownMenu } from "../ui/popover";
 
 interface Props {
@@ -27,11 +28,10 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
   const thumbnail = floorOf(scene, scene.tableFloorId).assetId;
   return (
     <Card as="li" variant="inset" className={`flex items-center gap-1 p-1.5 ${viewing ? "shadow-[inset_0_0_0_1.5px_var(--accent)]" : ""}`}>
-      <button
-        type="button"
+      <ListItemButton
         aria-pressed={viewing}
         onClick={onView}
-        className="flex min-w-0 flex-1 cursor-pointer items-center justify-start gap-2.5 rounded-xl bg-transparent p-1 text-left text-ink pointer-coarse:min-h-11"
+        className="min-w-0 flex-1 p-1 hover:bg-transparent aria-pressed:bg-transparent aria-pressed:shadow-none"
       >
         {thumbnail ? (
           <img src={assetUrl(thumbnail)} alt="" className="size-11 flex-none rounded-lg object-cover" />
@@ -45,7 +45,7 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
           {shown && <Badge tone="accent">{t("scene.active")}</Badge>}
           {scene.floors.length > 1 && <Badge tone="neutral">{t("scene.floorCount", { count: scene.floors.length })}</Badge>}
         </span>
-      </button>
+      </ListItemButton>
 
       <DropdownMenu
         trigger={

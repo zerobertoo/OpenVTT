@@ -19,7 +19,7 @@ export function SelectionBar({ count, canRotate, canDelete, onRotate, onDelete, 
     <div
       role="toolbar"
       aria-label={t("selection.label")}
-      className="absolute top-3 left-1/2 z-1 flex -translate-x-1/2 items-center gap-2 rounded-[1.2rem] bg-chrome px-3 py-2 text-on-chrome text-sm shadow-float"
+      className="absolute top-3 left-1/2 z-1 flex -translate-x-1/2 items-center gap-2 rounded-panel bg-chrome px-3 py-2 text-on-chrome text-sm shadow-float"
     >
       <span>{t("selection.count", { count })}</span>
       <Button variant="secondary" size="sm" disabled={!canRotate} onClick={() => onRotate(-45)}>

@@ -64,6 +64,12 @@
 
 /* Skeletons stay invisible for the first 150ms so a fast load never flashes them. */
 @theme {
+  /* Type scale from DESIGN.md: caption is the floor for any label (12px), title and up are headings. */
+  --text-caption: 0.75rem;
+  --text-label: 0.9rem;
+  --text-title: 1.3rem;
+  --text-headline: 1.6rem;
+  --text-display: 2.2rem;
   --animate-appear-late: appear-late 0.2s linear 0.15s backwards;
   --animate-overlay-in: overlay-in 0.15s ease-out;
   --animate-dialog-in: dialog-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);

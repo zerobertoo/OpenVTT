@@ -51,7 +51,7 @@ export function LightOptions({ light, onChange, onDelete }: Props) {
     <div
       role="group"
       aria-label={t("light.options")}
-      className="ruler-options flex flex-wrap items-center gap-2 rounded-[1.2rem] bg-chrome p-2 shadow-float"
+      className="ruler-options flex flex-wrap items-center gap-2 rounded-panel bg-chrome p-2 shadow-float"
     >
       {light ? (
         <>

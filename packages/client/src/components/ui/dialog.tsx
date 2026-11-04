@@ -57,7 +57,7 @@ export function Dialog({ open, onOpenChange, title, description, size, children 
         <RadixDialog.Overlay className={overlayStyles}>
           <RadixDialog.Content className={contentStyles({ size })} {...restoreFocus}>
             <div className="flex items-start justify-between gap-3">
-              <RadixDialog.Title className="m-0 font-bold text-[1.3rem] tracking-tight">{title}</RadixDialog.Title>
+              <RadixDialog.Title className="m-0 font-bold text-title tracking-tight">{title}</RadixDialog.Title>
               <RadixDialog.Close asChild>
                 <Button variant="ghost" size="icon" aria-label={t("common.close")} className="-mt-2 -mr-2">
                   <Icon name="close" />
@@ -109,7 +109,7 @@ export function ConfirmDialog({
       <AlertDialog.Portal>
         <AlertDialog.Overlay className={overlayStyles}>
           <AlertDialog.Content className={cn(contentStyles({ size: "sm" }))} {...restoreFocus}>
-            <AlertDialog.Title className="m-0 font-bold text-[1.3rem] tracking-tight">{title}</AlertDialog.Title>
+            <AlertDialog.Title className="m-0 font-bold text-title tracking-tight">{title}</AlertDialog.Title>
             <AlertDialog.Description className="m-0 text-ink-2">{description}</AlertDialog.Description>
             <div className="mt-2 flex flex-wrap justify-end gap-2">
               <AlertDialog.Cancel asChild>

@@ -29,7 +29,7 @@ export function SheetField({ field, value, label, labelFor, onCommit, readOnly }
     case "computed":
       return (
         <div className="grid gap-1">
-          <span className="font-semibold text-[0.9rem]">{label}</span>
+          <span className="font-semibold text-label">{label}</span>
           <output className="font-bold text-lg">{value === null ? "—" : String(value)}</output>
         </div>
       );
@@ -101,7 +101,7 @@ export function SheetField({ field, value, label, labelFor, onCommit, readOnly }
       const rows = value as Row[];
       return (
         <fieldset className="m-0 grid gap-2 border-0 p-0">
-          <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{label}</legend>
+          <legend className="mb-1 p-0 font-semibold text-label">{label}</legend>
           {rows.map((row, index) => (
             // Rows have no id of their own, so the position is their identity; the form remounts after each save.
             // biome-ignore lint/suspicious/noArrayIndexKey: see above

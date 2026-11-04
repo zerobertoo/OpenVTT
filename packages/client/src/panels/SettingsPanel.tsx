@@ -67,7 +67,7 @@ function TemplateEditor({ worldId }: { worldId: string }) {
         {(control) => (
           <Textarea
             {...control}
-            className="font-mono text-[0.85rem]"
+            className="font-mono text-label"
             rows={14}
             value={text}
             onChange={(e) => setText(e.target.value)}

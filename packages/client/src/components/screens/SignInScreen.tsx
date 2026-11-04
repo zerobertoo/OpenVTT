@@ -52,10 +52,10 @@ export function SignInScreen() {
   return (
     <div className="grid gap-5">
       <div className="grid gap-2">
-        <h1 className="m-0 max-w-[16ch] text-balance font-extrabold text-[2.2rem] leading-[1.15] tracking-tight max-[52rem]:text-[1.8rem]">
+        <h1 className="m-0 max-w-[16ch] text-balance font-extrabold text-display leading-[1.15] tracking-tight max-[52rem]:text-headline">
           {t("auth.welcomeTitle")}
         </h1>
-        <p className="m-0 max-w-[34ch] text-[1.05rem] text-ink-2">{t("auth.welcomeText")}</p>
+        <p className="m-0 max-w-[34ch] text-base text-ink-2">{t("auth.welcomeText")}</p>
         {sessionExpired && (
           <p role="status" className="m-0 max-w-[34ch] font-semibold text-accent-text">
             {t("auth.sessionEnded")}

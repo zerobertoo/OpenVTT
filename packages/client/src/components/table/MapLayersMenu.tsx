@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 import type { MapLayers } from "../../tableStore";
 import { Switch } from "../ui/checkbox";
+import { DockButton } from "../ui/dock";
 import { Field } from "../ui/field";
 import { Popover } from "../ui/popover";
 import { Select } from "../ui/select";
@@ -35,14 +36,11 @@ export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUse
       className="w-80"
       label={t("layers.title")}
       trigger={
-        <button
-          type="button"
-          aria-pressed={previewing}
-          className="flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[1.2rem] border-0 bg-chrome px-4 text-[0.78rem] text-on-chrome-2 shadow-float hover:bg-chrome-2 hover:text-on-chrome focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 aria-pressed:bg-accent aria-pressed:text-on-accent"
-        >
+        // Teal, not amber: pressed here means "previewing a player", a state of the view rather than the active tool.
+        <DockButton tone="accent" aria-pressed={previewing}>
           <Icon name="layers" />
           {t("layers.title")}
-        </button>
+        </DockButton>
       }
     >
       <div className="grid gap-3">
@@ -67,7 +65,7 @@ export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUse
         )}
         {scene && (
           <fieldset className="m-0 grid min-w-0 grid-cols-[1fr_auto_auto] items-center gap-x-3 gap-y-2 border-0 p-0">
-            <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("layers.mapLayers")}</legend>
+            <legend className="mb-1 p-0 font-semibold text-label">{t("layers.mapLayers")}</legend>
             <span aria-hidden="true" />
             <span aria-hidden="true" className="text-ink-2 text-xs">
               {t("layers.show")}
@@ -100,7 +98,7 @@ export function MapLayersMenu({ scene, players, layers, onLayerChange, viewAsUse
           </fieldset>
         )}
         <fieldset disabled={previewing} className="m-0 grid min-w-0 gap-2 border-0 p-0">
-          <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("layers.overlays")}</legend>
+          <legend className="mb-1 p-0 font-semibold text-label">{t("layers.overlays")}</legend>
           {LAYER_LABELS.map((layer) => {
             // Overlays that need map data are pointless on a scene without any.
             const needsData = layer === "floorBelow" ? (scene?.floors.length ?? 0) < 2 : layer !== "grid" && !hasMapData;

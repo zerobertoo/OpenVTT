@@ -25,7 +25,7 @@ export function AssetPicker({ label, assetId, name, color, onPick, onRemove, pen
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div role="group" aria-labelledby={labelId} className="grid gap-1.5">
-      <span id={labelId} className="font-semibold text-[0.9rem]">
+      <span id={labelId} className="font-semibold text-label">
         {label}
       </span>
       <div className="flex items-center gap-3">

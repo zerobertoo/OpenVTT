@@ -202,6 +202,7 @@
   },
   "map": {
     "tools": "Ferramentas do mapa",
+    "utilities": "Dados e camadas",
     "select": "Selecionar",
     "ruler": "Régua",
     "label": "Mapa",

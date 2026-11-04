@@ -26,7 +26,7 @@ export function DrawOptions({ isGm, lockedLayers, onClear }: Props) {
     <div
       role="group"
       aria-label={t("draw.options")}
-      className="ruler-options flex flex-wrap items-center gap-2 rounded-[1.2rem] bg-chrome p-2 shadow-float"
+      className="ruler-options flex flex-wrap items-center gap-2 rounded-panel bg-chrome p-2 shadow-float"
     >
       <Select
         className="w-auto"

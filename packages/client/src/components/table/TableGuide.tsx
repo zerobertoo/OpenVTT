@@ -69,7 +69,7 @@ export function EmptyMap({ isGm }: { isGm: boolean }) {
   return (
     <div className="absolute inset-0 grid place-content-center p-4">
       <Card as="section" aria-labelledby="empty-map-title" className="grid max-w-md gap-4">
-        <h1 id="empty-map-title" className="m-0 font-bold text-[1.4rem] tracking-tight">
+        <h1 id="empty-map-title" className="m-0 font-bold text-title tracking-tight">
           {t(isGm ? "guide.gmTitle" : "guide.playerTitle")}
         </h1>
         <p className="m-0 text-ink-2">{t(isGm ? "guide.gmIntro" : "guide.playerIntro")}</p>

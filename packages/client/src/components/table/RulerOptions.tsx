@@ -15,7 +15,7 @@ export function RulerOptions({ scene }: { scene: SceneDto | null }) {
     <div
       role="group"
       aria-label={t("ruler.options")}
-      className="ruler-options flex flex-wrap items-center gap-2 rounded-[1.2rem] bg-chrome p-2 shadow-float"
+      className="ruler-options flex flex-wrap items-center gap-2 rounded-panel bg-chrome p-2 shadow-float"
     >
       <Select
         aria-label={t("ruler.shape")}

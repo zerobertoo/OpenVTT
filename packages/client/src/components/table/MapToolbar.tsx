@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 import type { MapTool } from "../../MapView";
+import { DockButton, DockGroup } from "../ui/dock";
 import { ToolbarChoices } from "../ui/toolbar";
 
 const TOOLS = ["select", "ruler", "draw", "light"] as const satisfies readonly MapTool[];
@@ -18,7 +19,7 @@ interface Props {
   layersMenu?: ReactNode;
 }
 
-/** Bottom-centre map tools, and the buttons that open the dice tray and the layers menu next to them. */
+/** Bottom-centre dock: the map tools (one is always active), and apart from them the dice tray and the layers menu. */
 export function MapToolbar({ tool, onToolChange, canDraw, canLight, diceTrayOpen, onToggleDiceTray, layersMenu }: Props) {
   const { t } = useTranslation();
   return (
@@ -33,16 +34,13 @@ export function MapToolbar({ tool, onToolChange, canDraw, canLight, diceTrayOpen
           icon: <Icon name={id} />,
         }))}
       />
-      <button
-        type="button"
-        aria-pressed={diceTrayOpen}
-        onClick={onToggleDiceTray}
-        className="flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[1.2rem] border-0 bg-chrome px-4 text-[0.78rem] text-on-chrome-2 shadow-float hover:bg-chrome-2 hover:text-on-chrome focus-visible:outline-2 focus-visible:outline-dice focus-visible:outline-offset-2 aria-pressed:bg-dice aria-pressed:text-on-dice"
-      >
-        <Icon name="dice" />
-        {t("dice.title")}
-      </button>
-      {layersMenu}
+      <DockGroup role="group" aria-label={t("map.utilities")}>
+        <DockButton aria-pressed={diceTrayOpen} onClick={onToggleDiceTray}>
+          <Icon name="dice" />
+          {t("dice.title")}
+        </DockButton>
+        {layersMenu}
+      </DockGroup>
     </div>
   );
 }

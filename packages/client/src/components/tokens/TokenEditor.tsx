@@ -81,7 +81,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
       )}
 
       <fieldset className="m-0 grid grid-cols-2 gap-x-3 gap-y-1.5 border-0 p-0">
-        <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("token.conditions")}</legend>
+        <legend className="mb-1 p-0 font-semibold text-label">{t("token.conditions")}</legend>
         {TOKEN_CONDITIONS.map((id) => (
           <Field key={id} label={t(`condition.${id}`)} inline>
             {(control) => (
@@ -206,7 +206,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
 
           {players.length > 0 && (
             <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-              <legend className="mb-1 p-0 font-semibold text-[0.9rem]">{t("token.controllers")}</legend>
+              <legend className="mb-1 p-0 font-semibold text-label">{t("token.controllers")}</legend>
               {players.map((member) => (
                 <Field key={member.userId} label={member.displayName} inline>
                   {(control) => (
