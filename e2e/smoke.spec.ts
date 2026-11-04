@@ -71,7 +71,7 @@ test("a game master can set up a scene, a token, a sheet and an invite, with no 
 
   await page.getByRole("tab", { name: "Tokens" }).click();
   await openNewTokenForm(page);
-  await page.getByLabel("Name").first().fill("Goblin");
+  await page.getByRole("dialog", { name: "New token" }).getByLabel("Name").fill("Goblin");
   await page.getByRole("button", { name: "Add token" }).click();
   await page
     .getByRole("list", { name: "Tokens in this scene" })
