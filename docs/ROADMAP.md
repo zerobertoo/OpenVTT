@@ -60,3 +60,4 @@ What 1.0.0 should mean, so the number is not arbitrary:
 - **Client architecture.** Revisit TanStack Router lazy routes once the sign-in bundle nears its budget again (it is close: about 213 of 215 KB gzip).
 
 Not planned: auras (until systems give tokens ranges), macros and a hotbar (revisit with the compendium), print or PDF sheets beyond the browser's print stylesheet, scene transitions (floors cover moving between levels of one map).
+
