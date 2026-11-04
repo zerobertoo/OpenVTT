@@ -213,7 +213,6 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
         returnFocusRef={addButton}
         title={t("scene.new")}
       >
-        {/* Portaled out of the panel fieldset, so it follows the connection itself. */}
         <fieldset disabled={!online} className="m-0 min-w-0 border-0 p-0">
           <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
         </fieldset>

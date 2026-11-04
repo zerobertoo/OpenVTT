@@ -35,7 +35,6 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
   const { t } = useTranslation();
   const { run, error } = useAction();
   // The new-token form has its own action so its failure shows inside the popover instead of behind it.
-  // Its popover is portaled out of the panel fieldset, so the form follows the connection itself (`online`).
   const addAction = useAction();
   const online = useOnline();
   const selectToken = useTableUi((ui) => ui.selectToken);

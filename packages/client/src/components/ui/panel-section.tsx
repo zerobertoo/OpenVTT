@@ -8,7 +8,6 @@ interface PanelSectionProps {
   action?: ReactNode;
   /** The latest failed action, so it appears next to what caused it instead of at the end of a long panel. */
   error?: ReactNode;
-  /** Heading level, to fit the surrounding outline. */
   headingLevel?: 3 | 4 | 5;
   /** `group` names a sub-block of a card (not a page landmark) and uses the quieter heading style. */
   variant?: "section" | "group";
