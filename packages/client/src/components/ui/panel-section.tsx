@@ -9,19 +9,26 @@ interface PanelSectionProps {
   /** The latest failed action, so it appears next to what caused it instead of at the end of a long panel. */
   error?: ReactNode;
   /** Heading level, to fit the surrounding outline. */
-  headingLevel?: 3 | 4;
+  headingLevel?: 3 | 4 | 5;
+  /** `group` names a sub-block of a card (not a page landmark) and uses the quieter heading style. */
+  variant?: "section" | "group";
   children: ReactNode;
   className?: string;
 }
 
 /** A titled block of a side panel: heading, one main action, an inline error slot, then the content. */
-export function PanelSection({ title, action, error, headingLevel = 3, children, className }: PanelSectionProps) {
+export function PanelSection({ title, action, error, headingLevel = 3, variant = "section", children, className }: PanelSectionProps) {
   const headingId = useId();
   const Heading = `h${headingLevel}` as const;
+  const group = variant === "group";
   return (
-    <section aria-labelledby={headingId} className={cn("grid grid-cols-[minmax(0,1fr)] content-start gap-3", className)}>
-      <div className="flex min-h-9 items-center justify-between gap-2">
-        <Heading id={headingId} className="m-0 font-bold">
+    <section
+      role={group ? "group" : undefined}
+      aria-labelledby={headingId}
+      className={cn("grid grid-cols-[minmax(0,1fr)] content-start gap-3", className)}
+    >
+      <div className={cn("flex items-center justify-between gap-2", !group && "min-h-9")}>
+        <Heading id={headingId} className={cn("m-0 font-bold", group && "text-ink-2 text-label")}>
           {title}
         </Heading>
         {action}

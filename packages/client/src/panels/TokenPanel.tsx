@@ -13,6 +13,7 @@ import { PanelSection } from "../components/ui/panel-section";
 import { Popover } from "../components/ui/popover";
 import { Icon } from "../icons";
 import { bulkPosition, MAX_BULK_TOKENS, tokenNameFromFile } from "../lib/bulkTokens";
+import { useOnline } from "../lib/online";
 import { shrinkImage } from "../lib/shrinkImage";
 import type { TableActions } from "../lib/tableActions";
 import { useTableUi } from "../tableStore";
@@ -33,6 +34,10 @@ interface Props {
 export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, actions }: Props) {
   const { t } = useTranslation();
   const { run, error } = useAction();
+  // The new-token form has its own action so its failure shows inside the popover instead of behind it.
+  // Its popover is portaled out of the panel fieldset, so the form follows the connection itself (`online`).
+  const addAction = useAction();
+  const online = useOnline();
   const selectToken = useTableUi((ui) => ui.selectToken);
   const { isGm, canControlToken } = useCan(state.yourRole, userId);
   const scene = state.scenes.find((s) => s.id === viewSceneId);
@@ -44,7 +49,7 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
     if (!scene) return;
     const form = e.currentTarget;
     const name = String(new FormData(form).get("name"));
-    void run(async () => {
+    void addAction.run(async () => {
       const created = await api.createToken(state.id, {
         sceneId: scene.id,
         floorId: viewFloorId ?? undefined,
@@ -108,7 +113,10 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
         isGm && scene ? (
           <Popover
             open={adding}
-            onOpenChange={setAdding}
+            onOpenChange={(open) => {
+              if (open) addAction.clear();
+              setAdding(open);
+            }}
             label={t("token.new")}
             trigger={
               <Button size="sm">
@@ -117,13 +125,16 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
               </Button>
             }
           >
-            <div className="grid gap-3">
+            <fieldset disabled={!online} className="m-0 grid min-w-0 gap-3 border-0 p-0">
               <form onSubmit={add} className="flex items-end gap-2">
                 <Field label={t("token.name")} className="flex-1">
                   {(control) => <Input {...control} name="name" required maxLength={60} />}
                 </Field>
-                <Button type="submit">{t("token.add")}</Button>
+                <Button type="submit" pending={addAction.pending}>
+                  {t("token.add")}
+                </Button>
               </form>
+              <ErrorMessage error={addAction.error} />
               <div className="grid gap-1.5 border-line border-t-[1.5px] pt-3">
                 <Button
                   variant="secondary"
@@ -136,7 +147,7 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
                 </Button>
                 <p className="m-0 text-ink-2 text-sm">{t("token.importImagesHint", { max: MAX_BULK_TOKENS })}</p>
               </div>
-            </div>
+            </fieldset>
           </Popover>
         ) : undefined
       }

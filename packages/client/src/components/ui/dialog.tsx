@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { AlertDialog, Dialog as RadixDialog } from "radix-ui";
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, type RefObject, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 import { cn } from "../../lib/cn";
@@ -18,7 +18,7 @@ const contentStyles = cva(
  * Radix returns focus only to a `Trigger`, but our dialogs are controlled from state. This remembers the
  * element that had focus when the dialog opened and gives focus back to it on close.
  */
-function useRestoreFocus() {
+function useRestoreFocus(returnFocusRef?: RefObject<HTMLElement | null>) {
   const opener = useRef<HTMLElement | null>(null);
   return {
     onOpenAutoFocus: (event: Event) => {
@@ -34,7 +34,8 @@ function useRestoreFocus() {
     },
     onCloseAutoFocus: (event: Event) => {
       event.preventDefault();
-      opener.current?.focus();
+      // An explicit target wins: a dialog opened from a menu item would otherwise return to an item that is gone.
+      (returnFocusRef?.current ?? opener.current)?.focus();
     },
   };
 }
@@ -42,14 +43,16 @@ function useRestoreFocus() {
 interface DialogProps extends VariantProps<typeof contentStyles> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Where focus goes on close, for dialogs opened from something that disappears (a menu item). */
+  returnFocusRef?: RefObject<HTMLElement | null>;
   title: string;
   description?: string;
   children?: ReactNode;
 }
 
 /** A modal for a focused task. Focus is trapped inside, Esc and the close button dismiss it, and focus returns to what opened it. */
-export function Dialog({ open, onOpenChange, title, description, size, children }: DialogProps) {
-  const restoreFocus = useRestoreFocus();
+export function Dialog({ open, onOpenChange, returnFocusRef, title, description, size, children }: DialogProps) {
+  const restoreFocus = useRestoreFocus(returnFocusRef);
   const { t } = useTranslation();
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>

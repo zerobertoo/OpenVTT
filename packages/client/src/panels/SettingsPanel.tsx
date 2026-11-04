@@ -55,15 +55,6 @@ function TemplateEditor({ worldId }: { worldId: string }) {
   if (!system) return null;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
-      <p className="m-0 break-words text-ink-2 text-sm">
-        {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
-        {system.manifest.attribution && (
-          <>
-            <br />
-            {system.manifest.attribution}
-          </>
-        )}
-      </p>
       <Field label={t("sheet.type")}>
         {(control) => (
           <Select {...control} value={type} onValueChange={(value) => setType(value as ActorType)}>
@@ -99,6 +90,24 @@ function TemplateEditor({ worldId }: { worldId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** Rules system, version, license and attribution; every member sees it, since some licenses require the credit to be visible. */
+function SystemInfo({ worldId }: { worldId: string }) {
+  const { t } = useTranslation();
+  const { data: system } = useWorldSystem(worldId);
+  if (!system) return null;
+  return (
+    <p className="m-0 break-words text-ink-2 text-sm">
+      {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
+      {system.manifest.attribution && (
+        <>
+          <br />
+          {system.manifest.attribution}
+        </>
+      )}
+    </p>
   );
 }
 
@@ -176,6 +185,7 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
       {isGm && <MusicControls worldId={state.id} ambient={state.ambient} />}
 
       <PanelSection title={t("settings.share")}>
+        <SystemInfo worldId={state.id} />
         <a className={ACTION_LINK} href={`${location.pathname}?tv`} target="_blank" rel="noopener">
           {t("settings.tvView")}
         </a>
@@ -188,7 +198,8 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
 
       {isGm && (
         <div className="grid gap-1">
-          <Disclosure title={t("settings.advanced")}>
+          {/* Kept mounted so folding it does not throw away unsaved template edits. */}
+          <Disclosure title={t("settings.advanced")} keepMounted>
             <TemplateEditor worldId={state.id} />
           </Disclosure>
           <ActionLog worldId={state.id} />

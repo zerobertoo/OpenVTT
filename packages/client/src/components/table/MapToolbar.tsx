@@ -34,7 +34,7 @@ export function MapToolbar({ tool, onToolChange, canDraw, canLight, diceTrayOpen
           icon: <Icon name={id} />,
         }))}
       />
-      <DockGroup role="group" aria-label={t("map.utilities")}>
+      <DockGroup role="group" aria-label={layersMenu ? t("map.utilities") : t("dice.title")}>
         <DockButton aria-pressed={diceTrayOpen} onClick={onToggleDiceTray}>
           <Icon name="dice" />
           {t("dice.title")}

@@ -297,7 +297,7 @@
     "settingsOf": "Settings of {{name}}",
     "add": "Add scene",
     "none": "No scenes yet.",
-    "noneHint": "Create the first one below. Players see the scene you choose to show them.",
+    "noneHint": "Use Add scene above to create the first one. Players see the scene you choose to show them.",
     "moreActions": "More actions for {{name}}",
     "exportUvtt": "Export as Universal VTT",
     "vision": "Fog of war",

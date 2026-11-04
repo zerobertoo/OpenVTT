@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type RefObject, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type MapImportDraft, MapImportError, prepareMapImports } from "../../lib/mapImport";
 import { UnsupportedMediaError } from "../../lib/media";
@@ -20,10 +20,12 @@ interface Props {
   pending?: boolean;
   /** Failure of the create request, shown inside the dialog because the page behind it is covered. */
   error?: unknown;
+  /** Where focus returns on close when the dialog was opened from a menu item. */
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
 /** Pick map files (Universal VTT, a Foundry-style export, pictures or videos); check what was read, then create the scenes. */
-export function MapImportDialog({ open, onOpenChange, onCreate, pending, error }: Props) {
+export function MapImportDialog({ open, onOpenChange, onCreate, pending, error, returnFocusRef }: Props) {
   const { t } = useTranslation();
   const [drafts, setDrafts] = useState<MapImportDraft[]>([]);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -68,7 +70,13 @@ export function MapImportDialog({ open, onOpenChange, onCreate, pending, error }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={t("scene.import.title")} description={t("scene.import.description")}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      returnFocusRef={returnFocusRef}
+      title={t("scene.import.title")}
+      description={t("scene.import.description")}
+    >
       <Field label={t("scene.import.files")} hint={t("scene.import.filesHint")}>
         {(control) => (
           <FilePicker

@@ -28,11 +28,7 @@ export function SceneCard({ scene, viewing, shown, onView, onShowToPlayers, onDe
   const thumbnail = floorOf(scene, scene.tableFloorId).assetId;
   return (
     <Card as="li" variant="inset" className={`flex items-center gap-1 p-1.5 ${viewing ? "shadow-[inset_0_0_0_1.5px_var(--accent)]" : ""}`}>
-      <ListItemButton
-        aria-pressed={viewing}
-        onClick={onView}
-        className="min-w-0 flex-1 p-1 hover:bg-transparent aria-pressed:bg-transparent aria-pressed:shadow-none"
-      >
+      <ListItemButton aria-pressed={viewing} onClick={onView} bare className="min-w-0 flex-1 p-1">
         {thumbnail ? (
           <img src={assetUrl(thumbnail)} alt="" className="size-11 flex-none rounded-lg object-cover" />
         ) : (

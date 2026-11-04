@@ -279,20 +279,22 @@ output { font-weight: 800; font-size: 1.1rem; }
   .table-stage[data-drawer="open"] .dock { bottom: calc(min(62dvh, 34rem) + 1.2rem); }
   .empty-map { inset: 4.4rem 0 0 0; padding-bottom: 6.5rem; }
   .table-stage[data-drawer="open"] .empty-map { padding-bottom: calc(min(62dvh, 34rem) + 7.5rem); }
-  .selection-bar { top: 4.4rem; left: 0.9rem; transform: none; max-width: calc(100% - 5.2rem); }
+  .selection-bar { top: 4.4rem; left: 0.9rem; transform: none; max-width: calc(100% - 7.5rem); }
   .video-control { top: 8rem; }
   .music-unlock { top: 11rem; }
-  .ruler-options { top: 4.4rem; bottom: auto; left: 0.9rem; transform: none; }
+  .ruler-options { top: 4.4rem; bottom: auto; left: 0.9rem; transform: none; max-width: calc(100% - 7.5rem); }
   .map-hint, .online-chip, .minimap { display: none; }
-}
-/* Windows high contrast removes backgrounds: give buttons, tabs and the floating bars a visible edge. */
-@media (forced-colors: active) {
-  button, [role="tab"], [role="radio"], .chrome, .drawer, .dock > * { border: 1px solid ButtonText; }
-  :focus-visible { outline-color: Highlight; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+}
+
+/* Windows high contrast removes backgrounds: give buttons, tabs and the floating bars a visible edge.
+   Unlayered on purpose: a layered rule would lose to utilities such as `border-0`. */
+@media (forced-colors: active) {
+  button, [role="tab"], [role="radio"], .chrome, .drawer, .dock > * { border: 1px solid ButtonText; }
+  :focus-visible { outline-color: Highlight; }
 }
 
 /* Floors: the game master's switcher sits at the middle of the left edge, under the title chip. */

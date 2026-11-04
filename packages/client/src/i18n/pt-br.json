@@ -297,7 +297,7 @@
     "settingsOf": "Configurações de {{name}}",
     "add": "Adicionar cena",
     "none": "Nenhuma cena ainda.",
-    "noneHint": "Crie a primeira abaixo. Os jogadores veem a cena que você escolher mostrar.",
+    "noneHint": "Use Adicionar cena acima para criar a primeira. Os jogadores veem a cena que você escolher mostrar.",
     "moreActions": "Mais ações para {{name}}",
     "exportUvtt": "Exportar como Universal VTT",
     "vision": "Névoa de guerra",

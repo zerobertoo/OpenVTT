@@ -1,5 +1,5 @@
 import { type ActorDto, type MemberDto, TOKEN_CONDITIONS, type TokenDto } from "@openvtt/shared";
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AssetPicker } from "../ui/asset-picker";
 import { Button } from "../ui/button";
@@ -9,6 +9,7 @@ import { ColorPicker } from "../ui/color-picker";
 import { ConfirmDialog } from "../ui/dialog";
 import { Field } from "../ui/field";
 import { Input } from "../ui/input";
+import { PanelSection } from "../ui/panel-section";
 import { Select } from "../ui/select";
 import { Slider } from "../ui/slider";
 
@@ -27,18 +28,15 @@ interface Props {
 
 /** A named block of related fields, so a long editor reads as a few short parts. */
 function Group({ title, children }: { title: string; children: ReactNode }) {
-  const id = useId();
   return (
-    <div
-      role="group"
-      aria-labelledby={id}
-      className="grid gap-3 border-line border-t-[1.5px] pt-3 first-of-type:border-t-0 first-of-type:pt-0"
+    <PanelSection
+      variant="group"
+      headingLevel={5}
+      title={title}
+      className="border-line border-t-[1.5px] pt-3 first-of-type:border-t-0 first-of-type:pt-0"
     >
-      <h5 id={id} className="m-0 font-bold text-ink-2 text-label">
-        {title}
-      </h5>
       {children}
-    </div>
+    </PanelSection>
   );
 }
 
@@ -103,7 +101,11 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
                     max={20}
                     step={0.25}
                     defaultValue={token.size}
-                    onBlur={(e) => onPatch({ size: Number(e.target.value) })}
+                    onBlur={(e) => {
+                      const size = Number(e.target.value);
+                      // An empty or unchanged field sends nothing (an empty one would read as 0, below the minimum).
+                      if (e.target.value.trim() !== "" && size !== token.size) onPatch({ size });
+                    }}
                   />
                 )}
               </Field>

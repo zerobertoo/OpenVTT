@@ -1,6 +1,7 @@
 import type { CombatDto, TokenDto } from "@openvtt/shared";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useTableUi } from "../../tableStore";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Disclosure } from "../ui/disclosure";
@@ -24,10 +25,11 @@ export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, 
   const [score, setScore] = useState("");
   // Opens by itself when a fight begins, so players never miss the order; the game master can fold it away.
   const hasCombat = !!combat;
-  const [open, setOpen] = useState(hasCombat);
+  const open = useTableUi((ui) => ui.initiativeOpen);
+  const setOpen = useTableUi((ui) => ui.setInitiativeOpen);
   useEffect(() => {
     if (hasCombat) setOpen(true);
-  }, [hasCombat]);
+  }, [hasCombat, setOpen]);
   const inOrder = !!selectedToken && !!combat?.combatants.some((c) => c.tokenId === selectedToken.id);
   if (!combat && !isGm) return null;
 
@@ -52,6 +54,7 @@ export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, 
       <Disclosure
         open={open}
         onOpenChange={setOpen}
+        headingLevel={4}
         title={
           <span className="flex items-center gap-2">
             <span className="font-bold">{t("initiative.title")}</span>

@@ -1,5 +1,5 @@
 import { floorOf, type SceneDto, type WorldStateDto } from "@openvtt/shared";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../api";
 import { FloorManager } from "../components/scenes/FloorManager";
@@ -15,6 +15,7 @@ import { DropdownMenu } from "../components/ui/popover";
 import { Icon } from "../icons";
 import { groupFloors } from "../lib/mapImport";
 import { readMediaSize, UnsupportedMediaError } from "../lib/media";
+import { useOnline } from "../lib/online";
 import { ErrorMessage, useAction } from "../ui";
 
 interface Props {
@@ -29,11 +30,19 @@ interface Props {
 
 export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRenameFloor, onAddFloor }: Props) {
   const { t } = useTranslation();
-  const { run, error, pending } = useAction();
+  const { run, error, pending, clear } = useAction();
+  const online = useOnline();
+  const addButton = useRef<HTMLButtonElement>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [creating, setCreating] = useState(false);
   const [adjustingGrid, setAdjustingGrid] = useState(false);
+  // A dialog shows the failure itself, so the panel does not repeat it behind the overlay.
+  const dialogOpen = creating || importing || adjustingGrid;
+  const openDialog = (open: () => void) => {
+    clear();
+    open();
+  };
   const current = state.scenes.find((s) => s.id === viewSceneId) ?? null;
   const walls = current?.floors.reduce((sum, f) => sum + f.walls.length, 0) ?? 0;
   const lights = current?.floors.reduce((sum, f) => sum + f.lights.length, 0) ?? 0;
@@ -123,19 +132,19 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
   return (
     <PanelSection
       title={t("scene.title")}
-      error={<ErrorMessage error={error} />}
+      error={dialogOpen ? null : <ErrorMessage error={error} />}
       className="gap-5"
       action={
         <DropdownMenu
           trigger={
-            <Button size="sm">
+            <Button ref={addButton} size="sm">
               <Icon name="plus" />
               {t("scene.add")}
             </Button>
           }
           items={[
-            { id: "new", label: t("scene.new"), onSelect: () => setCreating(true) },
-            { id: "import", label: t("scene.import.open"), onSelect: () => setImporting(true) },
+            { id: "new", label: t("scene.new"), onSelect: () => openDialog(() => setCreating(true)) },
+            { id: "import", label: t("scene.import.open"), onSelect: () => openDialog(() => setImporting(true)) },
           ]}
         />
       }
@@ -194,8 +203,20 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
         />
       )}
 
-      <Dialog open={creating} onOpenChange={setCreating} title={t("scene.new")}>
-        <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
+      <Dialog
+        open={creating}
+        onOpenChange={(open) => {
+          setCreating(open);
+          // The form unmounts on close, so a picked image must not outlive it.
+          if (!open) setImageFile(null);
+        }}
+        returnFocusRef={addButton}
+        title={t("scene.new")}
+      >
+        {/* Portaled out of the panel fieldset, so it follows the connection itself. */}
+        <fieldset disabled={!online} className="m-0 min-w-0 border-0 p-0">
+          <SceneCreateForm onSubmit={create} pending={pending} imageFile={imageFile} onImageChange={setImageFile} />
+        </fieldset>
         <ErrorMessage error={error} />
       </Dialog>
       {current && (
@@ -215,7 +236,14 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
           }
         />
       )}
-      <MapImportDialog open={importing} onOpenChange={setImporting} onCreate={importMap} pending={pending} error={error} />
+      <MapImportDialog
+        open={importing}
+        onOpenChange={setImporting}
+        onCreate={importMap}
+        pending={pending || !online}
+        error={error}
+        returnFocusRef={addButton}
+      />
       <datalist id="distance-units">
         <option value="ft" />
         <option value="m" />
