@@ -8,9 +8,37 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request supersedes the previous run; runs on main always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The workflow always runs, and `check`, `e2e` and `docker` always report a status, because branch protection
+# requires all three: a job that never starts would stay pending and block the merge. Jobs that are not needed
+# for the changed files are skipped, which counts as passing.
 jobs:
-  check:
+  changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      # Two commits are enough: on a pull request HEAD is the merge commit and HEAD^1 is the base branch tip;
+      # on main HEAD^1 is the previous commit (merges are squashed).
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - id: filter
+        run: git diff --name-only HEAD^1 HEAD | bash .github/scripts/changes.sh >> "$GITHUB_OUTPUT"
+
+  # The jobs below use !cancelled() and compare against 'false' so that if `changes` itself fails they run
+  # everything instead of being skipped (a skipped required job would pass).
+  check:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v5
@@ -26,8 +54,18 @@ jobs:
       - run: pnpm build
       - run: pnpm check:bundle
 
-  e2e:
+  # The suite runs on one worker (every test shares one temporary database), so it is split across runners
+  # instead: each shard has its own server and database.
+  e2e-shard:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    name: e2e shard ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v5
@@ -37,17 +75,33 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
 
-  docker:
+  # Single required status for the whole e2e matrix.
+  e2e:
+    needs: e2e-shard
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: |
+          echo "e2e shards: $SHARDS_RESULT"
+          [ "$SHARDS_RESULT" = success ] || [ "$SHARDS_RESULT" = skipped ]
+        env:
+          SHARDS_RESULT: ${{ needs.e2e-shard.result }}
+
+  docker:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docker != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - run: docker build -t openvtt .

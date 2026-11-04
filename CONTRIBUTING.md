@@ -95,7 +95,7 @@ This adds a `Signed-off-by: Your Name <you@example.com>` line. Forgot it? `git c
 ## Pull requests
 
 1. Fork, branch, commit, push, and open a pull request against `main`. Fill in the template.
-2. CI must be green (lint, i18n, typecheck, unit tests, build, bundle budget, e2e, Docker build).
+2. CI must be green (lint, i18n, typecheck, unit tests, build, bundle budget, e2e, Docker build). To save time, CI skips the jobs a change cannot affect: docs, the landing page (`site/`) and repo metadata skip everything, and the Docker build only runs when files it copies change. Skipped jobs count as passing, so the required checks (`check`, `e2e`, `docker`) always report. The path rules live in `.github/scripts/changes.sh`.
 3. A maintainer reviews. Expect questions and requests for changes; they are about the code, not about you. Push fixes as new commits and they will be squashed or rebased at merge.
 4. Add a line under *Unreleased* in [CHANGELOG.md](CHANGELOG.md) for anything a user would notice.
 
