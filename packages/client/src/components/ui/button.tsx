@@ -27,7 +27,7 @@ const buttonStyles = cva(
         md: "px-[1.1rem] py-[0.55rem]",
         sm: "px-3 py-[0.3rem] text-sm",
         // Square, for an icon with an accessible name from `aria-label`.
-        icon: "size-[2.6rem] p-0",
+        icon: "size-[2.6rem] p-0 pointer-coarse:min-w-11",
       },
     },
     compoundVariants: [{ variant: ["link", "dangerLink"], size: ["md", "sm"], class: "px-[0.1rem] py-[0.15rem]" }],

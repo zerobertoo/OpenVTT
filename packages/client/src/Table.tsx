@@ -262,7 +262,11 @@ export function Table({ worldId, user }: Props) {
   return (
     <MotionConfig reducedMotion="user">
       <TipProvider>
-        <main className={view === "tv" ? "table-stage tv-view" : "table-stage"} style={stageStyle}>
+        <main
+          className={view === "tv" ? "table-stage tv-view" : "table-stage"}
+          style={stageStyle}
+          data-drawer={drawerOpen ? "open" : "closed"}
+        >
           {scene ? (
             <MapView
               scene={scene}

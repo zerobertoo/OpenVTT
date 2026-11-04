@@ -182,6 +182,7 @@
     "disconnected": "Connection lost, reconnecting…",
     "back": "Back to worlds",
     "panels": "Table panels",
+    "tabs": "Panel tabs",
     "hidePanels": "Hide panels",
     "showPanels": "Show panels",
     "reconnected": "Back at the table",

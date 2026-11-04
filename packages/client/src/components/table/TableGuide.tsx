@@ -67,11 +67,11 @@ export function GuideSteps({ isGm, onDone }: { isGm: boolean; onDone?: () => voi
 export function EmptyMap({ isGm }: { isGm: boolean }) {
   const { t } = useTranslation();
   return (
-    <div className="absolute inset-0 grid place-content-center p-4">
+    <div className="empty-map">
       <Card as="section" aria-labelledby="empty-map-title" className="grid max-w-md gap-4">
-        <h1 id="empty-map-title" className="m-0 font-bold text-title tracking-tight">
+        <h2 id="empty-map-title" className="m-0 font-bold text-title tracking-tight">
           {t(isGm ? "guide.gmTitle" : "guide.playerTitle")}
-        </h1>
+        </h2>
         <p className="m-0 text-ink-2">{t(isGm ? "guide.gmIntro" : "guide.playerIntro")}</p>
         <GuideSteps isGm={isGm} />
       </Card>

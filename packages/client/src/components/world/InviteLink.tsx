@@ -40,7 +40,7 @@ export function InviteLink({ link, onCreate, creating }: Props) {
 
   return (
     <div className="grid gap-2">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(7.5rem,1fr))] gap-2">
         <Field label={t("invite.expires")}>
           {(control) => (
             <Select

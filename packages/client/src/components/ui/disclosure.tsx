@@ -17,7 +17,7 @@ interface DisclosureProps {
 export function Disclosure({ title, children, defaultOpen, onOpenChange, className }: DisclosureProps) {
   return (
     <Collapsible.Root defaultOpen={defaultOpen} onOpenChange={onOpenChange} className={className}>
-      <Collapsible.Trigger className="group flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-sm text-left font-semibold">
+      <Collapsible.Trigger className="group flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-sm bg-transparent p-0 text-left font-semibold text-ink hover:not-disabled:shadow-none">
         <span>{title}</span>
         <span
           className={cn("shrink-0 text-ink-2 transition-transform motion-reduce:transition-none", "group-data-[state=open]:rotate-180")}

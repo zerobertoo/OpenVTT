@@ -3,7 +3,7 @@ import { cn } from "../../lib/cn";
 
 /** Shared look of every item on the dark floating chrome (tool dock, floor switcher). Amber marks the active one. */
 export const dockItemStyles = cn(
-  "flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-card border-0 bg-transparent px-4 py-2 text-caption text-on-chrome-2",
+  "flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-card border-0 bg-transparent px-4 py-2 text-caption text-on-chrome-2 max-[52rem]:px-3",
   "hover:not-disabled:bg-chrome-2 hover:not-disabled:text-on-chrome",
   "focus-visible:outline-2 focus-visible:outline-dice focus-visible:outline-offset-2",
   "disabled:cursor-default disabled:opacity-60 pointer-coarse:min-h-11 pointer-coarse:min-w-11",

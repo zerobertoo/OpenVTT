@@ -21,7 +21,7 @@ export function PanelSection({ title, action, error, headingLevel = 3, children,
   return (
     <section aria-labelledby={headingId} className={cn("grid grid-cols-[minmax(0,1fr)] content-start gap-3", className)}>
       <div className="flex min-h-9 items-center justify-between gap-2">
-        <Heading id={headingId} className="m-0">
+        <Heading id={headingId} className="m-0 font-bold">
           {title}
         </Heading>
         {action}
