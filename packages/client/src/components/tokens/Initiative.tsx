@@ -92,7 +92,7 @@ export function Initiative({ combat, isGm, selectedToken, onSetScore, onRemove, 
               {inOrder ? t("initiative.update") : t("initiative.add")}
             </Button>
           </form>
-          {!selectedToken && <p className="muted">{t("initiative.selectHint")}</p>}
+          {!selectedToken && <p className="m-0 text-ink-2">{t("initiative.selectHint")}</p>}
           {combat && (
             <div className="flex gap-2">
               <Button onClick={onNextTurn} disabled={combat.combatants.length === 0}>
