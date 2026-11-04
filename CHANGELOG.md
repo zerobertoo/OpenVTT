@@ -10,4 +10,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - Community files: code of conduct, support, governance, issue and pull request templates, code owners, suggested labels, `.editorconfig`, `CITATION.cff`.
 - The features listed under "Built" in the [roadmap](docs/ROADMAP.md): scenes with images, videos and imported Universal VTT maps, floors, square and hex grids, walls, doors, lights and fog of war, tokens, initiative, chat with server-side dice, sheets from rules systems, journal, music, undo, world export and import, scheduled database backups, English and Brazilian Portuguese UI.
 
+### Security
+
+- Rate limits on login, world and scene export and world import (HTTP 429, error code `too_many_attempts`).
+- Dice notation parsing no longer uses backtracking regexes that could be slow on long input.
+- The CI workflow token is read-only.
+
 [Unreleased]: https://github.com/zerobertoo/OpenVTT/commits/main

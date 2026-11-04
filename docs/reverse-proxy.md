@@ -9,6 +9,10 @@ To play with people outside your network, serve OpenVTT over HTTPS through a rev
 
 Replace `vtt.example.com` below with your domain. When the proxy runs on the same host, bind OpenVTT to localhost (`HOST=127.0.0.1`, or publish `127.0.0.1:3000:3000` in Docker).
 
+## Rate limits
+
+Login (60 per minute), world and scene export (30 per minute) and world import (10 per minute) are rate limited per client IP, and over the limit the server answers `429`. OpenVTT does not trust `X-Forwarded-For`, so behind a proxy every user shares the proxy's address and therefore one limit. The numbers are generous for a normal table; if a large group signs in at once and hits them, wait a minute.
+
 ## Caddy
 
 Caddy gets certificates automatically and handles WebSockets without extra setup.

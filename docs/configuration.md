@@ -31,6 +31,7 @@ PORT=8080 OPENVTT_DB=/srv/openvtt/openvtt.db OPENVTT_SECURE_COOKIES=1 pnpm start
 - A scene keeps up to 20,000 wall segments, 1,000 lights and 2,000 drawings.
 - A map data file (`.dd2vtt`, `.uvtt`, `.json`) is read in the browser up to 100 MiB.
 - Images are capped at 15 MiB.
+- Login is limited to 60 requests per minute, world and scene export to 30 and world import to 10, per client IP (see [reverse-proxy.md](reverse-proxy.md#rate-limits)).
 
 ## Where data lives
 
