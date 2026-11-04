@@ -1,4 +1,5 @@
-# Suggested labels. Not applied automatically; see CONTRIBUTING.md for how to create them with the gh CLI.
+# Labels used by the maintainers. Not applied automatically: create them with
+#   yq -o=json '.[]' .github/labels.yml | jq -r '"gh label create \"\(.name)\" --color \(.color) --description \"\(.description)\" --force"' | sh
 - { name: bug, color: "d73a4a", description: Something does not work }
 - { name: enhancement, color: "a2eeef", description: New feature or improvement }
 - { name: question, color: "d876e3", description: Needs an answer, not a change }
