@@ -456,6 +456,9 @@
   },
   "settings": {
     "title": "World settings",
+    "invite": "Invite players",
+    "share": "Share and export",
+    "advanced": "Rules and sheet templates",
     "system": "Rules system",
     "export": "Export this world (.zip)",
     "template": "Sheet template (JSON)",

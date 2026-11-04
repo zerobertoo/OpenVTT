@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Icon, Logo } from "../../icons";
 import { Button } from "../ui/button";
 import { Tip } from "../ui/tooltip";
+import { AccountMenu } from "../world/AccountMenu";
 import { GuideButton } from "./GuideButton";
 
 interface Props {
@@ -41,6 +42,7 @@ export function TitleChip({ worldName, connected, onShowShortcuts, isGm }: Props
         </span>
       )}
       <GuideButton isGm={isGm} />
+      <AccountMenu />
       {/* Phones have no keyboard, so the shortcut help stays out of the way there. */}
       <Tip label={t("shortcuts.title")}>
         <Button

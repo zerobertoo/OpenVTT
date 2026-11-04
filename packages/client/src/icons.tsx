@@ -21,6 +21,7 @@ import {
   Play,
   Ruler,
   Send,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -36,6 +37,7 @@ const ICONS = {
   journal: BookOpen,
   scenes: Image,
   world: Globe,
+  account: UserRound,
   select: MousePointer2,
   ruler: Ruler,
   draw: Pencil,

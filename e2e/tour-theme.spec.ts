@@ -22,7 +22,7 @@ test("a first visit shows the table tour once, and the look can change contrast,
   await expect(page.getByRole("tablist")).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  await page.getByRole("tab", { name: "World" }).click();
+  await page.getByRole("button", { name: "Account" }).click();
   await chooseOption(page, "Contrast", "High");
   await chooseOption(page, "Text size", "130%");
   await chooseOption(page, "Accent color", "Violet");

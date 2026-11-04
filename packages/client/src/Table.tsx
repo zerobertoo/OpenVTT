@@ -25,7 +25,6 @@ import { Compendium } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
-import { AccountBox } from "./components/world/AccountBox";
 import { usePreferences } from "./lib/preferences";
 import { type LightInput, undoableActions, withoutId } from "./lib/tableActions";
 import { useUndo } from "./lib/undo";
@@ -249,12 +248,7 @@ export function Table({ worldId, user }: Props) {
           />
         );
       case "settings":
-        return (
-          <>
-            <SettingsPanel state={state} />
-            <AccountBox />
-          </>
-        );
+        return <SettingsPanel state={state} />;
     }
   };
 

@@ -456,6 +456,9 @@
   },
   "settings": {
     "title": "Configurações do mundo",
+    "invite": "Convidar jogadores",
+    "share": "Compartilhar e exportar",
+    "advanced": "Regras e modelos de ficha",
     "system": "Sistema de regras",
     "export": "Exportar este mundo (.zip)",
     "template": "Modelo de ficha (JSON)",

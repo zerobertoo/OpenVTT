@@ -8,12 +8,16 @@ import { Button } from "../components/ui/button";
 import { Disclosure } from "../components/ui/disclosure";
 import { Field } from "../components/ui/field";
 import { Textarea } from "../components/ui/input";
+import { PanelSection } from "../components/ui/panel-section";
 import { Select } from "../components/ui/select";
 import { InviteLink } from "../components/world/InviteLink";
 import { MemberList } from "../components/world/MemberList";
 import { MusicControls } from "../components/world/MusicControls";
 import { queryKeys, useWorldSystem } from "../queries";
 import { ErrorMessage, useAction } from "../ui";
+
+/** Plain links that act like buttons (a download, a new window) share one look. */
+const ACTION_LINK = "justify-self-start font-semibold text-accent-text underline underline-offset-[3px]";
 
 function TemplateEditor({ worldId }: { worldId: string }) {
   const { t } = useTranslation();
@@ -50,8 +54,16 @@ function TemplateEditor({ worldId }: { worldId: string }) {
 
   if (!system) return null;
   return (
-    <section aria-label={t("settings.template")} className="grid grid-cols-[minmax(0,1fr)] gap-3">
-      <h3>{t("settings.template")}</h3>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
+      <p className="m-0 break-words text-ink-2 text-sm">
+        {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
+        {system.manifest.attribution && (
+          <>
+            <br />
+            {system.manifest.attribution}
+          </>
+        )}
+      </p>
       <Field label={t("sheet.type")}>
         {(control) => (
           <Select {...control} value={type} onValueChange={(value) => setType(value as ActorType)}>
@@ -86,7 +98,7 @@ function TemplateEditor({ worldId }: { worldId: string }) {
           </Button>
         )}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -116,74 +128,72 @@ function ActionLog({ worldId }: { worldId: string }) {
   );
 }
 
+/**
+ * The world tab: who is here, how to invite them, sound, sharing and export, and the advanced rules tools.
+ * Personal preferences (language, theme, dice) live in the account menu, not here.
+ */
 export function SettingsPanel({ state }: { state: WorldStateDto }) {
   const { t } = useTranslation();
-  const { run, error, pending } = useAction();
+  const invite = useAction();
+  const manage = useAction();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const { data: system } = useWorldSystem(state.id);
   const isGm = state.yourRole === "gm" || state.yourRole === "assistant";
   const isOwner = state.yourRole === "gm";
-  const manage = useAction();
 
   return (
-    <section aria-label={t("settings.title")} className="grid grid-cols-[minmax(0,1fr)] content-start gap-3">
-      <h3>{t("table.members")}</h3>
-      <MemberList
-        members={state.members}
-        manage={
-          isOwner
-            ? {
-                onRoleChange: (userId, role) => void manage.run(() => api.updateMember(state.id, userId, { role })),
-                onMuteChange: (userId, muted) => void manage.run(() => api.updateMember(state.id, userId, { muted })),
-                onKick: (userId) => void manage.run(() => api.kickMember(state.id, userId)),
-              }
-            : undefined
-        }
-      />
-      <ErrorMessage error={manage.error} />
-      {system && (
-        <p className="m-0 break-words text-ink-2 text-sm">
-          {t("settings.system")}: {system.manifest.name} {system.manifest.version} ({system.manifest.license})
-          {system.manifest.attribution && (
-            <>
-              <br />
-              {system.manifest.attribution}
-            </>
-          )}
-        </p>
+    <div
+      role="region"
+      aria-label={t("settings.title")}
+      className="grid grid-cols-[minmax(0,1fr)] content-start gap-5 [&>*+*]:border-line [&>*+*]:border-t-[1.5px] [&>*+*]:pt-4"
+    >
+      <PanelSection title={t("table.members")} error={<ErrorMessage error={manage.error} />}>
+        <MemberList
+          members={state.members}
+          manage={
+            isOwner
+              ? {
+                  onRoleChange: (userId, role) => void manage.run(() => api.updateMember(state.id, userId, { role })),
+                  onMuteChange: (userId, muted) => void manage.run(() => api.updateMember(state.id, userId, { muted })),
+                  onKick: (userId) => void manage.run(() => api.kickMember(state.id, userId)),
+                }
+              : undefined
+          }
+        />
+      </PanelSection>
+
+      {isOwner && (
+        <PanelSection title={t("settings.invite")} error={<ErrorMessage error={invite.error} />}>
+          <InviteLink
+            link={inviteLink}
+            creating={invite.pending}
+            onCreate={(options) =>
+              invite.run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id, options)).code}`))
+            }
+          />
+        </PanelSection>
       )}
-      <a
-        className="justify-self-start text-accent-text text-sm underline underline-offset-[3px]"
-        href={`${location.pathname}?tv`}
-        target="_blank"
-        rel="noopener"
-      >
-        {t("settings.tvView")}
-      </a>
-      {isGm && (
-        <>
-          {isOwner && (
-            <InviteLink
-              link={inviteLink}
-              creating={pending}
-              onCreate={(options) =>
-                run(async () => setInviteLink(`${location.origin}/join/${(await api.createInvite(state.id, options)).code}`))
-              }
-            />
-          )}
-          <a
-            className="justify-self-start font-semibold text-accent-text underline underline-offset-[3px]"
-            href={api.exportUrl(state.id)}
-            download
-          >
+
+      {isGm && <MusicControls worldId={state.id} ambient={state.ambient} />}
+
+      <PanelSection title={t("settings.share")}>
+        <a className={ACTION_LINK} href={`${location.pathname}?tv`} target="_blank" rel="noopener">
+          {t("settings.tvView")}
+        </a>
+        {isGm && (
+          <a className={ACTION_LINK} href={api.exportUrl(state.id)} download>
             {t("settings.export")}
           </a>
-          <ErrorMessage error={error} />
-          <MusicControls worldId={state.id} ambient={state.ambient} />
+        )}
+      </PanelSection>
+
+      {isGm && (
+        <div className="grid gap-1">
+          <Disclosure title={t("settings.advanced")}>
+            <TemplateEditor worldId={state.id} />
+          </Disclosure>
           <ActionLog worldId={state.id} />
-          <TemplateEditor worldId={state.id} />
-        </>
+        </div>
       )}
-    </section>
+    </div>
   );
 }
