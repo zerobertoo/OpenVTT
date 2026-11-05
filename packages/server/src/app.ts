@@ -62,7 +62,7 @@ const MAX_SYSTEM_ZIP_BYTES = 8 * 1024 * 1024;
 const MAX_BACKUP_INTERVAL_HOURS = 24 * 21;
 /** Unreferenced assets are swept at startup and then this often, once they are older than the grace period. */
 const ORPHAN_SWEEP_INTERVAL_MS = 6 * 3_600_000;
-const ORPHAN_GRACE_MS = 24 * 3_600_000;
+const ORPHAN_GRACE_MS = 7 * 24 * 3_600_000;
 // Twenty floors of 20,000 walls at about 75 bytes each; the rest of the API keeps Fastify's 1 MiB default.
 const MAX_MAP_DATA_BODY_BYTES = 32 * 1024 * 1024;
 
@@ -168,7 +168,7 @@ export function buildApp(options: AppOptions) {
     }
   };
   sweepOrphanAssets();
-  const orphanTimer = setInterval(sweepOrphanAssets, ORPHAN_SWEEP_INTERVAL_MS);
+  const orphanTimer = setInterval(sweepOrphanAssets, ORPHAN_SWEEP_INTERVAL_MS).unref();
   // Table sockets must go first: the HTTP server only finishes closing once every connection, upgraded ones included, is gone.
   app.addHook("preClose", async () => hub.closeAll());
   app.addHook("onClose", async () => {

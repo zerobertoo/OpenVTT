@@ -319,12 +319,18 @@ export class AssetService {
     const inHandouts = new Set<string>();
     for (const { body } of this.db.prepare("SELECT body FROM handouts").all() as { body: string }[])
       for (const [, id] of body.matchAll(/asset:([0-9a-f-]{36})/g)) inHandouts.add(id!);
+    const deleteRow = this.db.prepare("DELETE FROM assets WHERE id = ?");
     let removed = 0;
     for (const { id, file_name } of candidates) {
       if (inHandouts.has(id)) continue;
-      this.db.prepare("DELETE FROM assets WHERE id = ?").run(id);
-      rmSync(join(this.dir, file_name), { force: true });
-      removed++;
+      try {
+        // The file goes first: if it cannot be removed (held open on Windows) the row stays and a later sweep retries.
+        rmSync(join(this.dir, file_name), { force: true });
+        deleteRow.run(id);
+        removed++;
+      } catch (error) {
+        console.error(`Could not delete orphan asset ${id}`, error);
+      }
     }
     return removed;
   }
