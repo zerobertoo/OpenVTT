@@ -91,7 +91,7 @@ export function buildApp(options: AppOptions) {
   const maxVideoBytes = options.maxVideoBytes ?? DEFAULT_MAX_VIDEO_BYTES;
   const s = createServices(db, dataDir, options.systemsDir ?? resolve(import.meta.dirname, "../../../systems"), { maxVideoBytes });
   const hub = new Hub(s, SESSION_COOKIE);
-  const app = Fastify({ logger: false, trustProxy: options.trustProxy ?? false });
+  const app = Fastify({ logger: false, trustProxy: options.trustProxy ?? false, forceCloseConnections: true });
 
   app.register(fastifyCookie);
   // Opt-in per route (`config.rateLimit`); a client IP behind a reverse proxy is the proxy's, so limits are generous.
@@ -106,9 +106,10 @@ export function buildApp(options: AppOptions) {
         }
       }, Math.min(options.backupIntervalHours, MAX_BACKUP_INTERVAL_HOURS) * 3_600_000)
     : undefined;
+  // Table sockets must go first: the HTTP server only finishes closing once every connection, upgraded ones included, is gone.
+  app.addHook("preClose", async () => hub.closeAll());
   app.addHook("onClose", async () => {
     clearInterval(backupTimer);
-    hub.closeAll();
     db.close();
   });
 
