@@ -1,11 +1,13 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { chooseOption, createAndOpenWorld, expectNoAxeViolations, registerNewUser } from "./helpers";
 
-async function settledPicture(map: Locator): Promise<Buffer> {
-  let picture = await map.screenshot();
+type Area = { x: number; y: number; width: number; height: number };
+
+async function settledPicture(page: Page, clip: Area): Promise<Buffer> {
+  let picture = await page.screenshot({ clip });
   await expect
     .poll(async () => {
-      const next = await map.screenshot();
+      const next = await page.screenshot({ clip });
       const settled = next.equals(picture);
       picture = next;
       return settled;
@@ -15,13 +17,8 @@ async function settledPicture(map: Locator): Promise<Buffer> {
 }
 
 test("a measurement stays on the map when something else changes on the table", async ({ page }) => {
-  const tokenUpdates: string[] = [];
-  page.on("websocket", (socket) =>
-    socket.on("framereceived", ({ payload }) => {
-      const message = JSON.parse(String(payload));
-      if (message.type === "token.upsert") tokenUpdates.push(message.token.name);
-    }),
-  );
+  const framesReceived: string[] = [];
+  page.on("websocket", (socket) => socket.on("framereceived", ({ payload }) => framesReceived.push(String(payload))));
   await registerNewUser(page);
   await createAndOpenWorld(page, "Steady ruler world");
   const worldId = page.url().split("/world/")[1]!.split(/[/?#]/)[0]!;
@@ -32,22 +29,30 @@ test("a measurement stays on the map when something else changes on the table", 
     await page.request.post(`/api/worlds/${worldId}/tokens`, { data: { sceneId: scene.id, name: "Hero", x: 70, y: 70 } })
   ).json();
 
+  // Close the drawer so the whole canvas is map (on a phone it covers most of it).
+  await page.keyboard.press("p");
+  await expect(page.getByRole("complementary", { name: "Table panels" })).toBeHidden();
   const map = page.getByRole("application");
   const box = (await map.boundingBox())!;
+  // Only the stretch the ruler crosses: on a phone the bars over the map flicker by a few pixels.
+  const rulerStretch = { x: box.x + box.width * 0.3, y: box.y + box.height * 0.35, width: box.width * 0.4, height: box.height * 0.12 };
   await page.keyboard.press("r");
-  const beforeMeasuring = await settledPicture(map);
+  const beforeMeasuring = await settledPicture(page, rulerStretch);
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.4);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.6, { steps: 4 });
   await page.mouse.up();
-  const measured = await settledPicture(map);
+  const measured = await settledPicture(page, rulerStretch);
   expect(measured.equals(beforeMeasuring)).toBe(false);
 
-  // The first two letters are all the map draws of a name, so any difference in the picture is the measurement going away.
+  // Neither name is drawn in this stretch, so any difference in the picture is the measurement going away.
+  // Renaming the floor is what makes the map rebuild; token changes alone leave it untouched.
   await page.request.patch(`/api/tokens/${token.id}`, { data: { name: "Hero the Brave" } });
-  await expect.poll(() => tokenUpdates.includes("Hero the Brave")).toBe(true);
+  await page.request.patch(`/api/floors/${scene.floors[0].id}`, { data: { name: "Renamed floor" } });
+  await expect.poll(() => framesReceived.some((frame) => frame.includes("Hero the Brave"))).toBe(true);
+  await expect.poll(() => framesReceived.some((frame) => frame.includes("Renamed floor"))).toBe(true);
   await page.waitForTimeout(300);
-  await expect.poll(async () => (await map.screenshot()).equals(measured)).toBe(true);
+  await expect.poll(async () => (await page.screenshot({ clip: rulerStretch })).equals(measured)).toBe(true);
 });
 
 test("the ruler offers its shapes and measures in metric unless told otherwise", async ({ page }) => {
