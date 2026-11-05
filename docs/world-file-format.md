@@ -17,7 +17,7 @@ A floor's `drawings` have a `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `
 
 Each token may also carry `hp` and `hpMax` (both `null` for no health bar), `conditions` (a list of ids such as `prone` or `poisoned`) and `showName`. These are optional too.
 
-`environment` (opcional) traz `time`, `weather` e `season`; `ambient` (opcional) traz `assetId`, `playing` e `volume`. `messages` guarda até as 10.000 mensagens públicas mais recentes.
+`environment` (optional) has `time`, `weather` and `season`; `ambient` (optional) has `assetId`, `playing` and `volume`. `messages` keeps up to the 10,000 most recent public messages.
 
 `handouts` (optional) lists journal entries: `title`, `body` (markdown; pictures written as `![alt](asset:<id>)`) and `shared`. Shared handouts come back readable by everyone; handouts shared with chosen players come back private to the game master, since accounts are not exported.
 
@@ -28,4 +28,4 @@ What is **not** exported, on purpose:
 
 Import checks the structure, that every reference resolves, that images really are PNG/JPEG/WebP, that sheet data fits the template and that the rules system is installed. Nothing is created if any check fails.
 
-O `world.json` é aceito na importação até 256 MiB. A exportação não checa esse limite: um mundo acima dele é baixado, mas não pode ser importado de volta.
+Import accepts a `world.json` of up to 256 MiB. Export does not check this limit: a world above it downloads but cannot be imported back.
