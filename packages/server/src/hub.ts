@@ -1,6 +1,7 @@
 import type { IncomingMessage, Server } from "node:http";
 import {
   EFFECT_KINDS,
+  type ErrorCode,
   floorOf,
   type MessageDto,
   pathIsBlocked,
@@ -88,6 +89,14 @@ function decodeCookieValue(value: string): string {
   }
 }
 
+/** The code a client gets for a failed message. Bad input is the client's fault; anything else is a server bug and gets logged. */
+export function errorCodeForClient(error: unknown): ErrorCode {
+  if (error instanceof AppError) return error.code;
+  if (error instanceof z.ZodError || error instanceof SyntaxError) return "invalid_input";
+  console.error("Unexpected error handling a WebSocket message", error);
+  return "internal_error";
+}
+
 /**
  * Authoritative WebSocket hub: one connection = one user inside one world (`/ws?world=<id>`).
  * Every outgoing message is built per recipient so hidden data never reaches unauthorized clients.
@@ -154,7 +163,7 @@ export class Hub {
       try {
         this.handle(conn, clientMessageSchema.parse(JSON.parse(raw.toString())));
       } catch (error) {
-        this.send(conn, { type: "error", code: error instanceof AppError ? error.code : "invalid_input" });
+        this.send(conn, { type: "error", code: errorCodeForClient(error) });
       }
     });
     socket.on("close", () => {

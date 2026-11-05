@@ -95,7 +95,7 @@ export function buildApp(options: AppOptions) {
         try {
           backupDatabase(db, join(dataDir, "backups"), options.backupKeep ?? 7);
         } catch (error) {
-          app.log.error(error);
+          console.error("Scheduled database backup failed", error);
         }
       }, Math.min(options.backupIntervalHours, MAX_BACKUP_INTERVAL_HOURS) * 3_600_000)
     : undefined;
@@ -113,7 +113,7 @@ export function buildApp(options: AppOptions) {
   // Zip bodies (world and system packages) reach the routes as raw streams; routes that want the bytes collect them.
   app.addContentTypeParser("application/zip", (_req, payload, done) => done(null, payload));
 
-  app.setErrorHandler((error, _req, reply) => {
+  app.setErrorHandler((error, req, reply) => {
     if (error instanceof AppError) return reply.status(error.status).send({ error: error.code });
     if (error instanceof ZodError || (error as { validation?: unknown }).validation)
       return reply.status(400).send({ error: "invalid_input" satisfies ErrorCode });
@@ -123,7 +123,7 @@ export function buildApp(options: AppOptions) {
       return reply.status(413).send({ error: "asset_invalid" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 415)
       return reply.status(415).send({ error: "asset_invalid" satisfies ErrorCode });
-    app.log.error(error);
+    console.error(`Unexpected error on ${req.method} ${req.routeOptions.url ?? "unknown route"}`, error);
     return reply.status(500).send({ error: "internal_error" satisfies ErrorCode });
   });
 
