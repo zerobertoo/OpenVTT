@@ -8,7 +8,7 @@ import { Avatar } from "../ui/avatar";
 import { Spinner } from "../ui/spinner";
 
 /** The entrance animation plays at least this long, even when everything is already loaded. */
-export const ENTRY_MS = 2600;
+export const ENTRY_MS = 1800;
 /** A plain loading bar waits this long before showing, so a table that opens at once never flashes one. */
 const BAR_DELAY_MS = 300;
 const SPARKS = 16;
