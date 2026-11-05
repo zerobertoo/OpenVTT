@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A token can no longer slip through the exact point where two wall pieces meet.
 - A map change the server refuses now shows an error and no longer leaves a step in the undo history.
 - Exporting a world now keeps token rotation, time of day, weather, season, the music and up to 10,000 public chat messages.
 - A ruler measurement no longer disappears when something else changes on the table.

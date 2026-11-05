@@ -24,8 +24,30 @@ export function segmentsCross(a: Segment, b: Segment): boolean {
   return d1 * d2 < 0 && d3 * d4 < 0;
 }
 
+/**
+ * True when the path goes through a point where walls meet and they continue on both of its sides: a gap-free wall
+ * that `segmentsCross` misses, because each piece is only touched at its end. Passing the tip of one wall or the
+ * outside of a corner stays allowed, since nothing lies on the far side.
+ */
+function passesThroughWallJoint(path: Segment, blockers: readonly Segment[]): boolean {
+  const lengthSquared = (path.x2 - path.x1) ** 2 + (path.y2 - path.y1) ** 2;
+  const sidesAtJoint = new Map<string, Set<number>>();
+  const visit = (endX: number, endY: number, otherX: number, otherY: number) => {
+    if (cross(path.x1, path.y1, path.x2, path.y2, endX, endY) !== 0) return false;
+    const along = (endX - path.x1) * (path.x2 - path.x1) + (endY - path.y1) * (path.y2 - path.y1);
+    if (along <= 0 || along >= lengthSquared) return false;
+    const side = Math.sign(cross(path.x1, path.y1, path.x2, path.y2, otherX, otherY));
+    if (side === 0) return false;
+    const key = `${endX},${endY}`;
+    const sides = sidesAtJoint.get(key) ?? new Set<number>();
+    sidesAtJoint.set(key, sides.add(side));
+    return sides.size === 2;
+  };
+  return blockers.some((wall) => visit(wall.x1, wall.y1, wall.x2, wall.y2) || visit(wall.x2, wall.y2, wall.x1, wall.y1));
+}
+
 /** Whether a straight move from `from` to `to` passes through any of the blocking segments. */
 export function pathIsBlocked(from: Point, to: Point, blockers: readonly Segment[]): boolean {
   const path = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
-  return blockers.some((wall) => segmentsCross(path, wall));
+  return blockers.some((wall) => segmentsCross(path, wall)) || passesThroughWallJoint(path, blockers);
 }

@@ -44,4 +44,29 @@ describe("pathIsBlocked", () => {
     expect(pathIsBlocked({ x: 100, y: 10 }, { x: 100, y: 90 }, wall)).toBe(false);
     expect(pathIsBlocked({ x: 0, y: 50 }, { x: 100, y: 50 }, wall)).toBe(false);
   });
+
+  describe("at a point where two wall pieces meet", () => {
+    const straightWall = [
+      { x1: 0, y1: 140, x2: 70, y2: 70 },
+      { x1: 70, y1: 70, x2: 140, y2: 0 },
+    ];
+
+    it("stops a path going through the wall at that point", () => {
+      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 105, y: 105 }, straightWall)).toBe(true);
+    });
+
+    it("still lets a path run along the wall or stop on the joint", () => {
+      expect(pathIsBlocked({ x: 0, y: 140 }, { x: 140, y: 0 }, straightWall)).toBe(false);
+      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 70, y: 70 }, straightWall)).toBe(false);
+    });
+
+    it("still lets a path round the outside of a corner or pass the tip of one wall", () => {
+      const corner = [
+        { x1: 70, y1: 70, x2: 70, y2: 0 },
+        { x1: 70, y1: 70, x2: 0, y2: 70 },
+      ];
+      expect(pathIsBlocked({ x: 35, y: 105 }, { x: 105, y: 35 }, corner)).toBe(false);
+      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 105, y: 105 }, [straightWall[0]!])).toBe(false);
+    });
+  });
 });
