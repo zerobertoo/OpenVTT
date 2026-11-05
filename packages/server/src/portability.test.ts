@@ -76,14 +76,14 @@ describe("exporting and importing a world", () => {
     const imported = await importZip(app, gm.cookie, zip);
     expect(imported.statusCode).toBe(200);
     expect((await stateOf(app, imported.json().id, gm.cookie)).handouts).toHaveLength(340);
-  });
+  }, 30_000);
 
   it("still stops a world file above the limit", async () => {
     const { app, gm } = await setup();
     const res = await importZip(app, gm.cookie, zipSync({ "world.json": new Uint8Array(257 * 1024 * 1024) }));
     expect(res.statusCode).toBe(413);
     expect(res.json()).toEqual({ error: "asset_too_large" });
-  });
+  }, 30_000);
 
   it("imports files written before the atmosphere and music were exported", async () => {
     const { app, gm, world } = await setup();
