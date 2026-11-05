@@ -10,23 +10,21 @@ import {
   Text,
   Texture,
   type Ticker,
-  VideoSource,
 } from "pixi.js";
 // Pixi builds some drawing code at run time, which the server's Content-Security-Policy forbids; this swaps in the fixed versions.
 import "pixi.js/unsafe-eval";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { assetUrl } from "./api";
 import { COMPENDIUM_DRAG_TYPE } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
-import { hexCentersIn, hexCorners, hexOrientationOf } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
-import { touchLru } from "./lib/lru";
-import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
 import { fitView, MAX_ZOOM, minZoomFor, type View, viewCenteredOn, ZOOM_STEP, zoomAround } from "./lib/mapCamera";
+import { buildMapData } from "./lib/mapData";
+import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
+import { drawGrid, gridKey } from "./lib/mapGrid";
 import {
   assetIdsInUse,
   draggedCenter,
@@ -39,7 +37,15 @@ import {
   zoomAtCursor,
 } from "./lib/mapInteraction";
 import { drawingView, drawStatus, hexToNumber, renderShape } from "./lib/mapShapes";
-import { closeVideo, openVideo } from "./lib/media";
+import { loadTexture } from "./lib/mapTextures";
+import {
+  disposeVideoBackground,
+  setVideoHidden,
+  startVideoBackground,
+  toggleVideoPlayback,
+  type VideoBackground,
+  type VideoUi,
+} from "./lib/mapVideo";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, type RulerShape } from "./lib/ruler";
 import type { Move } from "./lib/tableActions";
@@ -115,60 +121,6 @@ function fitToScreen(world: Container, screen: { width: number; height: number }
 const DRAG_SEND_INTERVAL_MS = 80;
 // Objects outside the view are skipped when drawing (only those marked `cullable`).
 extensions.add(CullerPlugin);
-
-/** Decoded images kept in GPU memory; past this the least recently used ones not on screen are released. */
-const MAX_TEXTURES = 96;
-const textureCache = new Map<string, Promise<Texture>>();
-
-/**
- * Pixi cannot infer the parser from our extension-less asset URLs, so decode through an ImageBitmap. A video is
- * reduced to its first frame (`still`): the decoder is released right away, so a faint floor below costs no playback.
- */
-function loadTexture(assetId: string, inUse: () => Set<string>, still = false): Promise<Texture> {
-  const cached =
-    textureCache.get(assetId) ??
-    (still
-      ? openVideo(assetUrl(assetId)).then(async (video) => {
-          const bitmap = await createImageBitmap(video);
-          closeVideo(video);
-          return Texture.from(bitmap);
-        })
-      : fetch(assetUrl(assetId))
-          .then((r) => {
-            if (!r.ok) throw new Error(`asset ${assetId}: ${r.status}`);
-            return r.blob();
-          })
-          .then((blob) => createImageBitmap(blob))
-          .then((bitmap) => Texture.from(bitmap)));
-  touchLru(
-    textureCache,
-    assetId,
-    cached,
-    MAX_TEXTURES,
-    inUse(),
-    (texture) => void texture.then((t) => t.destroy(true)).catch(() => undefined),
-  );
-  // A failed load must not stay cached, or the picture could never be retried without reloading the page.
-  cached.catch(() => {
-    if (textureCache.get(assetId) === cached) textureCache.delete(assetId);
-  });
-  return cached;
-}
-
-/** An animated map background. Only one lives at a time; it is rebuilt only when the scene's asset changes. */
-interface VideoBackground {
-  assetId: string;
-  /** What the person asked for; the element itself also pauses while the tab is hidden. */
-  wantPlaying: boolean;
-  loaded: { element: HTMLVideoElement; texture: Texture } | null;
-  /** Resolves to null when the browser cannot play the file. */
-  ready: Promise<{ element: HTMLVideoElement; texture: Texture } | null>;
-}
-
-interface VideoUi {
-  status: "none" | "ready" | "unsupported";
-  playing: boolean;
-}
 
 /** Eases a view's scale from `from` back to 1 with a small overshoot (used when a token appears or lands). */
 function popScale(ticker: Ticker, view: Container, from: number, durationMs: number) {
@@ -631,7 +583,8 @@ export function MapView(props: Props) {
       if (floor.assetId && floor.assetKind === "video") {
         if (e.video?.assetId !== floor.assetId) {
           disposeVideo(e);
-          e.video = startVideo(e, floor.assetId);
+          const assetId = floor.assetId;
+          e.video = startVideoBackground(assetId, (background) => e.video === background, setVideoUi);
         }
         const loaded = await e.video!.ready;
         // Another floor, scene or setting was shown while the video loaded; its own sync draws the map.
@@ -675,21 +628,10 @@ export function MapView(props: Props) {
           e.background.addChild(ghost);
         }
       }
-      const gridKey = `${scene.gridType} ${scene.gridSize} ${scene.width} ${scene.height}`;
-      if (gridKey !== e.shownGrid) {
-        e.shownGrid = gridKey;
-        e.grid.clear();
-        if (scene.gridType === "square") {
-          for (let x = 0; x <= scene.width; x += scene.gridSize) e.grid.moveTo(x, 0).lineTo(x, scene.height);
-          for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
-          e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
-        }
-        const hex = hexOrientationOf(scene.gridType);
-        if (hex) {
-          for (const center of hexCentersIn(scene.width, scene.height, scene.gridSize, hex))
-            e.grid.poly(hexCorners(center, scene.gridSize, hex));
-          e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
-        }
+      const key = gridKey(scene);
+      if (key !== e.shownGrid) {
+        e.shownGrid = key;
+        drawGrid(e.grid, scene);
       }
       e.grid.visible = props_().layers.grid;
       drawMapData(e, scene, floor, props_().layers);
@@ -700,69 +642,31 @@ export function MapView(props: Props) {
       }
     }
 
-    /** Lights as soft discs, walls as red lines, doors as amber (closed) or green (open) lines with a handle to open them. */
+    /** Draws the floor's lights, walls and doors; pressing a light marker while editing starts dragging it. */
     function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto, floor: FloorDto, layers: MapLayers) {
-      const lights = new Container();
-      const editing = props_().tool === "light";
-      const selected = props_().selectedLight;
-      floor.lights.forEach((light, index) => {
-        if (!layers.lights && !editing) return;
-        const picked = editing && index === selected;
-        const marker = new Graphics()
-          .circle(0, 0, Math.max(4, scene.gridSize / 8) * (editing ? 1.5 : 1))
-          .fill({ color: hexToNumber(light.color) })
-          .stroke({ width: picked ? 4 : 2, color: picked ? 0xffffff : 0x000000 });
-        marker.position.set(light.x, light.y);
-        if (editing) {
-          marker.eventMode = "static";
-          marker.cursor = "move";
-          marker.on("pointerdown", (event) => {
-            if (event.button !== 0) return;
-            event.stopPropagation();
-            if (props_().selectedLight !== index) props_().onSelectLight(index);
-            // The light keeps its distance from the grab point, so a click never nudges it.
-            const grab = e.world.toLocal(event.global);
-            lightDrag = {
-              index,
-              marker,
-              x: light.x,
-              y: light.y,
-              moved: false,
-              startX: event.global.x,
-              startY: event.global.y,
-              dx: light.x - grab.x,
-              dy: light.y - grab.y,
-            };
-          });
-        }
-        lights.addChild(marker);
+      const editing = props_().tool === "light" ? { selectedLight: props_().selectedLight } : null;
+      const { lights, walls, doors } = buildMapData(scene, floor, layers, editing, {
+        canToggleDoor: () => props_().tool === "select",
+        onLightGrab: (index, marker, event) => {
+          const light = floor.lights[index];
+          if (!light) return;
+          if (props_().selectedLight !== index) props_().onSelectLight(index);
+          // The light keeps its distance from the grab point, so a click never nudges it.
+          const grab = e.world.toLocal(event.global);
+          lightDrag = {
+            index,
+            marker,
+            x: light.x,
+            y: light.y,
+            moved: false,
+            startX: event.global.x,
+            startY: event.global.y,
+            dx: light.x - grab.x,
+            dy: light.y - grab.y,
+          };
+        },
+        onDoorToggle: (wallId, open) => props_().onToggleDoor(wallId, open),
       });
-      const walls = new Graphics();
-      const doors = new Container();
-      const line = (g: Graphics, w: FloorDto["walls"][number]) => g.moveTo(w.x1, w.y1).lineTo(w.x2, w.y2);
-      for (const wall of floor.walls) {
-        if (wall.kind === "wall") {
-          if (layers.walls) line(walls, wall);
-          continue;
-        }
-        if (!layers.doors) continue;
-        const door = new Graphics();
-        line(door, wall).stroke({ width: wall.open ? 3 : 6, color: wall.open ? 0x3ddc84 : 0xffb000, alpha: wall.open ? 0.7 : 1 });
-        // A handle at the middle of the door: a bigger target than the line, also for touch.
-        const handle = new Graphics()
-          .circle((wall.x1 + wall.x2) / 2, (wall.y1 + wall.y2) / 2, Math.max(12, scene.gridSize / 4))
-          .fill({ color: wall.open ? 0x3ddc84 : 0xffb000, alpha: 0.35 });
-        handle.eventMode = "static";
-        handle.cursor = "pointer";
-        handle.on("pointerdown", (event) => {
-          if (props_().tool !== "select" || event.button !== 0) return;
-          event.stopPropagation();
-          props_().onToggleDoor(wall.id, !wall.open);
-        });
-        door.addChild(handle);
-        doors.addChild(door);
-      }
-      walls.stroke({ width: 5, color: 0xff4d4d });
       e.mapData.addChild(lights, walls, doors);
     }
 
@@ -805,46 +709,11 @@ export function MapView(props: Props) {
       e.shade.height = scene.height;
     }
 
-    /** Starts loading an animated background; it plays at once unless the person prefers reduced motion. */
-    function startVideo(e: NonNullable<typeof engine.current>, assetId: string): VideoBackground {
-      const background: VideoBackground = {
-        assetId,
-        wantPlaying: !matchMedia("(prefers-reduced-motion: reduce)").matches,
-        loaded: null,
-        ready: Promise.resolve(null),
-      };
-      background.ready = openVideo(assetUrl(assetId)).then(
-        async (element) => {
-          // The scene changed while the file loaded: drop it without ever showing it.
-          if (e.video !== background) {
-            closeVideo(element);
-            return null;
-          }
-          const texture = new Texture({ source: new VideoSource({ resource: element, autoPlay: false }) });
-          background.loaded = { element, texture };
-          if (background.wantPlaying)
-            await element.play().catch(() => {
-              background.wantPlaying = false;
-            });
-          // A decode failure after the first frame (corrupt file, lost connection) ends the animation cleanly.
-          element.addEventListener("error", () => setVideoUi({ status: "unsupported", playing: false }));
-          setVideoUi({ status: "ready", playing: background.wantPlaying });
-          return background.loaded;
-        },
-        () => {
-          if (e.video === background) setVideoUi({ status: "unsupported", playing: false });
-          return null;
-        },
-      );
-      return background;
-    }
-
     function disposeVideo(e: NonNullable<typeof engine.current>) {
       const background = e.video;
       if (!background) return;
       e.video = null;
-      setVideoUi({ status: "none", playing: false });
-      void background.ready.then((loaded) => loaded?.texture.destroy(true));
+      disposeVideoBackground(background, setVideoUi);
     }
 
     const shownTokens = new WeakMap<Container, { token: TokenDto; gridSize: number; selected: boolean }>();
@@ -1109,10 +978,7 @@ export function MapView(props: Props) {
       const ticker = engine.current?.app.ticker;
       if (document.hidden) ticker?.stop();
       else ticker?.start();
-      const background = engine.current?.video;
-      if (!background?.loaded) return;
-      if (document.hidden) background.loaded.element.pause();
-      else if (background.wantPlaying) void background.loaded.element.play().catch(() => undefined);
+      setVideoHidden(engine.current?.video, document.hidden);
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -1131,15 +997,7 @@ export function MapView(props: Props) {
 
   const toggleVideo = () => {
     const background = engine.current?.video;
-    if (!background?.loaded) return;
-    background.wantPlaying = !background.wantPlaying;
-    if (background.wantPlaying) {
-      void background.loaded.element.play().catch(() => {
-        background.wantPlaying = false;
-        setVideoUi({ status: "ready", playing: false });
-      });
-    } else background.loaded.element.pause();
-    setVideoUi({ status: "ready", playing: background.wantPlaying });
+    if (background) toggleVideoPlayback(background, setVideoUi);
   };
 
   return (
