@@ -69,3 +69,27 @@ it("tells each player about a token move according to their own sight", async ()
   expect(JSON.stringify(carolSocket.seen)).not.toContain(leftMonster.id);
   for (const socket of [bobSocket, carolSocket]) socket.ws.close();
 });
+
+it("tells the sender where a token really is when a move is refused because control was taken away", async () => {
+  const { app, gm, bob, world, leftMonster, port } = await setup();
+  const token = (
+    await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
+      sceneId: leftMonster.sceneId,
+      name: "Borrowed",
+      x: 350,
+      y: 500,
+      controllerIds: [bob.user.id],
+    })
+  ).json() as TokenDto;
+  const socket = connect(port, world.id, bob.cookie);
+  await socket.opened;
+  await socket.settle();
+  await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, { controllerIds: [] });
+  await socket.settle();
+  socket.seen.length = 0;
+
+  socket.ws.send(JSON.stringify({ type: "token.move", tokenId: token.id, x: 500, y: 500 }));
+  await socket.waitFor((m) => m.type === "error" && m.code === "forbidden");
+  expect(socket.seen.find((m) => m.type === "token.upsert")).toMatchObject({ token: { id: token.id, x: 350, y: 500 } });
+  socket.ws.close();
+});

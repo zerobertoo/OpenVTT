@@ -156,11 +156,11 @@ export class Hub {
   ) {}
 
   closeSession(sessionToken: string) {
-    for (const c of this.connections) if (c.sessionToken === sessionToken) c.socket.close();
+    for (const c of this.connections) if (c.sessionToken === sessionToken) c.socket.terminate();
   }
 
   closeUserConnections(userId: string) {
-    for (const c of this.connections) if (c.viewer.userId === userId) c.socket.close();
+    for (const c of this.connections) if (c.viewer.userId === userId) c.socket.terminate();
   }
 
   /** Detaches all sockets without broadcasting; used on shutdown before the DB closes. */
@@ -211,12 +211,11 @@ export class Hub {
       observer: true,
       floorId: null,
     };
-    this.connections.add(conn);
-    this.broadcastState(worldId);
     // Oversized or invalid frames surface here; without a listener the error would end the process.
     socket.on("error", () => socket.terminate());
     socket.on("message", (raw) => {
       try {
+        if (!this.s.auth.userFromSession(sessionToken)) return socket.terminate();
         this.handle(conn, clientMessageSchema.parse(JSON.parse(raw.toString())));
       } catch (error) {
         this.send(conn, { type: "error", code: errorCodeForClient(error) });
@@ -224,8 +223,20 @@ export class Hub {
     });
     socket.on("close", () => {
       this.connections.delete(conn);
-      this.broadcastState(worldId);
+      // Nothing above an event listener catches a throw: it would end the process.
+      try {
+        this.broadcastState(worldId);
+      } catch (error) {
+        console.error("Unexpected error closing a table connection", error);
+      }
     });
+    this.connections.add(conn);
+    try {
+      this.broadcastState(worldId);
+    } catch (error) {
+      console.error("Unexpected error opening a table connection", error);
+      socket.terminate();
+    }
   }
 
   private handle(conn: Connection, msg: z.infer<typeof clientMessageSchema>) {
@@ -241,8 +252,11 @@ export class Hub {
     const { token } = found;
     if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId, this.floorIdOf(conn.viewer, activeSceneId)))
       throw new AppError("not_found");
-    if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
-    if (conn.observer) throw new AppError("forbidden");
+    if (!this.s.tokens.canControl(token, conn.viewer) || conn.observer) {
+      // The sender may be showing the token where they dropped it, and an error alone would leave it there.
+      this.publishToken(conn.worldId, token, token);
+      throw new AppError("forbidden");
+    }
     const scene = this.s.scenes.get(token.sceneId)!;
     if (scene.lockedLayers.includes("tokens")) return this.publishToken(conn.worldId, token, token);
     const destination = resolveTokenMove(token, scene, msg, conn.viewer.role);
@@ -439,6 +453,8 @@ export class Hub {
   }
 
   private sendState(conn: Connection, round = new SendRound(this.s, conn.worldId)) {
+    // A session can expire with its socket still open, and nothing else would notice.
+    if (!this.s.auth.userFromSession(conn.sessionToken)) return conn.socket.terminate();
     // Role is re-read so a role change can never keep stale privileges on an open socket.
     const memberRole = this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId);
     if (!memberRole) return conn.socket.close();
