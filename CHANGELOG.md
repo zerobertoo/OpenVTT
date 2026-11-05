@@ -10,8 +10,16 @@ All notable changes to this project are documented here. The format follows [Kee
 - Community files: code of conduct, support, governance, issue and pull request templates, code owners, suggested labels, `.editorconfig`, `CITATION.cff`.
 - The features listed under "Built" in the [roadmap](docs/ROADMAP.md): scenes with images, videos and imported Universal VTT maps, floors, square and hex grids, walls, doors, lights and fog of war, tokens, initiative, chat with server-side dice, sheets from rules systems, journal, music, undo, world export and import, scheduled database backups, English and Brazilian Portuguese UI.
 
+### Added
+
+- `OPENVTT_TRUST_PROXY` makes rate limits and login lockouts use each visitor's real address behind a reverse proxy. `compose.dokploy.yaml` turns it on.
+
 ### Fixed
 
+- Shutting down (`SIGTERM`/`SIGINT`, or closing the app with a table open or a request in flight) no longer hangs, and `PORT` is validated at startup.
+- A login lockout now applies to the address that kept failing, so a stranger can no longer lock the owner (or the admin) out. The failure counters are capped and expired sessions are deleted.
+- The scene, token and sheet forms keep what you are typing when someone else changes another field of the same scene, token or sheet.
+- A browser that cannot draw the map (no WebGL) now says so instead of showing a blank area.
 - A token can no longer slip through the exact point where two wall pieces meet.
 - A player's token that stops with its centre exactly on a wall or closed door now lands a pixel short of it, on the side it came from, which closes a way to cross in two moves.
 - A moved token now stays entirely on the map, which also closes a way around a wall reaching the map's edge.

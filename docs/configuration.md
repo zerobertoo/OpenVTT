@@ -1,6 +1,6 @@
 # Configuration
 
-OpenVTT is configured with environment variables only. Unset means the default. A numeric variable that is set to something that is not a positive integer stops the server at startup with a clear message.
+OpenVTT is configured with environment variables only. Unset means the default. A numeric variable that is set to something that is not a positive integer stops the server at startup with a clear message (`PORT` must also be at most 65535). On `SIGTERM` or `SIGINT` the server closes its connections and the database before exiting.
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -8,6 +8,7 @@ OpenVTT is configured with environment variables only. Unset means the default. 
 | `HOST` | `0.0.0.0` | Address to bind. Use `127.0.0.1` when a reverse proxy on the same machine is the only entry point |
 | `OPENVTT_DB` | `data/openvtt.db` | SQLite file. Uploaded assets (`assets/`), installed systems (`systems/`) and backups (`backups/`) are stored next to it |
 | `OPENVTT_SECURE_COOKIES` | off | Set to `1` when users reach the server over HTTPS. Without it the session cookie is not marked `Secure` |
+| `OPENVTT_TRUST_PROXY` | off | Set to `1` when a reverse proxy is the only way to reach the server. Rate limits and login lockouts then use each visitor's real address (`X-Forwarded-For`) instead of the proxy's. Leave it off when the port is reachable directly, because anyone could then fake their address |
 | `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video or music file (MP3, Ogg). Images stay capped at 15 MiB |
 | `OPENVTT_BACKUP_INTERVAL_HOURS` | off | Copy the database into `backups/` every N hours (at most 504) |
 | `OPENVTT_BACKUP_KEEP` | `7` | How many copies to keep; older ones are deleted |

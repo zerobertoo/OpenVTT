@@ -56,7 +56,7 @@ The first account you create becomes the installation administrator. More in [Ge
 
 ### Configuration, backup and operations
 
-Settings are environment variables (`PORT`, `HOST`, `OPENVTT_DB`, `OPENVTT_SECURE_COOKIES`, `OPENVTT_MAX_VIDEO_BYTES`, `OPENVTT_BACKUP_INTERVAL_HOURS`, `OPENVTT_BACKUP_KEEP`): see [Configuration](docs/configuration.md). Related guides: [Reverse proxy and HTTPS](docs/reverse-proxy.md), [Backup and restore](docs/backup-and-restore.md), [Upgrading](docs/upgrading.md) and [Troubleshooting](docs/troubleshooting.md).
+Settings are environment variables (`PORT`, `HOST`, `OPENVTT_DB`, `OPENVTT_SECURE_COOKIES`, `OPENVTT_TRUST_PROXY`, `OPENVTT_MAX_VIDEO_BYTES`, `OPENVTT_BACKUP_INTERVAL_HOURS`, `OPENVTT_BACKUP_KEEP`): see [Configuration](docs/configuration.md). Related guides: [Reverse proxy and HTTPS](docs/reverse-proxy.md), [Backup and restore](docs/backup-and-restore.md), [Upgrading](docs/upgrading.md) and [Troubleshooting](docs/troubleshooting.md).
 
 ### Animated maps
 
