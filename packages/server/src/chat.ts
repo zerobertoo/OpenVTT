@@ -134,15 +134,17 @@ export class ChatService {
 
   /** Latest messages the viewer may read, oldest first. */
   historyFor(worldId: string, viewer: Viewer): MessageDto[] {
-    const rows = this.db
-      .prepare("SELECT * FROM messages WHERE world_id = ? ORDER BY created_at DESC, rowid DESC")
-      .all(worldId) as unknown as MessageRow[];
-    const visible: MessageDto[] = [];
-    for (const row of rows) {
-      const message = toDto(row);
-      if (canReadMessage(message, viewer)) visible.push(message);
-      if (visible.length === HISTORY_LIMIT) break;
-    }
-    return visible.reverse();
+    // Same rule as canReadMessage, in SQL so that a long history is not read on every state sent.
+    const rows = (viewer.role === "gm"
+      ? this.db
+          .prepare("SELECT * FROM messages WHERE world_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?")
+          .all(worldId, HISTORY_LIMIT)
+      : this.db
+          .prepare(
+            `SELECT * FROM messages WHERE world_id = ?1 AND (user_id = ?2 OR (gm_only = 0 AND (to_user_id IS NULL OR to_user_id = ?2)))
+               ORDER BY created_at DESC, rowid DESC LIMIT ?3`,
+          )
+          .all(worldId, viewer.userId, HISTORY_LIMIT)) as unknown as MessageRow[];
+    return rows.map(toDto).reverse();
   }
 }
