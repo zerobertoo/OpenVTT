@@ -1,38 +1,34 @@
 import type { DrawingDto, FloorDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
-import {
-  Application,
-  Container,
-  CullerPlugin,
-  extensions,
-  type FederatedPointerEvent,
-  Graphics,
-  Sprite,
-  Text,
-  Texture,
-  type Ticker,
-  VideoSource,
-} from "pixi.js";
+import { Application, Container, CullerPlugin, extensions, Graphics, Sprite, Text, Texture, type Ticker } from "pixi.js";
 // Pixi builds some drawing code at run time, which the server's Content-Security-Policy forbids; this swaps in the fixed versions.
 import "pixi.js/unsafe-eval";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { assetUrl } from "./api";
 import { COMPENDIUM_DRAG_TYPE } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
-import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
-import { rulerDistanceInCells, snapTokenCorner } from "./lib/gridGeometry";
-import { hexCentersIn, hexCorners, hexOrientationOf } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
-import { touchLru } from "./lib/lru";
+import { fitView, MAX_ZOOM, minZoomFor, type View, viewCenteredOn, ZOOM_STEP, zoomAround } from "./lib/mapCamera";
+import { buildMapData } from "./lib/mapData";
 import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
-import { drawingView, drawStatus, hexToNumber, renderShape } from "./lib/mapShapes";
-import { closeVideo, openVideo } from "./lib/media";
+import { drawGrid, gridKey } from "./lib/mapGrid";
+import { assetIdsInUse, draggedCenter, dropToken, tokenCenter, zoomAtCursor } from "./lib/mapInteraction";
+import { MapPointerController } from "./lib/mapPointer";
+import { drawingView } from "./lib/mapShapes";
+import { loadTexture } from "./lib/mapTextures";
+import { drawTokenView } from "./lib/mapToken";
+import {
+  disposeVideoBackground,
+  setVideoHidden,
+  startVideoBackground,
+  toggleVideoPlayback,
+  type VideoBackground,
+  type VideoUi,
+} from "./lib/mapVideo";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
-import { conePoints, type DiagonalRule, type RulerShape } from "./lib/ruler";
+import type { DiagonalRule, RulerShape } from "./lib/ruler";
 import type { Move } from "./lib/tableActions";
-import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
 /** How long after it was fired an effect still plays, and how many token changes play at once. */
@@ -89,79 +85,22 @@ interface Props {
   onMoveLight: (index: number, x: number, y: number) => void;
 }
 
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 8;
-/** How much one press of the zoom keys scales the view. */
-const ZOOM_STEP = 1.25;
+/** The zoom and position of the map container. */
+const viewOf = (world: Container): View => ({ scale: world.scale.x, x: world.x, y: world.y });
 
-/** The smallest zoom allowed: a huge map must still fit a small screen, so the floor drops to the fit scale when needed. */
-function minZoomFor(screen: { width: number; height: number }, scene: { width: number; height: number } | null | undefined) {
-  return scene ? Math.min(MIN_ZOOM, screen.width / scene.width, screen.height / scene.height) : MIN_ZOOM;
+/** Puts the map container at the given zoom and position. */
+function setView(world: Container, view: View) {
+  world.scale.set(view.scale);
+  world.position.set(view.x, view.y);
 }
 
 /** Shows the whole map centered in the view, never enlarged past its real size. */
 function fitToScreen(world: Container, screen: { width: number; height: number }, scene: { width: number; height: number }) {
-  const scale = Math.min(screen.width / scene.width, screen.height / scene.height, 1);
-  world.scale.set(scale);
-  world.position.set((screen.width - scene.width * scale) / 2, (screen.height - scene.height * scale) / 2);
+  setView(world, fitView(screen, scene));
 }
 const DRAG_SEND_INTERVAL_MS = 80;
 // Objects outside the view are skipped when drawing (only those marked `cullable`).
 extensions.add(CullerPlugin);
-
-/** Decoded images kept in GPU memory; past this the least recently used ones not on screen are released. */
-const MAX_TEXTURES = 96;
-const textureCache = new Map<string, Promise<Texture>>();
-
-/**
- * Pixi cannot infer the parser from our extension-less asset URLs, so decode through an ImageBitmap. A video is
- * reduced to its first frame (`still`): the decoder is released right away, so a faint floor below costs no playback.
- */
-function loadTexture(assetId: string, inUse: () => Set<string>, still = false): Promise<Texture> {
-  const cached =
-    textureCache.get(assetId) ??
-    (still
-      ? openVideo(assetUrl(assetId)).then(async (video) => {
-          const bitmap = await createImageBitmap(video);
-          closeVideo(video);
-          return Texture.from(bitmap);
-        })
-      : fetch(assetUrl(assetId))
-          .then((r) => {
-            if (!r.ok) throw new Error(`asset ${assetId}: ${r.status}`);
-            return r.blob();
-          })
-          .then((blob) => createImageBitmap(blob))
-          .then((bitmap) => Texture.from(bitmap)));
-  touchLru(
-    textureCache,
-    assetId,
-    cached,
-    MAX_TEXTURES,
-    inUse(),
-    (texture) => void texture.then((t) => t.destroy(true)).catch(() => undefined),
-  );
-  // A failed load must not stay cached, or the picture could never be retried without reloading the page.
-  cached.catch(() => {
-    if (textureCache.get(assetId) === cached) textureCache.delete(assetId);
-  });
-  return cached;
-}
-
-/** An animated map background. Only one lives at a time; it is rebuilt only when the scene's asset changes. */
-interface VideoBackground {
-  assetId: string;
-  /** What the person asked for; the element itself also pauses while the tab is hidden. */
-  wantPlaying: boolean;
-  loaded: { element: HTMLVideoElement; texture: Texture } | null;
-  /** Resolves to null when the browser cannot play the file. */
-  ready: Promise<{ element: HTMLVideoElement; texture: Texture } | null>;
-}
-
-interface VideoUi {
-  status: "none" | "ready" | "unsupported";
-  playing: boolean;
-}
 
 /** Eases a view's scale from `from` back to 1 with a small overshoot (used when a token appears or lands). */
 function popScale(ticker: Ticker, view: Container, from: number, durationMs: number) {
@@ -302,170 +241,19 @@ export function MapView(props: Props) {
         if (!destroyed) setRenderFailed(true);
       });
 
-    // The light marker being dragged with the light tool; its map data is rebuilt after the drop saves.
-    let lightDrag: {
-      index: number;
-      marker: Graphics;
-      x: number;
-      y: number;
-      moved: boolean;
-      /** Screen position of the press and the light's offset from the pressed map point. */
-      startX: number;
-      startY: number;
-      dx: number;
-      dy: number;
-    } | null = null;
+    // What a press, drag and release on the empty map do; set once the map engine is ready.
+    let pointer: MapPointerController | null = null;
 
     function bindInteractions(app: Application, world: Container, ruler: Graphics, label: Text) {
-      let panning: { x: number; y: number } | null = null;
-      let rulerStart: { x: number; y: number } | null = null;
-      // Shift+drag on the background draws a box; the tokens whose center falls inside get selected.
-      let boxStart: { x: number; y: number } | null = null;
-      // Points of the mark being drawn; shapes keep only the start and the latest point.
-      let sketch: number[] | null = null;
-      const toWorld = (e: FederatedPointerEvent) => world.toLocal(e.global);
-
-      app.stage.on("pointerdown", (e) => {
-        if (e.altKey && e.button === 0) {
-          const point = toWorld(e);
-          return props_().onPing(point.x, point.y, e.shiftKey);
-        }
-        const p = props_().tool;
-        if (p === "select" && e.button === 0 && e.shiftKey && e.target === app.stage) {
-          const start = toWorld(e);
-          boxStart = start;
-          return;
-        }
-        if (e.button === 1 || e.button === 2 || (p === "select" && e.target === app.stage)) {
-          panning = { x: e.global.x - world.x, y: e.global.y - world.y };
-          if (p === "select" && e.button === 0) props_().onSelect(null);
-        } else if (p === "light" && e.button === 0 && e.target === app.stage) {
-          const point = toWorld(e);
-          props_().onAddLight(point.x, point.y);
-        } else if (p === "effect" && e.button === 0) {
-          const point = toWorld(e);
-          props_().onEffectPoint(point.x, point.y);
-        } else if (p === "ruler" && e.button === 0) {
-          rulerStart = toWorld(e);
-        } else if (p === "draw" && e.button === 0) {
-          const point = toWorld(e);
-          const { draw, scene, floor } = props_();
-          if (!scene || !floor || (draw.kind !== "erase" && scene.lockedLayers.includes(draw.kind === "note" ? "gm" : draw.layer))) return;
-          if (draw.kind === "erase") {
-            const erasable = floor.drawings.filter((d) => props_().canErase(d) && !scene.lockedLayers.includes(d.layer));
-            const target = drawingAt(erasable, point, 10 / world.scale.x);
-            if (target) props_().onErase(target.id);
-          } else if (draw.kind === "text" || draw.kind === "note") {
-            if (draw.text.trim())
-              props_().onDraw({ kind: draw.kind, layer: draw.layer, points: [point.x, point.y], color: draw.color, text: draw.text });
-          } else sketch = [point.x, point.y];
-        }
+      const controller = new MapPointerController(app.stage, world, ruler, label, props_, (index) => {
+        const marker = engine.current?.mapData.children[0]?.children[index];
+        return marker instanceof Graphics ? marker : undefined;
       });
-      app.stage.on("pointermove", (e) => {
-        if (lightDrag) {
-          // A few pixels of jitter during a click are not a drag.
-          if (!lightDrag.moved && Math.hypot(e.global.x - lightDrag.startX, e.global.y - lightDrag.startY) < 4) return;
-          const point = toWorld(e);
-          lightDrag.x = point.x + lightDrag.dx;
-          lightDrag.y = point.y + lightDrag.dy;
-          lightDrag.moved = true;
-          // Selecting the light redraws the map data under the pointer; follow the marker that replaced the dragged one.
-          if (lightDrag.marker.destroyed) {
-            const replacement = engine.current?.mapData.children[0]?.children[lightDrag.index];
-            if (replacement instanceof Graphics) lightDrag.marker = replacement;
-          }
-          if (!lightDrag.marker.destroyed) lightDrag.marker.position.set(lightDrag.x, lightDrag.y);
-          return;
-        }
-        if (sketch) {
-          const point = toWorld(e);
-          const { draw, scene } = props_();
-          if (draw.kind === "free") {
-            const [lastX, lastY] = sketch.slice(-2) as [number, number];
-            // A point every few screen pixels is plenty, and keeps long strokes under the server's limit.
-            if (Math.hypot(point.x - lastX, point.y - lastY) * world.scale.x >= 4 && sketch.length < 3998) sketch.push(point.x, point.y);
-          } else sketch = [sketch[0]!, sketch[1]!, point.x, point.y];
-          ruler.clear();
-          if (draw.kind !== "erase") renderShape(ruler, { kind: draw.kind, points: sketch, color: draw.color }, scene?.gridSize ?? 70);
-          return;
-        }
-        if (panning) {
-          world.position.set(e.global.x - panning.x, e.global.y - panning.y);
-        } else if (boxStart) {
-          const end = toWorld(e);
-          ruler
-            .clear()
-            .rect(Math.min(boxStart.x, end.x), Math.min(boxStart.y, end.y), Math.abs(end.x - boxStart.x), Math.abs(end.y - boxStart.y))
-            .fill({ color: 0x66d9ff, alpha: 0.15 })
-            .stroke({ width: 2 / world.scale.x, color: 0x66d9ff });
-        } else if (rulerStart) {
-          const end = toWorld(e);
-          const { scene, rulerShape, diagonalRule, formatDistance } = props_();
-          const line = { width: 3 / world.scale.x, color: 0xffc914 };
-          const area = { color: 0xffc914, alpha: 0.18 };
-          const dx = end.x - rulerStart.x;
-          const dy = end.y - rulerStart.y;
-          const cellsOf = (pixels: number) => (scene ? pixels / scene.gridSize : 0);
-          ruler.clear();
-          if (rulerShape === "circle") {
-            ruler.circle(rulerStart.x, rulerStart.y, Math.hypot(dx, dy)).fill(area).stroke(line);
-            ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-            label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
-          } else if (rulerShape === "cone") {
-            ruler
-              .poly(conePoints(rulerStart, end).flatMap((p) => [p.x, p.y]))
-              .fill(area)
-              .stroke(line);
-            label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
-          } else if (rulerShape === "rectangle") {
-            ruler.rect(Math.min(rulerStart.x, end.x), Math.min(rulerStart.y, end.y), Math.abs(dx), Math.abs(dy)).fill(area).stroke(line);
-            label.text = `${formatDistance(cellsOf(Math.abs(dx)))} × ${formatDistance(cellsOf(Math.abs(dy)))}`;
-          } else {
-            ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-            label.text = formatDistance(scene ? rulerDistanceInCells(scene, rulerStart, end, diagonalRule) : 0);
-          }
-          label.scale.set(1 / world.scale.x);
-          label.position.set(end.x + 8 / world.scale.x, end.y + 8 / world.scale.x);
-        }
-      });
-      const stop = (e: FederatedPointerEvent) => {
-        panning = null;
-        if (lightDrag) {
-          const dropped = lightDrag;
-          lightDrag = null;
-          if (dropped.moved) props_().onMoveLight(dropped.index, dropped.x, dropped.y);
-        }
-        if (sketch) {
-          const points = sketch;
-          sketch = null;
-          ruler.clear();
-          const { draw } = props_();
-          const long = points.length >= 4 && Math.hypot(points.at(-2)! - points[0]!, points.at(-1)! - points[1]!) * world.scale.x >= 3;
-          if (long && draw.kind !== "erase") props_().onDraw({ kind: draw.kind, layer: draw.layer, points, color: draw.color, text: "" });
-        }
-        if (boxStart) {
-          const end = toWorld(e);
-          const [x1, x2] = [Math.min(boxStart.x, end.x), Math.max(boxStart.x, end.x)];
-          const [y1, y2] = [Math.min(boxStart.y, end.y), Math.max(boxStart.y, end.y)];
-          boxStart = null;
-          ruler.clear();
-          const { scene, tokens } = props_();
-          if (scene) {
-            const inside = tokens.filter((tk) => {
-              if (tk.sceneId !== scene.id) return false;
-              const half = (tk.size * scene.gridSize) / 2;
-              return tk.x + half >= x1 && tk.x + half <= x2 && tk.y + half >= y1 && tk.y + half <= y2;
-            });
-            props_().onSelectMany(inside.map((tk) => tk.id));
-          }
-        }
-        if (rulerStart) {
-          // Ruler stays visible until the next measurement or tool change.
-          rulerStart = null;
-        }
-      };
-      app.stage.on("pointerup", stop);
-      app.stage.on("pointerupoutside", stop);
+      pointer = controller;
+      app.stage.on("pointerdown", (e) => controller.pointerDown(e));
+      app.stage.on("pointermove", (e) => controller.pointerMove(e));
+      app.stage.on("pointerup", (e) => controller.pointerUp(e));
+      app.stage.on("pointerupoutside", (e) => controller.pointerUp(e));
       // Two fingers pinch-zoom and pan. They run in the capture phase so Pixi never sees them as a drag or a ruler.
       const touches = new Map<number, { x: number; y: number }>();
       let twoFingers: TwoFingerState | null = null;
@@ -484,9 +272,7 @@ export function MapView(props: Props) {
           touches.set(e.pointerId, touchPoint(e));
           if (touches.size === 2) {
             pinching = true;
-            panning = null;
-            rulerStart = null;
-            sketch = null;
+            controller.cancelGestures();
             twoFingers = currentTwoFingers();
           }
           if (pinching) e.stopPropagation();
@@ -502,15 +288,8 @@ export function MapView(props: Props) {
           e.stopPropagation();
           const next = currentTwoFingers();
           if (!next || !twoFingers) return;
-          const view = applyTwoFingerGesture(
-            { scale: world.scale.x, x: world.x, y: world.y },
-            twoFingers,
-            next,
-            minZoomFor(app.screen, latest.current.scene),
-            MAX_ZOOM,
-          );
-          world.scale.set(view.scale);
-          world.position.set(view.x, view.y);
+          const view = applyTwoFingerGesture(viewOf(world), twoFingers, next, minZoomFor(app.screen, latest.current.scene), MAX_ZOOM);
+          setView(world, view);
           twoFingers = next;
         },
         true,
@@ -533,13 +312,8 @@ export function MapView(props: Props) {
           e.preventDefault();
           const rect = element.getBoundingClientRect();
           const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-          const before = world.toLocal(cursor);
-          const next = Math.min(
-            MAX_ZOOM,
-            Math.max(minZoomFor(app.screen, latest.current.scene), world.scale.x * Math.exp(-e.deltaY * 0.0015)),
-          );
-          world.scale.set(next);
-          world.position.set(cursor.x - before.x * next, cursor.y - before.y * next);
+          const view = zoomAtCursor(viewOf(world), cursor, e.deltaY, minZoomFor(app.screen, latest.current.scene), MAX_ZOOM);
+          setView(world, view);
         },
         { passive: false },
       );
@@ -548,7 +322,7 @@ export function MapView(props: Props) {
     const props_ = () => latest.current;
     const assetsInUse = () => {
       const { floor, ghostFloor, tokens } = props_();
-      return new Set([floor?.assetId, ghostFloor?.assetId, ...tokens.map((t) => t.assetId)].filter((id): id is string => Boolean(id)));
+      return assetIdsInUse(floor, ghostFloor, tokens);
     };
 
     /** Scene outline, tokens as dots and the part of the map on screen, on the overview canvas. */
@@ -577,7 +351,7 @@ export function MapView(props: Props) {
         context.arc((token.x + span / 2) * factor, (token.y + span / 2) * factor, Math.max(2.5, (span / 2) * factor), 0, Math.PI * 2);
         context.fill();
       }
-      const view = visibleArea({ x: e.world.x, y: e.world.y, scale: e.world.scale.x }, e.app.screen);
+      const view = visibleArea(viewOf(e.world), e.app.screen);
       context.strokeStyle = "#ffffff";
       context.lineWidth = 2;
       context.strokeRect(view.x * factor, view.y * factor, view.width * factor, view.height * factor);
@@ -652,7 +426,8 @@ export function MapView(props: Props) {
       if (floor.assetId && floor.assetKind === "video") {
         if (e.video?.assetId !== floor.assetId) {
           disposeVideo(e);
-          e.video = startVideo(e, floor.assetId);
+          const assetId = floor.assetId;
+          e.video = startVideoBackground(assetId, (background) => e.video === background, setVideoUi);
         }
         const loaded = await e.video!.ready;
         // Another floor, scene or setting was shown while the video loaded; its own sync draws the map.
@@ -696,21 +471,10 @@ export function MapView(props: Props) {
           e.background.addChild(ghost);
         }
       }
-      const gridKey = `${scene.gridType} ${scene.gridSize} ${scene.width} ${scene.height}`;
-      if (gridKey !== e.shownGrid) {
-        e.shownGrid = gridKey;
-        e.grid.clear();
-        if (scene.gridType === "square") {
-          for (let x = 0; x <= scene.width; x += scene.gridSize) e.grid.moveTo(x, 0).lineTo(x, scene.height);
-          for (let y = 0; y <= scene.height; y += scene.gridSize) e.grid.moveTo(0, y).lineTo(scene.width, y);
-          e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
-        }
-        const hex = hexOrientationOf(scene.gridType);
-        if (hex) {
-          for (const center of hexCentersIn(scene.width, scene.height, scene.gridSize, hex))
-            e.grid.poly(hexCorners(center, scene.gridSize, hex));
-          e.grid.stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
-        }
+      const key = gridKey(scene);
+      if (key !== e.shownGrid) {
+        e.shownGrid = key;
+        drawGrid(e.grid, scene);
       }
       e.grid.visible = props_().layers.grid;
       drawMapData(e, scene, floor, props_().layers);
@@ -721,69 +485,31 @@ export function MapView(props: Props) {
       }
     }
 
-    /** Lights as soft discs, walls as red lines, doors as amber (closed) or green (open) lines with a handle to open them. */
+    /** Draws the floor's lights, walls and doors; pressing a light marker while editing starts dragging it. */
     function drawMapData(e: NonNullable<typeof engine.current>, scene: SceneDto, floor: FloorDto, layers: MapLayers) {
-      const lights = new Container();
-      const editing = props_().tool === "light";
-      const selected = props_().selectedLight;
-      floor.lights.forEach((light, index) => {
-        if (!layers.lights && !editing) return;
-        const picked = editing && index === selected;
-        const marker = new Graphics()
-          .circle(0, 0, Math.max(4, scene.gridSize / 8) * (editing ? 1.5 : 1))
-          .fill({ color: hexToNumber(light.color) })
-          .stroke({ width: picked ? 4 : 2, color: picked ? 0xffffff : 0x000000 });
-        marker.position.set(light.x, light.y);
-        if (editing) {
-          marker.eventMode = "static";
-          marker.cursor = "move";
-          marker.on("pointerdown", (event) => {
-            if (event.button !== 0) return;
-            event.stopPropagation();
-            if (props_().selectedLight !== index) props_().onSelectLight(index);
-            // The light keeps its distance from the grab point, so a click never nudges it.
-            const grab = e.world.toLocal(event.global);
-            lightDrag = {
-              index,
-              marker,
-              x: light.x,
-              y: light.y,
-              moved: false,
-              startX: event.global.x,
-              startY: event.global.y,
-              dx: light.x - grab.x,
-              dy: light.y - grab.y,
-            };
+      const editing = props_().tool === "light" ? { selectedLight: props_().selectedLight } : null;
+      const { lights, walls, doors } = buildMapData(scene, floor, layers, editing, {
+        canToggleDoor: () => props_().tool === "select",
+        onLightGrab: (index, marker, event) => {
+          const light = floor.lights[index];
+          if (!light) return;
+          if (props_().selectedLight !== index) props_().onSelectLight(index);
+          // The light keeps its distance from the grab point, so a click never nudges it.
+          const grab = e.world.toLocal(event.global);
+          pointer?.startLightDrag({
+            index,
+            marker,
+            x: light.x,
+            y: light.y,
+            moved: false,
+            startX: event.global.x,
+            startY: event.global.y,
+            dx: light.x - grab.x,
+            dy: light.y - grab.y,
           });
-        }
-        lights.addChild(marker);
+        },
+        onDoorToggle: (wallId, open) => props_().onToggleDoor(wallId, open),
       });
-      const walls = new Graphics();
-      const doors = new Container();
-      const line = (g: Graphics, w: FloorDto["walls"][number]) => g.moveTo(w.x1, w.y1).lineTo(w.x2, w.y2);
-      for (const wall of floor.walls) {
-        if (wall.kind === "wall") {
-          if (layers.walls) line(walls, wall);
-          continue;
-        }
-        if (!layers.doors) continue;
-        const door = new Graphics();
-        line(door, wall).stroke({ width: wall.open ? 3 : 6, color: wall.open ? 0x3ddc84 : 0xffb000, alpha: wall.open ? 0.7 : 1 });
-        // A handle at the middle of the door: a bigger target than the line, also for touch.
-        const handle = new Graphics()
-          .circle((wall.x1 + wall.x2) / 2, (wall.y1 + wall.y2) / 2, Math.max(12, scene.gridSize / 4))
-          .fill({ color: wall.open ? 0x3ddc84 : 0xffb000, alpha: 0.35 });
-        handle.eventMode = "static";
-        handle.cursor = "pointer";
-        handle.on("pointerdown", (event) => {
-          if (props_().tool !== "select" || event.button !== 0) return;
-          event.stopPropagation();
-          props_().onToggleDoor(wall.id, !wall.open);
-        });
-        door.addChild(handle);
-        doors.addChild(door);
-      }
-      walls.stroke({ width: 5, color: 0xff4d4d });
       e.mapData.addChild(lights, walls, doors);
     }
 
@@ -826,46 +552,11 @@ export function MapView(props: Props) {
       e.shade.height = scene.height;
     }
 
-    /** Starts loading an animated background; it plays at once unless the person prefers reduced motion. */
-    function startVideo(e: NonNullable<typeof engine.current>, assetId: string): VideoBackground {
-      const background: VideoBackground = {
-        assetId,
-        wantPlaying: !matchMedia("(prefers-reduced-motion: reduce)").matches,
-        loaded: null,
-        ready: Promise.resolve(null),
-      };
-      background.ready = openVideo(assetUrl(assetId)).then(
-        async (element) => {
-          // The scene changed while the file loaded: drop it without ever showing it.
-          if (e.video !== background) {
-            closeVideo(element);
-            return null;
-          }
-          const texture = new Texture({ source: new VideoSource({ resource: element, autoPlay: false }) });
-          background.loaded = { element, texture };
-          if (background.wantPlaying)
-            await element.play().catch(() => {
-              background.wantPlaying = false;
-            });
-          // A decode failure after the first frame (corrupt file, lost connection) ends the animation cleanly.
-          element.addEventListener("error", () => setVideoUi({ status: "unsupported", playing: false }));
-          setVideoUi({ status: "ready", playing: background.wantPlaying });
-          return background.loaded;
-        },
-        () => {
-          if (e.video === background) setVideoUi({ status: "unsupported", playing: false });
-          return null;
-        },
-      );
-      return background;
-    }
-
     function disposeVideo(e: NonNullable<typeof engine.current>) {
       const background = e.video;
       if (!background) return;
       e.video = null;
-      setVideoUi({ status: "none", playing: false });
-      void background.ready.then((loaded) => loaded?.texture.destroy(true));
+      disposeVideoBackground(background, setVideoUi);
     }
 
     const shownTokens = new WeakMap<Container, { token: TokenDto; gridSize: number; selected: boolean }>();
@@ -927,23 +618,18 @@ export function MapView(props: Props) {
         const scene = props_().scene;
         if (pinching) {
           // Nothing else redraws an unchanged token, so an abandoned drag has to put it back itself.
-          for (const member of drag.members) {
-            const half = (member.token.size * (scene?.gridSize ?? 0)) / 2;
-            member.view.position.set(member.token.x + half, member.token.y + half);
-          }
+          for (const member of drag.members) member.view.position.copyFrom(tokenCenter(member.token, scene?.gridSize ?? 0));
           drag = null;
           return;
         }
         if (!scene) return;
         const local = engine.current!.world.toLocal(e.global);
-        const dx = local.x - drag.startX;
-        const dy = local.y - drag.startY;
+        const delta = { x: local.x - drag.startX, y: local.y - drag.startY };
         const send = performance.now() - drag.lastSent > DRAG_SEND_INTERVAL_MS;
         if (send) drag.lastSent = performance.now();
         for (const member of drag.members) {
-          const half = (member.token.size * scene.gridSize) / 2;
-          member.view.position.set(member.token.x + dx + half, member.token.y + dy + half);
-          if (send) props_().onMove(member.token.id, member.token.x + dx, member.token.y + dy);
+          member.view.position.copyFrom(draggedCenter(member.token, delta, scene.gridSize));
+          if (send) props_().onMove(member.token.id, member.token.x + delta.x, member.token.y + delta.y);
         }
       });
       const drop = () => {
@@ -956,12 +642,10 @@ export function MapView(props: Props) {
         drag = null;
         const moves: Move[] = [];
         for (const member of members) {
-          const half = (member.token.size * scene.gridSize) / 2;
-          const { x, y } = snapTokenCorner(scene, member.token.size, { x: member.view.x - half, y: member.view.y - half });
-          member.view.position.set(x + half, y + half);
-          props_().onMove(member.token.id, x, y);
-          if (x !== member.token.x || y !== member.token.y)
-            moves.push({ tokenId: member.token.id, from: { x: member.token.x, y: member.token.y }, to: { x, y } });
+          const { corner, move } = dropToken(scene, member.token, member.view.position);
+          member.view.position.copyFrom(tokenCenter({ ...member.token, ...corner }, scene.gridSize));
+          props_().onMove(member.token.id, corner.x, corner.y);
+          if (move) moves.push(move);
           popScale(app.ticker, member.view, 1.15, 240);
         }
         props_().onMoved(moves);
@@ -974,38 +658,8 @@ export function MapView(props: Props) {
 
     const currentToken = (id: string) => props_().tokens.find((t) => t.id === id);
 
-    function drawToken(view: Container, token: TokenDto, gridSize: number, selected: boolean) {
-      const px = token.size * gridSize;
-      for (const child of view.removeChildren()) child.destroy({ children: true });
-      view.pivot.set(0, 0);
-      view.position.set(token.x + px / 2, token.y + px / 2);
-      view.rotation = (token.rotation * Math.PI) / 180;
-      const body = new Graphics().circle(0, 0, px / 2 - 2).fill({ color: hexToNumber(token.color), alpha: token.hidden ? 0.45 : 1 });
-      body.stroke({ width: selected ? 4 : 2, color: selected ? 0xffffff : 0x000000 });
-      view.addChild(body);
-      view.addChild(drawStatus(token, px, gridSize));
-      if (token.assetId) {
-        const assetId = token.assetId;
-        void loadTexture(assetId, assetsInUse)
-          .catch(() => null)
-          .then((texture) => {
-            if (!texture || view.destroyed) return;
-            const sprite = new Sprite(texture);
-            sprite.anchor.set(0.5);
-            sprite.width = sprite.height = px - 4;
-            const mask = new Graphics().circle(0, 0, px / 2 - 2).fill(0xffffff);
-            sprite.mask = mask;
-            view.addChild(mask, sprite);
-          });
-      } else {
-        const initial = new Text({
-          text: token.name.slice(0, 2).toUpperCase(),
-          style: { fill: 0xffffff, fontSize: Math.max(10, px / 3), fontWeight: "700", stroke: { color: 0x000000, width: 3 } },
-        });
-        initial.anchor.set(0.5);
-        view.addChild(initial);
-      }
-    }
+    const drawToken = (view: Container, token: TokenDto, gridSize: number, selected: boolean) =>
+      drawTokenView(view, token, gridSize, selected, (assetId) => loadTexture(assetId, assetsInUse).catch(() => null));
 
     return () => {
       destroyed = true;
@@ -1048,21 +702,11 @@ export function MapView(props: Props) {
       const mine = tokens.filter((tk) => tk.sceneId === scene?.id && canControl(tk));
       const target = mine.find((tk) => selectedTokenIds.includes(tk.id)) ?? mine[0];
       if (!scene || !target) return;
-      const half = (target.size * scene.gridSize) / 2;
-      const scale = e.world.scale.x;
-      e.world.position.set(center.x - (target.x + half) * scale, center.y - (target.y + half) * scale);
+      e.world.position.copyFrom(viewCenteredOn(e.app.screen, tokenCenter(target, scene.gridSize), e.world.scale.x));
       return;
     }
-    const before = e.world.toLocal(center);
-    const next = Math.min(
-      MAX_ZOOM,
-      Math.max(
-        minZoomFor(e.app.screen, latest.current.scene),
-        e.world.scale.x * (viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP),
-      ),
-    );
-    e.world.scale.set(next);
-    e.world.position.set(center.x - before.x * next, center.y - before.y * next);
+    const factor = viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP;
+    setView(e.world, zoomAround(viewOf(e.world), center, factor, minZoomFor(e.app.screen, latest.current.scene), MAX_ZOOM));
   }, [viewCommand, latest]);
 
   // A ping from anyone shows as a ring that grows and fades; a "look here" also brings the view to it.
@@ -1073,8 +717,7 @@ export function MapView(props: Props) {
     if (!e || !ping || ping.sceneId !== latest.current.scene?.id || ping.floorId !== latest.current.floor?.id) return;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (ping.focus) {
-      const scale = e.world.scale.x;
-      e.world.position.set(e.app.screen.width / 2 - ping.x * scale, e.app.screen.height / 2 - ping.y * scale);
+      e.world.position.copyFrom(viewCenteredOn(e.app.screen, ping, e.world.scale.x));
     }
     const grid = latest.current.scene.gridSize;
     const ring = new Graphics();
@@ -1148,10 +791,7 @@ export function MapView(props: Props) {
       const ticker = engine.current?.app.ticker;
       if (document.hidden) ticker?.stop();
       else ticker?.start();
-      const background = engine.current?.video;
-      if (!background?.loaded) return;
-      if (document.hidden) background.loaded.element.pause();
-      else if (background.wantPlaying) void background.loaded.element.play().catch(() => undefined);
+      setVideoHidden(engine.current?.video, document.hidden);
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -1164,22 +804,13 @@ export function MapView(props: Props) {
     if (!e || !scene || event.buttons === 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const point = sceneAt({ x: event.clientX - rect.left, y: event.clientY - rect.top }, minimapSize(scene), scene);
-    const scale = e.world.scale.x;
-    e.world.position.set(e.app.screen.width / 2 - point.x * scale, e.app.screen.height / 2 - point.y * scale);
+    e.world.position.copyFrom(viewCenteredOn(e.app.screen, point, e.world.scale.x));
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const toggleVideo = () => {
     const background = engine.current?.video;
-    if (!background?.loaded) return;
-    background.wantPlaying = !background.wantPlaying;
-    if (background.wantPlaying) {
-      void background.loaded.element.play().catch(() => {
-        background.wantPlaying = false;
-        setVideoUi({ status: "ready", playing: false });
-      });
-    } else background.loaded.element.pause();
-    setVideoUi({ status: "ready", playing: background.wantPlaying });
+    if (background) toggleVideoPlayback(background, setVideoUi);
   };
 
   return (

@@ -50,7 +50,6 @@ export function GridAdjuster({ open, onOpenChange, scene, background, onApply, p
       <div className="max-h-[50dvh] overflow-auto rounded-lg border-[1.5px] border-line">
         <div className="relative" style={{ width: `${zoom * 100}%` }}>
           {background.assetId && background.assetKind === "video" ? (
-            // biome-ignore lint/a11y/useMediaCaption: a silent map background has nothing to caption
             <video src={assetUrl(background.assetId)} muted preload="metadata" className="block w-full" />
           ) : background.assetId ? (
             <img src={assetUrl(background.assetId)} alt="" className="block w-full" />

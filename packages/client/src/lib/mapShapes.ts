@@ -51,7 +51,8 @@ export function renderShape(g: Graphics, drawing: Pick<DrawingDto, "kind" | "poi
     join: "round" as const,
   };
   if (p.length < 4) return;
-  const [x1, y1, x2, y2] = [p[0]!, p[1]!, p.at(-2)!, p.at(-1)!];
+  const [x1 = 0, y1 = 0] = p;
+  const [x2 = 0, y2 = 0] = p.slice(-2);
   if (drawing.kind === "rect") g.rect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1)).stroke(stroke);
   else if (drawing.kind === "circle") g.circle(x1, y1, Math.hypot(x2 - x1, y2 - y1)).stroke(stroke);
   else {

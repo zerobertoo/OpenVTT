@@ -113,7 +113,7 @@ export function computeSheet(template: SheetTemplate, data: SheetData): SheetDat
   const resolve = (id: string): SheetValue => {
     if (id in values) return values[id]!;
     const field = byId.get(id);
-    if (!field || field.type !== "computed" || resolving.has(id)) throw new FormulaError(`cannot resolve ${id}`);
+    if (field?.type !== "computed" || resolving.has(id)) throw new FormulaError(`cannot resolve ${id}`);
     resolving.add(id);
     try {
       const result = evaluateFormula(parseFormula(field.formula), (name) => {
