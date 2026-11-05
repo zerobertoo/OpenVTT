@@ -38,7 +38,7 @@ The server is the single source of truth. The client proposes, the server decide
 1. Every operation checks the caller's role in the world (game master, assistant, player, observer) and, for tokens, whether they control it.
 2. Dice are rolled on the server; the client only displays results.
 3. Token moves are checked against walls and closed doors on the server.
-4. The client keeps no authority: after a reconnect it asks for `world.resync` and replaces its state.
+4. The client keeps no authority: the server sends a full `world.state` on every (re)connect and the client replaces its state with it. `world.resync` (answered at most once a second per connection) asks for the snapshot again.
 
 Undo/redo is a client feature that issues ordinary, validated operations; it grants no extra rights.
 
