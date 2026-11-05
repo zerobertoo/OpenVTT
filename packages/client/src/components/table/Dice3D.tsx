@@ -47,6 +47,8 @@ interface Props {
   launch: Launch;
   /** Called when WebGL is not available, so the caller can show the flat dice instead. */
   onUnavailable: () => void;
+  /** Called once, when every die has come to rest. */
+  onSettled: () => void;
 }
 
 /**
@@ -55,8 +57,11 @@ interface Props {
  * stops with the face it rolled toward the camera, upright. Loaded on demand so the 3D library only downloads for
  * people who see a roll.
  */
-export default function Dice3D({ dice, launch, onUnavailable }: Props) {
+export default function Dice3D({ dice, launch, onUnavailable, onSettled }: Props) {
   const host = useRef<HTMLDivElement>(null);
+  // Read through a ref so a new callback each render does not restart the throw.
+  const settled = useRef(onSettled);
+  settled.current = onSettled;
 
   useEffect(() => {
     const element = host.current;
@@ -162,6 +167,7 @@ export default function Dice3D({ dice, launch, onUnavailable }: Props) {
       const elapsed = performance.now() - started;
       draw(elapsed);
       if (elapsed < endMs) frame = requestAnimationFrame(tick);
+      else settled.current();
     };
     frame = requestAnimationFrame(tick);
 

@@ -1,20 +1,21 @@
 import type { MessageDto } from "@openvtt/shared";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { loadDice3D } from "../../lib/dice3dLoader";
 import { thrownDice } from "../../lib/dice3dSupport";
 import { takeLaunch } from "../../lib/diceLaunch";
 import { type Launch, randomLaunch } from "../../lib/diceThrow";
 import { usePreferences } from "../../lib/preferences";
-import { DiceRoll } from "../chat/DiceRoll";
+import { useRollHold } from "../../lib/rollHold";
+import { DiceRoll, TUMBLE_MS } from "../chat/DiceRoll";
 
 // The 3D library is a separate chunk that only downloads when a roll is thrown with solid dice.
 const Dice3D = lazy(loadDice3D);
 
 /** How long a roll stays on screen after it starts. */
 export const OVERLAY_MS = 5200;
-/** The total appears once the dice have mostly settled. */
-const TOTAL_DELAY_S = 1.6;
+/** The flat dice tumble for `TUMBLE_MS` and then pop the total; the result is released a little after that. */
+const FLAT_SETTLE_MS = TUMBLE_MS + 300;
 
 interface Props {
   messages: readonly MessageDto[];
@@ -46,21 +47,51 @@ export function DiceOverlay({ messages, userId }: Props) {
   const roll = current?.message.roll;
   const solid = useMemo(() => (wantsSolid && !flat && roll ? thrownDice(roll) : null), [wantsSolid, flat, roll]);
 
-  useEffect(() => {
+  const [settledId, setSettledId] = useState<string | null>(null);
+  const heldId = useRef<string | null>(null);
+  const settle = useCallback((id: string) => {
+    setSettledId(id);
+    useRollHold.getState().release(id);
+  }, []);
+  const settled = current !== null && settledId === current.message.id;
+
+  // A layout effect, so the chat hides the result before the first paint instead of flashing it.
+  useLayoutEffect(() => {
     const last = messages.at(-1);
     if (!last || last.id === lastSeen.current) return;
     lastSeen.current = last.id;
     if (!enabled || reduceMotion || last.kind !== "roll" || !last.roll) return;
     const mine = last.userId === userId ? takeLaunch() : null;
+    if (heldId.current) useRollHold.getState().release(heldId.current);
+    heldId.current = last.id;
+    useRollHold.getState().hold(last.id);
     setCurrent({ message: last, launch: mine ?? randomLaunch({ width: window.innerWidth, height: window.innerHeight }) });
   }, [messages, enabled, reduceMotion, userId]);
 
   // Its own effect: a chat message arriving mid-animation re-runs the one above and must not cancel this timer.
   useEffect(() => {
     if (!current) return;
-    const timer = setTimeout(() => setCurrent(null), OVERLAY_MS);
+    const id = current.message.id;
+    const timer = setTimeout(() => {
+      settle(id);
+      setCurrent(null);
+    }, OVERLAY_MS);
     return () => clearTimeout(timer);
-  }, [current]);
+  }, [current, settle]);
+
+  useEffect(() => {
+    if (!current || solid) return;
+    const id = current.message.id;
+    const timer = setTimeout(() => settle(id), FLAT_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [current, solid, settle]);
+
+  useEffect(
+    () => () => {
+      if (heldId.current) useRollHold.getState().release(heldId.current);
+    },
+    [],
+  );
 
   return (
     <>
@@ -68,14 +99,14 @@ export function DiceOverlay({ messages, userId }: Props) {
         {solid && current && (
           <motion.div key={current.message.id} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="contents">
             <Suspense fallback={null}>
-              <Dice3D dice={solid} launch={current.launch} onUnavailable={onUnavailable} />
+              <Dice3D dice={solid} launch={current.launch} onUnavailable={onUnavailable} onSettled={() => settle(current.message.id)} />
             </Suspense>
           </motion.div>
         )}
       </AnimatePresence>
-      <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-20 z-40 flex justify-center px-4">
+      <div aria-hidden="true" className="roll-result">
         <AnimatePresence>
-          {current?.message.roll && (
+          {current?.message.roll && (!solid || settled) && (
             <motion.div
               key={current.message.id}
               initial={{ opacity: 0, y: -16, scale: 0.9 }}
@@ -89,7 +120,7 @@ export function DiceOverlay({ messages, userId }: Props) {
                   className="roll-total"
                   initial={{ scale: 0.2, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 14, delay: TOTAL_DELAY_S }}
+                  transition={{ type: "spring", stiffness: 300, damping: 14 }}
                 >
                   {current.message.roll.total}
                 </motion.b>
