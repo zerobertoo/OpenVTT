@@ -77,6 +77,8 @@ export interface AppOptions {
   /** Copies the database into `<data>/backups` this often; off when not given. */
   backupIntervalHours?: number;
   backupKeep?: number;
+  /** How often table sockets are pinged; one that stays silent for two rounds is dropped (default 30 000). */
+  webSocketHeartbeatMs?: number;
   /**
    * Believe the `X-Forwarded-For` header, so rate limits and login lockouts see each visitor's real address.
    * Only turn it on when a reverse proxy is the sole way in; otherwise anyone can fake their address.
@@ -90,7 +92,7 @@ export function buildApp(options: AppOptions) {
     options.dataDir ?? (options.dbPath === ":memory:" ? mkdtempSync(join(tmpdir(), "openvtt-data-")) : dirname(resolve(options.dbPath)));
   const maxVideoBytes = options.maxVideoBytes ?? DEFAULT_MAX_VIDEO_BYTES;
   const s = createServices(db, dataDir, options.systemsDir ?? resolve(import.meta.dirname, "../../../systems"), { maxVideoBytes });
-  const hub = new Hub(s, SESSION_COOKIE);
+  const hub = new Hub(s, SESSION_COOKIE, options.webSocketHeartbeatMs);
   const app = Fastify({ logger: false, trustProxy: options.trustProxy ?? false, forceCloseConnections: true });
 
   app.register(fastifyCookie);

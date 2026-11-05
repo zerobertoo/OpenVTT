@@ -37,9 +37,33 @@ interface Connection {
   observer: boolean;
   /** Floor of the active scene this connection was last sent (players only); a change means a full state is due. */
   floorId: string | null;
+  /** Cleared by every heartbeat and set again by the pong; still clear at the next heartbeat means the peer is gone. */
+  alive: boolean;
+  /** Messages this connection may still send right now; refills over time up to `MESSAGE_BURST`. */
+  messageBudget: number;
+  messageBudgetAt: number;
+  lastResyncAt: number;
 }
 
 const MAX_WS_PAYLOAD = 16 * 1024;
+/** A moving token sends about a dozen moves a second, so this is far above honest use. */
+const MESSAGE_BURST = 100;
+const MESSAGES_PER_SECOND = 50;
+/** A full resync rebuilds the whole state for that connection, so it is the costly message to repeat. */
+const RESYNC_MIN_INTERVAL_MS = 1000;
+/** A socket whose unsent data grows past this is a reader too slow to keep up; it is dropped, not buffered. */
+const MAX_BUFFERED_BYTES = 8 * 1024 * 1024;
+const DEFAULT_HEARTBEAT_MS = 30_000;
+
+/** True when the page that opened the socket came from the same host the request was sent to (or sent no origin at all). */
+function sameOrigin(origin: string | undefined, host: string | undefined): boolean {
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
 
 const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("world.resync") }),
@@ -149,10 +173,12 @@ export function errorCodeForClient(error: unknown): ErrorCode {
  */
 export class Hub {
   private connections = new Set<Connection>();
+  private heartbeat?: NodeJS.Timeout;
 
   constructor(
     private s: Services,
     private cookieName: string,
+    private heartbeatMs = DEFAULT_HEARTBEAT_MS,
   ) {}
 
   closeSession(sessionToken: string) {
@@ -165,6 +191,7 @@ export class Hub {
 
   /** Detaches all sockets without broadcasting; used on shutdown before the DB closes. */
   closeAll() {
+    clearInterval(this.heartbeat);
     for (const c of this.connections) c.socket.removeAllListeners("close");
     for (const c of this.connections) c.socket.terminate();
     this.connections.clear();
@@ -172,12 +199,25 @@ export class Hub {
 
   attach(server: Server): WebSocketServer {
     const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
+    // A person who closed the laptop or lost the network never sends a close frame, so silent peers are found by ping.
+    this.heartbeat = setInterval(() => {
+      for (const c of this.connections) {
+        if (!c.alive) {
+          c.socket.terminate();
+          continue;
+        }
+        c.alive = false;
+        c.socket.ping();
+      }
+    }, this.heartbeatMs);
+    this.heartbeat.unref();
     server.on("upgrade", (req, socket, head) => {
       // Nothing else catches a throw here: it would end the process, and this runs before any authentication.
       try {
         const url = new URL(req.url ?? "/", "http://localhost");
         if (url.pathname !== WS_PATH) return socket.destroy();
-        const identity = this.authorize(req, url);
+        // Browsers send the cookie from any site, so a page elsewhere could otherwise open a table socket as the user.
+        const identity = sameOrigin(req.headers.origin, req.headers.host) ? this.authorize(req, url) : null;
         if (!identity) {
           socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
           return socket.destroy();
@@ -210,10 +250,19 @@ export class Hub {
       lastEffectAt: 0,
       observer: true,
       floorId: null,
+      alive: true,
+      messageBudget: MESSAGE_BURST,
+      messageBudgetAt: Date.now(),
+      lastResyncAt: 0,
     };
     // Oversized or invalid frames surface here; without a listener the error would end the process.
     socket.on("error", () => socket.terminate());
+    socket.on("pong", () => {
+      conn.alive = true;
+    });
     socket.on("message", (raw) => {
+      // Past the allowance the sender is flooding, not playing: cut it off and let honest clients reconnect.
+      if (!this.takeMessageBudget(conn)) return socket.terminate();
       try {
         if (!this.s.auth.userFromSession(sessionToken)) return socket.terminate();
         this.handle(conn, clientMessageSchema.parse(JSON.parse(raw.toString())));
@@ -239,8 +288,23 @@ export class Hub {
     }
   }
 
+  /** Spends one message from the connection's allowance (a bucket that refills at `MESSAGES_PER_SECOND`). */
+  private takeMessageBudget(conn: Connection): boolean {
+    const now = Date.now();
+    conn.messageBudget = Math.min(MESSAGE_BURST, conn.messageBudget + ((now - conn.messageBudgetAt) / 1000) * MESSAGES_PER_SECOND);
+    conn.messageBudgetAt = now;
+    if (conn.messageBudget < 1) return false;
+    conn.messageBudget -= 1;
+    return true;
+  }
+
   private handle(conn: Connection, msg: z.infer<typeof clientMessageSchema>) {
-    if (msg.type === "world.resync") return this.sendState(conn);
+    if (msg.type === "world.resync") {
+      const now = Date.now();
+      if (now - conn.lastResyncAt < RESYNC_MIN_INTERVAL_MS) return;
+      conn.lastResyncAt = now;
+      return this.sendState(conn);
+    }
     if (msg.type === "world.viewAs") return this.previewAs(conn, msg.userId);
     if (msg.type === "map.ping") return this.ping(conn, msg);
     if (msg.type === "map.effect") return this.effect(conn, msg);
@@ -367,7 +431,9 @@ export class Hub {
   }
 
   private send(conn: Connection, msg: ServerMessage) {
-    if (conn.socket.readyState === conn.socket.OPEN) conn.socket.send(JSON.stringify(msg));
+    if (conn.socket.readyState !== conn.socket.OPEN) return;
+    if (conn.socket.bufferedAmount > MAX_BUFFERED_BYTES) return conn.socket.terminate();
+    conn.socket.send(JSON.stringify(msg));
   }
 
   /** The person whose eyes a connection sees through: a player themselves, or the player a game master previews. */
