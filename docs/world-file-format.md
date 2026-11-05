@@ -7,7 +7,7 @@ world.json
 assets/<uuid>.<png|jpg|webp>
 ```
 
-`world.json` has `format: "openvtt-world"` and `version: 1`, plus the world settings (name, system id, sheet template overrides, active scene), `assets`, `scenes`, `actors`, `tokens` and `messages`. Ids inside the file only link records to each other; importing assigns fresh ids.
+`world.json` has `format: "openvtt-world"` and `version: 1`, plus the world settings (name, system id, sheet template overrides, active scene, `environment`, `ambient`), `assets`, `scenes`, `actors`, `tokens` and `messages`. Ids inside the file only link records to each other; importing assigns fresh ids.
 
 A scene's `gridType` is `square`, `hexPointy`, `hexFlat` or `none`; on hex grids `gridSize` is the distance between the centers of two neighboring hexes.
 
@@ -16,6 +16,8 @@ Each scene lists its `floors` (bottom to top; at least one), each with a `name`,
 A floor's `drawings` have a `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `text` or `note`), `layer` (`background`, `objects` or `gm`), `points` (flat `[x1, y1, x2, y2, ...]` in map pixels), `color` (`#rrggbb`) and `text`. Who drew them is not exported. Notes always land on the `gm` layer. A scene may list `lockedLayers` (`background`, `objects`, `tokens`, `gm`).
 
 Each token may also carry `hp` and `hpMax` (both `null` for no health bar), `conditions` (a list of ids such as `prone` or `poisoned`) and `showName`. These are optional too.
+
+`environment` (opcional) traz `time`, `weather` e `season`; `ambient` (opcional) traz `assetId`, `playing` e `volume`. `messages` guarda até as 10.000 mensagens públicas mais recentes.
 
 `handouts` (optional) lists journal entries: `title`, `body` (markdown; pictures written as `![alt](asset:<id>)`) and `shared`. Shared handouts come back readable by everyone; handouts shared with chosen players come back private to the game master, since accounts are not exported.
 

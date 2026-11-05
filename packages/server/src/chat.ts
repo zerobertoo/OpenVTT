@@ -6,6 +6,7 @@ import { AppError } from "./errors.ts";
 import type { Viewer } from "./tokens.ts";
 
 const HISTORY_LIMIT = 100;
+export const MAX_EXPORTED_MESSAGES = 10000;
 const ROLL_COMMAND = /^\/(r|roll|gr|gmroll)\s+(.+)$/i;
 
 interface MessageRow {
@@ -118,6 +119,17 @@ export class ChatService {
       );
     }
     return `${lines.join("\n")}\n`;
+  }
+
+  /** The latest public chat and rolls for a world file, oldest first. Private messages name accounts, which are not exported. */
+  publicHistoryForExport(worldId: string): MessageDto[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM messages WHERE world_id = ? AND to_user_id IS NULL AND gm_only = 0 AND kind IN ('chat', 'roll')
+         ORDER BY created_at DESC, rowid DESC LIMIT ?`,
+      )
+      .all(worldId, MAX_EXPORTED_MESSAGES) as unknown as MessageRow[];
+    return rows.map(toDto).reverse();
   }
 
   /** Latest messages the viewer may read, oldest first. */

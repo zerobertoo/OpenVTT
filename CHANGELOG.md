@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Exporting a world now keeps token rotation, time of day, weather, season, the music and up to 10,000 public chat messages.
 - A ruler measurement no longer disappears when something else changes on the table.
 - Redrawing tokens no longer leaks memory for their condition badges.
 - Scenes and floors with up to the promised 20,000 walls can be saved; larger requests report that they are too large.
