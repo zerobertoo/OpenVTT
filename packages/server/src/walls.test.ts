@@ -214,6 +214,35 @@ describe("movement and walls", () => {
     expect(await positionAfter(700)).toBe(700);
     conn.ws.close();
   });
+
+  it("does not let a player cross a wall by stopping exactly on it", async () => {
+    const { app, gm, bob, world } = await setup();
+    const scene = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, {
+        name: "Hall",
+        width: 1000,
+        height: 800,
+        gridSize: 70,
+        walls: [{ x1: 300, y1: 0, x2: 300, y2: 800 }],
+      })
+    ).json() as SceneDto;
+    await call(app, gm.cookie, "PATCH", `/api/worlds/${world.id}`, { activeSceneId: scene.id });
+    const token = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
+        sceneId: scene.id,
+        name: "Hero",
+        x: 100,
+        y: 100,
+        controllerIds: [bob.user.id],
+      })
+    ).json();
+    const moveTo = (x: number) => call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x });
+
+    // The token's centre is 35 from its corner, so 265 puts the centre exactly on the wall.
+    expect((await moveTo(265)).statusCode).toBe(403);
+    expect((await moveTo(400)).statusCode).toBe(403);
+    expect((await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, {})).json().x).toBe(100);
+  });
 });
 
 describe("scene export as Universal VTT", () => {

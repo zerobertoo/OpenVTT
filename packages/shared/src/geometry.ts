@@ -13,8 +13,7 @@ export interface Segment {
 const cross = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
 
 /**
- * True when the two segments properly cross. Touching at an end point or running along each other does not count,
- * so a token can slide along a wall or stand in a corner without being blocked.
+ * True when the two segments properly cross. Touching at an end point or running along each other does not count.
  */
 export function segmentsCross(a: Segment, b: Segment): boolean {
   const d1 = cross(b.x1, b.y1, b.x2, b.y2, a.x1, a.y1);
@@ -46,8 +45,19 @@ function passesThroughWallJoint(path: Segment, blockers: readonly Segment[]): bo
   return blockers.some((wall) => visit(wall.x1, wall.y1, wall.x2, wall.y2) || visit(wall.x2, wall.y2, wall.x1, wall.y1));
 }
 
-/** Whether a straight move from `from` to `to` passes through any of the blocking segments. */
+const liesOnSegment = (point: Point, segment: Segment) =>
+  cross(segment.x1, segment.y1, segment.x2, segment.y2, point.x, point.y) === 0 &&
+  point.x >= Math.min(segment.x1, segment.x2) &&
+  point.x <= Math.max(segment.x1, segment.x2) &&
+  point.y >= Math.min(segment.y1, segment.y2) &&
+  point.y <= Math.max(segment.y1, segment.y2);
+
+/**
+ * Whether a straight move from `from` to `to` is refused by any of the blocking segments. Stopping on a wall counts,
+ * because a path leaving a wall is free in both directions and two moves would otherwise cross it.
+ */
 export function pathIsBlocked(from: Point, to: Point, blockers: readonly Segment[]): boolean {
+  if (from.x === to.x && from.y === to.y) return false;
   const path = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
-  return blockers.some((wall) => segmentsCross(path, wall)) || passesThroughWallJoint(path, blockers);
+  return blockers.some((wall) => segmentsCross(path, wall) || liesOnSegment(to, wall)) || passesThroughWallJoint(path, blockers);
 }

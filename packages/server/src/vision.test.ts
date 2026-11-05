@@ -38,11 +38,23 @@ describe("visibilityPolygon", () => {
 });
 
 describe("pathIsBlocked", () => {
-  it("lets a path run along a wall or end on it, and stops one that crosses", () => {
-    const wall = [{ x1: 100, y1: 0, x2: 100, y2: 100 }];
+  const wall = [{ x1: 100, y1: 0, x2: 100, y2: 100 }];
+
+  it("lets a path run past a wall and stops one that crosses", () => {
     expect(pathIsBlocked({ x: 0, y: 50 }, { x: 200, y: 50 }, wall)).toBe(true);
-    expect(pathIsBlocked({ x: 100, y: 10 }, { x: 100, y: 90 }, wall)).toBe(false);
-    expect(pathIsBlocked({ x: 0, y: 50 }, { x: 100, y: 50 }, wall)).toBe(false);
+    expect(pathIsBlocked({ x: 100, y: -10 }, { x: 100, y: 110 }, wall)).toBe(false);
+  });
+
+  it("stops a path that ends on a wall, including at its tips", () => {
+    expect(pathIsBlocked({ x: 0, y: 50 }, { x: 100, y: 50 }, wall)).toBe(true);
+    expect(pathIsBlocked({ x: 0, y: 0 }, { x: 100, y: 0 }, wall)).toBe(true);
+    expect(pathIsBlocked({ x: 100, y: 10 }, { x: 100, y: 90 }, wall)).toBe(true);
+  });
+
+  it("lets a token already on a wall step off it or stay where it is", () => {
+    expect(pathIsBlocked({ x: 100, y: 50 }, { x: 0, y: 50 }, wall)).toBe(false);
+    expect(pathIsBlocked({ x: 100, y: 50 }, { x: 200, y: 50 }, wall)).toBe(false);
+    expect(pathIsBlocked({ x: 100, y: 50 }, { x: 100, y: 50 }, wall)).toBe(false);
   });
 
   describe("at a point where two wall pieces meet", () => {
@@ -55,9 +67,9 @@ describe("pathIsBlocked", () => {
       expect(pathIsBlocked({ x: 35, y: 35 }, { x: 105, y: 105 }, straightWall)).toBe(true);
     });
 
-    it("still lets a path run along the wall or stop on the joint", () => {
-      expect(pathIsBlocked({ x: 0, y: 140 }, { x: 140, y: 0 }, straightWall)).toBe(false);
-      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 70, y: 70 }, straightWall)).toBe(false);
+    it("still lets a path run along the wall, but not stop on the joint", () => {
+      expect(pathIsBlocked({ x: -10, y: 150 }, { x: 150, y: -10 }, straightWall)).toBe(false);
+      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 70, y: 70 }, straightWall)).toBe(true);
     });
 
     it("still lets a path round the outside of a corner or pass the tip of one wall", () => {
