@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import type { createTokenSchema, TableRole, TokenDto, updateTokenSchema } from "@openvtt/shared";
+import {
+  type createTokenSchema,
+  floorOf,
+  pathIsBlocked,
+  type SceneDto,
+  type TableRole,
+  type TokenDto,
+  type updateTokenSchema,
+} from "@openvtt/shared";
 import type { z } from "zod";
 import type { AssetService } from "./assets.ts";
 import { type Db, transaction } from "./db.ts";
@@ -27,6 +35,24 @@ interface TokenRow {
   hp_max: number | null;
   conditions: string;
   show_name: number;
+}
+
+/**
+ * Where a token may land: always inside the map, and for anyone but the game master never through a wall or closed door.
+ * The one rule behind every way of moving a token; null means the move is refused.
+ */
+export function resolveTokenMove(
+  token: Pick<TokenDto, "x" | "y" | "size" | "floorId">,
+  scene: SceneDto,
+  target: { x: number; y: number },
+  role: TableRole,
+): { x: number; y: number } | null {
+  const x = Math.min(Math.max(target.x, 0), scene.width);
+  const y = Math.min(Math.max(target.y, 0), scene.height);
+  if (role === "gm") return { x, y };
+  const half = (token.size * scene.gridSize) / 2;
+  const blockers = floorOf(scene, token.floorId).walls.filter((w) => w.kind === "wall" || !w.open);
+  return pathIsBlocked({ x: token.x + half, y: token.y + half }, { x: x + half, y: y + half }, blockers) ? null : { x, y };
 }
 
 export class TokenService {

@@ -13,7 +13,6 @@ async function setup() {
   return { gm, world, port };
 }
 
-/** Sends a raw upgrade request and resolves once the server has answered or closed the connection. */
 function rawUpgrade(port: number, path: string, extraHeaders = "") {
   return new Promise<void>((resolve) => {
     const socket = net.connect(port, "127.0.0.1", () => {
@@ -28,7 +27,6 @@ function rawUpgrade(port: number, path: string, extraHeaders = "") {
   });
 }
 
-/** The server is still alive if a new member can connect and receive the world state. */
 async function expectServerStillServes(port: number, worldId: string, cookie: string) {
   const client = connect(port, worldId, cookie);
   await client.opened;

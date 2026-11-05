@@ -52,7 +52,7 @@ import { AppError } from "./errors.ts";
 import { Hub } from "./hub.ts";
 import { registerPortabilityRoutes } from "./portability.ts";
 import { createServices } from "./services.ts";
-import type { Viewer } from "./tokens.ts";
+import { resolveTokenMove, type Viewer } from "./tokens.ts";
 
 export const SESSION_COOKIE = "openvtt_session";
 
@@ -565,7 +565,7 @@ export function buildApp(options: AppOptions) {
     const found = s.tokens.find(req.params.id);
     if (!found) throw new AppError("not_found");
     const { viewer } = requireParticipant(req, found.worldId);
-    const patch = updateTokenSchema.parse(req.body);
+    let patch = updateTokenSchema.parse(req.body);
     const activeSceneId = s.scenes.activeSceneId(found.worldId);
     const viewerFloorId = viewer.role === "gm" ? null : s.tokens.playerFloorId(found.token.sceneId, viewer.userId);
     if (!s.tokens.canSee(found.token, viewer, activeSceneId, viewerFloorId)) throw new AppError("not_found");
@@ -578,6 +578,14 @@ export function buildApp(options: AppOptions) {
       s.scenes.get(found.token.sceneId)?.lockedLayers.includes("tokens")
     )
       throw new AppError("forbidden");
+    if (patch.x !== undefined || patch.y !== undefined) {
+      const scene = s.scenes.get(found.token.sceneId);
+      if (!scene) throw new AppError("not_found");
+      const target = { x: patch.x ?? found.token.x, y: patch.y ?? found.token.y };
+      const destination = resolveTokenMove(found.token, scene, target, viewer.role);
+      if (!destination) throw new AppError("forbidden");
+      patch = { ...patch, ...destination };
+    }
     const after = s.tokens.update(found.token.id, found.worldId, patch);
     hub.publishToken(found.worldId, found.token, after);
     // A name or visibility change alters what the initiative list may show; other tokens must not cause traffic.

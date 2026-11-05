@@ -39,6 +39,50 @@ const stateOf = async (app: Parameters<typeof listen>[0], worldId: string, cooki
   return msg.state;
 };
 
+describe("moving a token over HTTP", () => {
+  async function setupWithToken(x: number, y: number) {
+    const context = await setup();
+    const { app, gm, bob, world, scene } = context;
+    const token = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
+        sceneId: scene.id,
+        name: "Hero",
+        x,
+        y,
+        controllerIds: [bob.user.id],
+      })
+    ).json();
+    return { ...context, token };
+  }
+
+  it("stops a player at a closed door, the same as moving over the WebSocket", async () => {
+    const { app, bob, token } = await setupWithToken(100, 100);
+    const res = await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 800 });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: "forbidden" });
+    const free = await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 200 });
+    expect(free.json()).toMatchObject({ x: 200, y: 100 });
+  });
+
+  it("keeps a moved token inside the map", async () => {
+    const { app, bob, token } = await setupWithToken(600, 100);
+    const res = await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 16000, y: -16000 });
+    expect(res.json()).toMatchObject({ x: 1000, y: 0 });
+  });
+
+  it("lets the game master move through walls, but not off the map", async () => {
+    const { app, gm, token } = await setupWithToken(100, 100);
+    const res = await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 16000 });
+    expect(res.json()).toMatchObject({ x: 1000, y: 100 });
+  });
+
+  it("does not treat a change without a position as a move", async () => {
+    const { app, bob, token } = await setupWithToken(100, 100);
+    const res = await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { rotation: 90 });
+    expect(res.json()).toMatchObject({ x: 100, y: 100, rotation: 90 });
+  });
+});
+
 describe("walls, doors and lights", () => {
   it("stores them with the scene and lets the game master read them back", async () => {
     const { app, gm, world, scene } = await setup();

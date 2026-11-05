@@ -4,7 +4,6 @@ import {
   type ErrorCode,
   floorOf,
   type MessageDto,
-  pathIsBlocked,
   type ServerMessage,
   type TokenDto,
   tableRole,
@@ -18,7 +17,7 @@ import { canReadMessage } from "./chat.ts";
 import { AppError } from "./errors.ts";
 import { sceneForViewer, withoutHiddenFloorData } from "./scenes.ts";
 import type { Services } from "./services.ts";
-import type { Viewer } from "./tokens.ts";
+import { resolveTokenMove, type Viewer } from "./tokens.ts";
 import { flattenLights, flattenPolygons, visionRegion } from "./vision.ts";
 
 interface Connection {
@@ -189,17 +188,10 @@ export class Hub {
     if (conn.observer) throw new AppError("forbidden");
     const scene = this.s.scenes.get(token.sceneId)!;
     if (scene.lockedLayers.includes("tokens")) return this.publishToken(conn.worldId, token, token);
-    const x = Math.min(Math.max(msg.x, 0), scene.width);
-    const y = Math.min(Math.max(msg.y, 0), scene.height);
-    // Players cannot walk through walls or closed doors; the move is dropped and everyone is told the token stayed.
-    if (conn.viewer.role !== "gm") {
-      const half = (token.size * scene.gridSize) / 2;
-      const blockers = floorOf(scene, token.floorId).walls.filter((w) => w.kind === "wall" || !w.open);
-      if (pathIsBlocked({ x: token.x + half, y: token.y + half }, { x: x + half, y: y + half }, blockers)) {
-        return this.publishToken(conn.worldId, token, token);
-      }
-    }
-    const after = this.s.tokens.update(token.id, conn.worldId, { x, y });
+    const destination = resolveTokenMove(token, scene, msg, conn.viewer.role);
+    // A refused move is dropped and everyone is told the token stayed.
+    if (!destination) return this.publishToken(conn.worldId, token, token);
+    const after = this.s.tokens.update(token.id, conn.worldId, destination);
     this.publishToken(conn.worldId, token, after);
   }
 
