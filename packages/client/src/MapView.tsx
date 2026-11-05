@@ -607,10 +607,28 @@ export function MapView(props: Props) {
     // Each run replaces the one before; a run that wakes up after a newer one started must not touch the background.
     let latestRun = 0;
     let measuredFloorId: string | null = null;
+    let shownMap: {
+      scene: SceneDto | null;
+      floor: FloorDto | null;
+      ghost: FloorDto | null;
+      layers: MapLayers;
+      lightsEdited: number | null;
+    } | null = null;
     async function syncScene() {
       const e = engine.current;
-      const { scene, floor } = props_();
+      const { scene, floor, ghostFloor: ghost, layers, tool, selectedLight } = props_();
       if (!e) return;
+      // Rebuilding means every wall and door again, so only what the map is drawn from may trigger it, not token moves.
+      const lightsEdited = tool === "light" ? (selectedLight ?? -1) : null;
+      if (
+        shownMap?.scene === scene &&
+        shownMap.floor === floor &&
+        shownMap.ghost === ghost &&
+        shownMap.layers === layers &&
+        shownMap.lightsEdited === lightsEdited
+      )
+        return;
+      shownMap = { scene, floor, ghost, layers, lightsEdited };
       const run = ++latestRun;
       e.background.removeChildren().forEach((c) => c.destroy());
       e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
@@ -902,6 +920,7 @@ export function MapView(props: Props) {
       void background.ready.then((loaded) => loaded?.texture.destroy(true));
     }
 
+    const shownTokens = new WeakMap<Container, { token: TokenDto; gridSize: number; selected: boolean }>();
     function syncTokens() {
       const e = engine.current;
       if (!e) return;
@@ -920,7 +939,12 @@ export function MapView(props: Props) {
           e.tokenViews.set(token.id, view);
           e.tokenLayer.addChild(view);
         }
-        drawToken(view, token, scene!.gridSize, selectedTokenIds.includes(token.id));
+        const gridSize = scene!.gridSize;
+        const selected = selectedTokenIds.includes(token.id);
+        const shown = shownTokens.get(view);
+        if (shown?.token === token && shown.gridSize === gridSize && shown.selected === selected) continue;
+        shownTokens.set(view, { token, gridSize, selected });
+        drawToken(view, token, gridSize, selected);
       }
     }
 
@@ -952,8 +976,15 @@ export function MapView(props: Props) {
       });
       view.on("globalpointermove", (e) => {
         if (!drag) return;
-        if (pinching) return void (drag = null);
         const scene = props_().scene;
+        if (pinching) {
+          // Nothing else redraws an unchanged token, so an abandoned drag has to put it back itself.
+          for (const member of drag.members) {
+            const half = (member.token.size * (scene?.gridSize ?? 0)) / 2;
+            member.view.position.set(member.token.x + half, member.token.y + half);
+          }
+          return void (drag = null);
+        }
         if (!scene) return;
         const local = engine.current!.world.toLocal(e.global);
         const dx = local.x - drag.startX;

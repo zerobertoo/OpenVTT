@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 import { api } from "./api";
 import { TableLoading } from "./components/screens/TableLoading";
 import { DiceOverlay } from "./components/table/DiceOverlay";
@@ -73,7 +74,23 @@ export function Table({ worldId, user }: Props) {
     diceTrayOpen,
     draw,
     view,
-  } = useTableUi();
+  } = useTableUi(
+    // Only these fields: pings and effects also live in the store and must not re-render the table.
+    useShallow((ui) => ({
+      tab: ui.tab,
+      drawerOpen: ui.drawerOpen,
+      tool: ui.tool,
+      selectedTokenId: ui.selectedTokenId,
+      selectedTokenIds: ui.selectedTokenIds,
+      gmViewSceneId: ui.gmViewSceneId,
+      gmViewFloorId: ui.gmViewFloorId,
+      layers: ui.layers,
+      viewAsUserId: ui.viewAsUserId,
+      diceTrayOpen: ui.diceTrayOpen,
+      draw: ui.draw,
+      view: ui.view,
+    })),
+  );
   const {
     setTab,
     toggleDrawer,
