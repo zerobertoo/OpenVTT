@@ -1,5 +1,22 @@
-import { expect, it } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
+import { toastActionFailure } from "./actionFailure";
 import { useUndo } from "./undo";
+
+vi.mock("./actionFailure", () => ({ toastActionFailure: vi.fn() }));
+
+beforeEach(() => useUndo.getState().clear());
+
+it("reports a failed undo and moves on, so one lost record cannot block older steps", async () => {
+  const refusal = new Error("gone");
+  const { record, undo } = useUndo.getState();
+  const older = vi.fn().mockResolvedValue(undefined);
+  record({ undo: older, redo: vi.fn() });
+  record({ undo: vi.fn().mockRejectedValue(refusal), redo: vi.fn() });
+  await undo();
+  expect(toastActionFailure).toHaveBeenCalledWith(refusal);
+  await undo();
+  expect(older).toHaveBeenCalled();
+});
 
 it("undoes and redoes in order, and a new change drops what could be redone", async () => {
   const log: string[] = [];

@@ -1,9 +1,11 @@
 import type { DrawingDto } from "@openvtt/shared";
 import { beforeEach, expect, it, vi } from "vitest";
 import { api } from "../api";
+import { toastActionFailure } from "./actionFailure";
 import { undoableActions } from "./tableActions";
 import { useUndo } from "./undo";
 
+vi.mock("./actionFailure", () => ({ toastActionFailure: vi.fn() }));
 vi.mock("../api", () => ({
   api: {
     createDrawing: vi.fn(),
@@ -39,6 +41,16 @@ beforeEach(() => {
 });
 
 const actions = () => undoableActions("w", vi.fn(), useUndo.getState().record);
+
+it("forgets a change the server refused and reports it", async () => {
+  const refusal = new Error("refused");
+  vi.mocked(api.createDrawing).mockRejectedValueOnce(refusal);
+  actions().draw("s", "f", line);
+  await vi.waitFor(() => expect(toastActionFailure).toHaveBeenCalledWith(refusal));
+  expect(useUndo.getState().past).toHaveLength(0);
+  expect(await useUndo.getState().undo()).toBe(false);
+  expect(api.deleteDrawing).not.toHaveBeenCalled();
+});
 
 it("follows ids through several recreations", async () => {
   const table = actions();

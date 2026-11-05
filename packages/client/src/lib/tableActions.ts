@@ -1,5 +1,6 @@
 import type { ActorDto, DrawingDto, FloorDto, HandoutDto, LightDto, SceneDto, TokenDto } from "@openvtt/shared";
 import { api } from "../api";
+import { toastActionFailure } from "./actionFailure";
 import type { UndoEntry } from "./undo";
 
 export interface Move {
@@ -21,7 +22,7 @@ const ignore = () => undefined;
 export function undoableActions(
   worldId: string,
   move: (tokenId: string, x: number, y: number) => void,
-  record: (entry: UndoEntry) => void,
+  record: (entry: UndoEntry) => () => void,
 ) {
   // Tokens and drawings recreated by undo get new ids; this keeps the chain of later steps pointing at them.
   const ids = new Map<string, string>();
@@ -40,8 +41,12 @@ export function undoableActions(
     return next;
   };
   const apply = (step: () => Promise<unknown>, entry: UndoEntry) => {
-    void run(step).catch(ignore);
-    record({ undo: () => run(entry.undo), redo: () => run(entry.redo) });
+    // Recorded right away so an immediate undo works; the queue makes that undo wait for this step's outcome.
+    const forget = record({ undo: () => run(entry.undo), redo: () => run(entry.redo) });
+    void run(step).catch((error) => {
+      forget();
+      toastActionFailure(error);
+    });
   };
 
   const createToken = async (token: TokenDto) => {
