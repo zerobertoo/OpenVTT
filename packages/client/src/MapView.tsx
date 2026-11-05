@@ -31,6 +31,10 @@ import type { Move } from "./lib/tableActions";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
+/** How long after it was fired an effect still plays, and how many token changes play at once. */
+const EFFECT_FRESH_MS = 3000;
+const MAX_TOKEN_EFFECTS = 12;
+
 export type MapTool = "select" | "ruler" | "draw" | "light" | "effect";
 
 interface Props {
@@ -1162,23 +1166,32 @@ export function MapView(props: Props) {
   const effect = useTableUi((ui) => ui.effect);
   useEffect(() => {
     const e = engine.current;
-    if (!e || !effect || effect.sceneId !== latest.current.scene?.id || effect.floorId !== latest.current.floor?.id) return;
-    return playEffect(e.world, e.app.ticker, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
+    // An effect that is already old (the map was mounted again since it was fired) is not replayed.
+    if (!e || !effect || Date.now() - effect.at > EFFECT_FRESH_MS) return;
+    if (effect.sceneId !== latest.current.scene?.id || effect.floorId !== latest.current.floor?.id) return;
+    // Each effect ends by itself, so a newer one never cuts an older one short.
+    playEffect(e.world, e.app.ticker, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, [effect, latest]);
 
   // Tokens that arrive, lose hit points or heal show it on every screen, worked out from the state each already has.
   const seenTokens = useRef<{ floorKey: string; tokens: Map<string, TokenDto> } | null>(null);
   const { tokens: floorTokens, scene: currentScene, floor: currentFloor } = props;
   useEffect(() => {
-    const e = engine.current;
-    if (!e || !currentScene || !currentFloor) return;
+    if (!currentScene || !currentFloor) return;
     const floorKey = `${currentScene.id}/${currentFloor.id}`;
     const seen = seenTokens.current;
+    // The baseline is kept even before the map engine is ready, so the first change after it is ready is not lost.
     seenTokens.current = { floorKey, tokens: new Map(floorTokens.map((tk) => [tk.id, tk])) };
+    const e = engine.current;
     // Opening a map or switching floors shows what is already there, not a burst of arrivals.
-    if (!seen || seen.floorKey !== floorKey) return;
+    if (!e || !seen || seen.floorKey !== floorKey) return;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    for (const change of tokenChangeEffects(seen.tokens, floorTokens, currentScene.gridSize, !currentScene.visionEnabled))
+    // A whole new list (a resync, a group placed at once) plays only the first few, so it cannot flood the map.
+    const changes = tokenChangeEffects(seen.tokens, floorTokens, currentScene.gridSize, !currentScene.visionEnabled).slice(
+      0,
+      MAX_TOKEN_EFFECTS,
+    );
+    for (const change of changes)
       playEffect(e.world, e.app.ticker, { ...change, sceneId: currentScene.id, floorId: currentFloor.id }, currentScene.gridSize, reduced);
   }, [floorTokens, currentScene, currentFloor]);
 

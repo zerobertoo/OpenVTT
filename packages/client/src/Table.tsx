@@ -104,6 +104,10 @@ export function Table({ worldId, user }: Props) {
   const [selectedLight, setSelectedLight] = useState<number | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the selection only has to reset when the tool or the viewed floor changes
   useEffect(() => setSelectedLight(null), [tool, gmViewSceneId, gmViewFloorId]);
+  // A projectile started on one scene or floor is not finished on another.
+  const activeSceneId = state?.activeSceneId;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the scene or floor on screen changes
+  useEffect(() => useTableUi.getState().setEffectOrigin(null), [gmViewSceneId, gmViewFloorId, activeSceneId]);
 
   // A connection that stays down may mean the person lost access (removed, world deleted, session ended),
   // not only a bad network. Re-checking makes the router show the right screen instead of retrying forever.

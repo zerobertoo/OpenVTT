@@ -44,7 +44,9 @@ export function EffectOptions() {
               min={0}
               max={9999}
               className="w-20"
-              value={effectValue}
+              // Uncontrolled, so clearing the field to type a new number does not snap back to 0.
+              key={effectKind}
+              defaultValue={effectValue}
               onChange={(e) => setEffectChoice({ effectValue: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
             />
           )}

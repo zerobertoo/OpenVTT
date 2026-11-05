@@ -29,6 +29,8 @@ interface Connection {
   /** Player whose sight the game master is previewing; null shows everything. */
   viewAs: string | null;
   lastPingAt: number;
+  /** Effects have their own budget, so a ping never costs the game master an effect or the other way around. */
+  lastEffectAt: number;
   /** Re-read with the role on every state sent, so moves and pings need no query of their own. */
   observer: boolean;
   /** Floor of the active scene this connection was last sent (players only); a change means a full state is due. */
@@ -126,6 +128,7 @@ export class Hub {
       seenTokenIds: new Set(),
       viewAs: null,
       lastPingAt: 0,
+      lastEffectAt: 0,
       observer: true,
       floorId: null,
     };
@@ -195,18 +198,28 @@ export class Hub {
   private effect(conn: Connection, msg: Extract<z.infer<typeof clientMessageSchema>, { type: "map.effect" }>) {
     if (conn.viewer.role !== "gm") return;
     const inside = (n: number, max: number) => Math.min(Math.max(n, 0), max);
-    this.relayOnFloor(conn, msg.floorId, (scene, floorId) => ({
-      type: "map.effect",
-      effect: {
-        sceneId: scene.id,
-        floorId,
-        kind: msg.kind,
-        x: inside(msg.x, scene.width),
-        y: inside(msg.y, scene.height),
-        ...(msg.toX !== undefined && msg.toY !== undefined && { toX: inside(msg.toX, scene.width), toY: inside(msg.toY, scene.height) }),
-        ...(msg.value !== undefined && { value: msg.value }),
-      },
-    }));
+    // Only what the kind uses is relayed: a landing spot for a projectile, a number for damage, healing and blasts.
+    const lands = msg.kind === "projectile" && msg.toX !== undefined && msg.toY !== undefined;
+    if (msg.kind === "projectile" && !lands) return;
+    const hasNumber = (msg.kind === "damage" || msg.kind === "heal" || msg.kind === "blast") && msg.value !== undefined;
+    this.relayOnFloor(
+      conn,
+      msg.floorId,
+      (scene, floorId) => ({
+        type: "map.effect",
+        effect: {
+          sceneId: scene.id,
+          floorId,
+          kind: msg.kind,
+          x: inside(msg.x, scene.width),
+          y: inside(msg.y, scene.height),
+          ...(lands && { toX: inside(msg.toX!, scene.width), toY: inside(msg.toY!, scene.height) }),
+          // A blast's number is its radius in cells; the others show the size of the hit.
+          ...(hasNumber && { value: msg.kind === "blast" ? Math.min(Math.max(msg.value!, 1), 10) : Math.abs(msg.value!) }),
+        },
+      }),
+      "lastEffectAt",
+    );
   }
 
   /**
@@ -217,10 +230,11 @@ export class Hub {
     conn: Connection,
     requestedFloorId: string | undefined,
     build: (scene: { id: string; width: number; height: number }, floorId: string) => ServerMessage,
+    budget: "lastPingAt" | "lastEffectAt" = "lastPingAt",
   ) {
     const now = Date.now();
-    if (now - conn.lastPingAt < PING_MIN_INTERVAL_MS) return;
-    conn.lastPingAt = now;
+    if (now - conn[budget] < PING_MIN_INTERVAL_MS) return;
+    conn[budget] = now;
     const sceneId = this.s.scenes.activeSceneId(conn.worldId);
     const scene = sceneId ? this.s.scenes.get(sceneId) : null;
     if (!scene) return;

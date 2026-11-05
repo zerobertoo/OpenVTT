@@ -83,7 +83,7 @@ interface TableUiState {
   ping: (PingDto & { id: number }) | null;
   showPing: (ping: PingDto) => void;
   /** Latest map effect received; `id` makes two effects at the same spot distinct events. */
-  effect: (EffectDto & { id: number }) | null;
+  effect: (EffectDto & { id: number; at: number }) | null;
   showEffect: (effect: EffectDto) => void;
   /** What the effect tool fires: its kind and its number (damage, healing or blast radius). */
   effectKind: EffectKind;
@@ -151,7 +151,7 @@ export const useTableUi = create<TableUiState>((set) => ({
   setViewAs: (viewAsUserId) => set({ viewAsUserId }),
   changeView: (kind) => set((state) => ({ viewCommand: { kind, id: (state.viewCommand?.id ?? 0) + 1 } })),
   showPing: (ping) => set((state) => ({ ping: { ...ping, id: (state.ping?.id ?? 0) + 1 } })),
-  showEffect: (effect) => set((state) => ({ effect: { ...effect, id: (state.effect?.id ?? 0) + 1 } })),
+  showEffect: (effect) => set((state) => ({ effect: { ...effect, id: (state.effect?.id ?? 0) + 1, at: Date.now() } })),
   // Picking another effect forgets a half-made projectile.
   setEffectChoice: (choice) => set({ ...choice, effectOrigin: null }),
   setEffectOrigin: (effectOrigin) => set({ effectOrigin }),
@@ -162,7 +162,8 @@ export const useTableUi = create<TableUiState>((set) => ({
   setDraw: (draw) => set((state) => ({ draw: { ...state.draw, ...draw } })),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
-  setTool: (tool) => set({ tool }),
+  // Leaving the effect tool forgets a half-made projectile.
+  setTool: (tool) => set({ tool, effectOrigin: null }),
   selectToken: (selectedTokenId) => set({ selectedTokenId, selectedTokenIds: selectedTokenId ? [selectedTokenId] : [] }),
   toggleToken: (tokenId) =>
     set((state) => {
