@@ -1,8 +1,9 @@
 import type { MessageDto } from "@openvtt/shared";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
+import { useRollHold } from "../../lib/rollHold";
 import { ChatComposer } from "./ChatComposer";
 import { ChatMessage } from "./ChatMessage";
 
@@ -46,6 +47,17 @@ describe("ChatMessage", () => {
     render(inList(<ChatMessage message={rollMessage} color={undefined} isNew={false} />));
     expect(screen.getByText("1d20+3: total 23")).toHaveClass("sr-only");
     expect(screen.getByText("Natural 20!")).toBeInTheDocument();
+  });
+
+  it("keeps the result back while its dice are still rolling, and shows it once they settle", () => {
+    useRollHold.getState().hold(rollMessage.id);
+    render(inList(<ChatMessage message={rollMessage} color={undefined} isNew />));
+    expect(screen.getByText("Rolling…")).toBeInTheDocument();
+    expect(screen.queryByText("1d20+3: total 23")).toBeNull();
+    expect(screen.queryByText("Natural 20!")).toBeNull();
+    act(() => useRollHold.getState().release(rollMessage.id));
+    expect(screen.getByText("1d20+3: total 23")).toBeInTheDocument();
+    expect(screen.queryByText("Rolling…")).toBeNull();
   });
 
   it("offers to roll again only when asked to", async () => {

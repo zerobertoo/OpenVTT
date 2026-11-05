@@ -1,7 +1,8 @@
 import type { MessageDto } from "@openvtt/shared";
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useRollHold } from "../../lib/rollHold";
 import { useFormat } from "../../useFormat";
 import { Avatar } from "../ui/avatar";
 import { Button } from "../ui/button";
@@ -23,23 +24,29 @@ interface Props {
 export function ChatMessage({ message, color, isNew, onRollAgain, row }: Props) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
-  const animateDice = isNew && !reduceMotion;
+  const held = useRollHold((state) => state.held.has(message.id));
+  const wasHeld = useRef(held);
+  if (held) wasHeld.current = true;
+  // After a hold the dice have already tumbled on the table, so the chat shows the result without tumbling again.
+  const animateDice = isNew && !reduceMotion && !wasHeld.current;
+  const celebrate = isNew && !reduceMotion && !held;
+  const celebrationDelay = wasHeld.current ? 0 : TUMBLE_MS + 250;
   const time = useFormat().time(message.createdAt);
   const tags = [message.toUserId ? t("chat.whisperTag") : null, message.gmOnly ? t("chat.gmOnlyTag") : null].filter(Boolean);
   const roll = message.roll;
-  const natural = roll ? naturalD20(roll) : null;
+  const natural = roll && !held ? naturalD20(roll) : null;
 
   useEffect(() => {
-    if (!animateDice || natural !== "twenty") return;
+    if (!celebrate || natural !== "twenty") return;
     const timer = setTimeout(
       () =>
         void import("canvas-confetti").then((m) =>
           m.default({ particleCount: 90, spread: 70, origin: { x: 0.8, y: 0.6 }, disableForReducedMotion: true }),
         ),
-      TUMBLE_MS + 250,
+      celebrationDelay,
     );
     return () => clearTimeout(timer);
-  }, [animateDice, natural]);
+  }, [celebrate, natural, celebrationDelay]);
 
   const kind = roll ? "roll" : message.kind === "whisper" || message.toUserId ? "whisper" : "chat";
 
@@ -56,8 +63,8 @@ export function ChatMessage({ message, color, isNew, onRollAgain, row }: Props) 
       <Avatar name={message.senderName} color={color} />
       <motion.div
         className="msg-body"
-        animate={animateDice && natural === "one" ? { x: [0, -7, 7, -5, 5, 0] } : undefined}
-        transition={{ duration: 0.4, delay: TUMBLE_MS / 1000 }}
+        animate={celebrate && natural === "one" ? { x: [0, -7, 7, -5, 5, 0] } : undefined}
+        transition={{ duration: 0.4, delay: wasHeld.current ? 0 : TUMBLE_MS / 1000 }}
       >
         <div className="msg-meta">
           <strong>{message.senderName}</strong>
@@ -72,9 +79,17 @@ export function ChatMessage({ message, color, isNew, onRollAgain, row }: Props) 
         {roll ? (
           <>
             <p className="roll-notation">{roll.notation}</p>
-            <span className="sr-only">{t("chat.rollSummary", { notation: roll.notation, total: roll.total })}</span>
-            <DiceRoll roll={roll} animate={animateDice} />
-            {onRollAgain && (
+            {held ? (
+              <p className="roll-pending" role="status">
+                {t("chat.rolling")}
+              </p>
+            ) : (
+              <>
+                <span className="sr-only">{t("chat.rollSummary", { notation: roll.notation, total: roll.total })}</span>
+                <DiceRoll roll={roll} animate={animateDice} />
+              </>
+            )}
+            {onRollAgain && !held && (
               <Button variant="secondary" size="sm" onClick={onRollAgain}>
                 {t("chat.rollAgain")}
               </Button>
