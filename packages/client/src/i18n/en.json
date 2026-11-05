@@ -213,6 +213,7 @@
     "minimap": "Overview map",
     "playVideo": "Play map animation",
     "pauseVideo": "Pause map animation",
+    "renderUnavailable": "This browser cannot draw the map. Turn on hardware acceleration or try another browser.",
     "videoUnsupported": "This browser cannot play the map video, so the map is shown without it.",
     "draw": "Draw",
     "light": "Lights",

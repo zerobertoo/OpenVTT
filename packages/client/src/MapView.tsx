@@ -217,12 +217,15 @@ export function MapView(props: Props) {
   const minimap = useRef<HTMLCanvasElement>(null);
   const minimapOpen = useTableUi((ui) => ui.minimapOpen && ui.view !== "tv");
   const [videoUi, setVideoUi] = useState<VideoUi>({ status: "none", playing: false });
+  /** True when the renderer could not start (no WebGL, or the browser blocked it). */
+  const [renderFailed, setRenderFailed] = useState(false);
 
   // One Pixi application for the lifetime of the component.
   useEffect(() => {
     const element = host.current!;
     const app = new Application();
     let destroyed = false;
+    let failed = false;
     // True while two fingers are down; token drags, pans and the ruler stand still meanwhile.
     let pinching = false;
     const ready = app
@@ -288,6 +291,13 @@ export function MapView(props: Props) {
           drawMinimap();
         });
         syncAll.current();
+      })
+      .catch((error: unknown) => {
+        // Without a renderer the start failed (no WebGL): there is nothing to draw on or destroy later.
+        // Any other error came from setting up the scene and keeps surfacing as before.
+        if (app.renderer) throw error;
+        failed = true;
+        if (!destroyed) setRenderFailed(true);
       });
 
     // The light marker being dragged with the light tool; its map data is rebuilt after the drop saves.
@@ -1106,7 +1116,7 @@ export function MapView(props: Props) {
       void ready.then(() => {
         if (engine.current) disposeVideo(engine.current);
         engine.current = null;
-        app.destroy(true, { children: true });
+        if (!failed) app.destroy(true, { children: true });
       });
     };
     // The application is created once; prop changes are pushed through `syncAll` below.
@@ -1294,6 +1304,11 @@ export function MapView(props: Props) {
           props.onDropEntry(entryId, point.x, point.y);
         }}
       />
+      {renderFailed && (
+        <p role="alert" className="video-control video-notice">
+          {t("map.renderUnavailable")}
+        </p>
+      )}
       {minimapOpen && props.scene && (
         // The overview is a pointer shortcut; the keyboard has pan, zoom and "center on my token".
         <div aria-hidden="true" className="minimap">

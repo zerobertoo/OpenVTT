@@ -213,6 +213,7 @@
     "minimap": "Mapa miniatura",
     "playVideo": "Reproduzir animação do mapa",
     "pauseVideo": "Pausar animação do mapa",
+    "renderUnavailable": "Este navegador não consegue desenhar o mapa. Ative a aceleração de hardware ou tente outro navegador.",
     "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele.",
     "draw": "Desenhar",
     "light": "Luzes",
