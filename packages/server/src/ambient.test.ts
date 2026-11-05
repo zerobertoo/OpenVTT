@@ -34,8 +34,19 @@ it("accepts mp3 and ogg uploads, plays one for the table and refuses audio as a 
   expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/ambient/volume`, { volume: 2 })).statusCode).toBe(400);
   expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/ambient/volume`, { volume: 0.3 })).statusCode).toBe(200);
 
-  const conn = connect(await listen(app), world.id, bob.cookie);
+  const address = await listen(app);
+  const conn = connect(address, world.id, bob.cookie);
   const msg = await conn.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
   conn.ws.close();
   expect(msg.state.ambient).toEqual({ assetId: ogg.id, playing: true, volume: 0.3 });
+  expect(msg.state.environment).toEqual({ time: "day", weather: "clear", season: "none" });
+
+  const night = { time: "night", weather: "storm", season: "autumn" };
+  expect((await call(app, bob.cookie, "PUT", `/api/worlds/${world.id}/environment`, night)).statusCode).toBe(403);
+  expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/environment`, { ...night, weather: "hail" })).statusCode).toBe(400);
+  expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/environment`, night)).statusCode).toBe(200);
+  const conn2 = connect(address, world.id, bob.cookie);
+  const msg2 = await conn2.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
+  conn2.ws.close();
+  expect(msg2.state.environment).toEqual(night);
 });

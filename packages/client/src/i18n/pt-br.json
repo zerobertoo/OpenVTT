@@ -543,6 +543,15 @@
     "video": "Vídeo",
     "insert": "Inserir no texto"
   },
+  "environment": {
+    "title": "Atmosfera",
+    "time": "Horário do dia",
+    "weather": "Clima",
+    "season": "Estação",
+    "timeOptions": { "day": "Dia", "dawn": "Amanhecer", "dusk": "Entardecer", "night": "Noite" },
+    "weatherOptions": { "clear": "Limpo", "rain": "Chuva", "storm": "Tempestade", "snow": "Neve", "fog": "Neblina" },
+    "seasonOptions": { "none": "Nenhuma", "spring": "Primavera", "summer": "Verão", "autumn": "Outono", "winter": "Inverno" }
+  },
   "alerts": {
     "yourTurn": "Sua vez!",
     "playMusic": "Tocar a música da mesa",

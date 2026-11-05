@@ -312,8 +312,9 @@ describe("the migration to floors", () => {
   it("wraps every existing scene in one floor holding its background, walls, lights, drawings and tokens", () => {
     const db = new DatabaseSync(":memory:");
     db.exec("PRAGMA foreign_keys = ON");
-    // The floors migration is the fourth to last one; the next three only add columns.
-    for (const sql of MIGRATIONS.slice(0, -4)) db.exec(sql);
+    // Run everything before the floors migration, then it and all the later ones (which only add columns).
+    const floorsAt = MIGRATIONS.findIndex((sql) => sql.includes("CREATE TABLE floors"));
+    for (const sql of MIGRATIONS.slice(0, floorsAt)) db.exec(sql);
     db.exec(`
       INSERT INTO users (id, username, password_hash, role, created_at) VALUES ('u1', 'a', 'x', 'user', 1);
       INSERT INTO worlds (id, name, created_at) VALUES ('w1', 'World', 1);
@@ -323,10 +324,7 @@ describe("the migration to floors", () => {
       INSERT INTO lights (id, scene_id, x, y, radius, intensity, color) VALUES ('light1', 's1', 5, 5, 2, 1, '#ffffff');
       INSERT INTO tokens (id, scene_id, name, x, y, size, color) VALUES ('t1', 's1', 'Hero', 0, 0, 1, '#112233');
     `);
-    db.exec(MIGRATIONS.at(-4)!);
-    db.exec(MIGRATIONS.at(-3)!);
-    db.exec(MIGRATIONS.at(-2)!);
-    db.exec(MIGRATIONS.at(-1)!);
+    for (const sql of MIGRATIONS.slice(floorsAt)) db.exec(sql);
     // Existing lights keep today's look: scene fully lit, light feathered at the default.
     expect(db.prepare("SELECT ambient_light FROM scenes").get()).toEqual({ ambient_light: 1 });
     expect(db.prepare("SELECT feather FROM lights").get()).toEqual({ feather: 0.4 });

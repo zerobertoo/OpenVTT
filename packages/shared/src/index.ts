@@ -386,7 +386,21 @@ export interface WorldStateDto {
   handouts: HandoutDto[];
   /** What the game master plays for the whole table; null when nothing was picked. */
   ambient: AmbientDto | null;
+  /** Time of day, weather and season the game master lays over the map for everyone. */
+  environment: EnvironmentDto;
 }
+
+export const TIMES_OF_DAY = ["day", "dawn", "dusk", "night"] as const;
+export const WEATHERS = ["clear", "rain", "storm", "snow", "fog"] as const;
+export const SEASONS = ["none", "spring", "summer", "autumn", "winter"] as const;
+
+export const environmentSchema = z.object({
+  time: z.enum(TIMES_OF_DAY),
+  weather: z.enum(WEATHERS),
+  season: z.enum(SEASONS),
+});
+export type EnvironmentDto = z.infer<typeof environmentSchema>;
+export const DEFAULT_ENVIRONMENT: EnvironmentDto = { time: "day", weather: "clear", season: "none" };
 
 export interface AmbientDto {
   assetId: string;

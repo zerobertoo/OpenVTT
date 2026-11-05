@@ -543,6 +543,15 @@
     "video": "Video",
     "insert": "Insert in text"
   },
+  "environment": {
+    "title": "Atmosphere",
+    "time": "Time of day",
+    "weather": "Weather",
+    "season": "Season",
+    "timeOptions": { "day": "Day", "dawn": "Dawn", "dusk": "Dusk", "night": "Night" },
+    "weatherOptions": { "clear": "Clear", "rain": "Rain", "storm": "Storm", "snow": "Snow", "fog": "Fog" },
+    "seasonOptions": { "none": "None", "spring": "Spring", "summer": "Summer", "autumn": "Autumn", "winter": "Winter" }
+  },
   "alerts": {
     "yourTurn": "Your turn!",
     "playMusic": "Play the table music",

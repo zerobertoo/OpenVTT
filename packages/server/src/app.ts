@@ -18,6 +18,7 @@ import {
   credentialsSchema,
   DEFAULT_MAX_VIDEO_BYTES,
   type ErrorCode,
+  environmentSchema,
   floorInputSchema,
   handoutInputSchema,
   joinWorldSchema,
@@ -477,6 +478,13 @@ export function buildApp(options: AppOptions) {
   app.put<{ Params: { id: string } }>("/api/worlds/:id/ambient/volume", async (req) => {
     requireGm(req, req.params.id);
     s.worlds.setAmbientVolume(req.params.id, setAmbientVolumeSchema.parse(req.body).volume);
+    hub.broadcastState(req.params.id);
+    return { ok: true };
+  });
+
+  app.put<{ Params: { id: string } }>("/api/worlds/:id/environment", async (req) => {
+    requireGm(req, req.params.id);
+    s.worlds.setEnvironment(req.params.id, environmentSchema.parse(req.body));
     hub.broadcastState(req.params.id);
     return { ok: true };
   });

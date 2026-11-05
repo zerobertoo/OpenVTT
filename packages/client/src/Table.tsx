@@ -9,6 +9,7 @@ import { DiceOverlay } from "./components/table/DiceOverlay";
 import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
 import { DrawOptions } from "./components/table/DrawOptions";
+import { EnvironmentOverlay } from "./components/table/EnvironmentOverlay";
 import { FloorSwitcher } from "./components/table/FloorSwitcher";
 import { LightOptions } from "./components/table/LightOptions";
 import { MapLayersMenu } from "./components/table/MapLayersMenu";
@@ -315,6 +316,8 @@ export function Table({ worldId, user }: Props) {
           ) : (
             <EmptyMap isGm={isGm} />
           )}
+
+          {scene && <EnvironmentOverlay environment={state.environment} />}
 
           {/* Secret rolls and whispers must not animate or chime on the shared screen. */}
           {view !== "tv" && <DiceOverlay messages={state.messages} userId={user.id} />}
