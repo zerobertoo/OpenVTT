@@ -299,6 +299,36 @@ export class AssetService {
     return createReadStream(this.path(asset), range);
   }
 
+  /**
+   * Deletes assets nothing points at, file and row, once they are older than `graceMs` (an upload is attached to a
+   * floor, token, handout or the table music only after it finishes, so a fresh one must be left alone). Every place
+   * that can hold an asset id is listed here: floor backgrounds, token images, the table music and `asset:<id>` links
+   * inside handout text. `scenes.asset_id` is not one: it is a leftover of the migration to floors and never written.
+   * Returns how many assets were removed.
+   */
+  deleteOrphans(graceMs: number, now = Date.now()): number {
+    const candidates = this.db
+      .prepare(
+        `SELECT id, file_name FROM assets WHERE created_at < ? AND id NOT IN (
+           SELECT asset_id FROM floors WHERE asset_id IS NOT NULL
+           UNION SELECT asset_id FROM tokens WHERE asset_id IS NOT NULL
+           UNION SELECT ambient_asset_id FROM worlds WHERE ambient_asset_id IS NOT NULL)`,
+      )
+      .all(now - graceMs) as { id: string; file_name: string }[];
+    if (candidates.length === 0) return 0;
+    const inHandouts = new Set<string>();
+    for (const { body } of this.db.prepare("SELECT body FROM handouts").all() as { body: string }[])
+      for (const [, id] of body.matchAll(/asset:([0-9a-f-]{36})/g)) inHandouts.add(id!);
+    let removed = 0;
+    for (const { id, file_name } of candidates) {
+      if (inHandouts.has(id)) continue;
+      this.db.prepare("DELETE FROM assets WHERE id = ?").run(id);
+      rmSync(join(this.dir, file_name), { force: true });
+      removed++;
+    }
+    return removed;
+  }
+
   /** True when the asset exists and belongs to the world; used to reject cross-world references. */
   belongsToWorld(assetId: string | null, worldId: string, kind: "image" | "map" | "audio"): boolean {
     if (assetId === null) return true;
