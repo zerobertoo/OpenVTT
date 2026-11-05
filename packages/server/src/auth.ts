@@ -104,12 +104,13 @@ export class AuthService {
     this.db.prepare("UPDATE users SET locale = ? WHERE id = ?").run(locale, userId);
   }
 
-  /** Admin-only password reset (no email server required). */
-  async resetPassword(actor: UserDto, targetUsername: string, newPassword: string): Promise<void> {
+  /** Admin-only password reset (no email server required). Returns the id of the user whose sessions ended. */
+  async resetPassword(actor: UserDto, targetUsername: string, newPassword: string): Promise<string> {
     if (actor.role !== "admin") throw new AppError("forbidden");
     const target = this.db.prepare("SELECT id FROM users WHERE username = ?").get(targetUsername) as { id: string } | undefined;
     if (!target) throw new AppError("not_found");
     this.db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(await hash(newPassword), target.id);
     this.db.prepare("DELETE FROM sessions WHERE user_id = ?").run(target.id);
+    return target.id;
   }
 }

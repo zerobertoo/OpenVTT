@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 import { api } from "./api";
 import { TableLoading } from "./components/screens/TableLoading";
 import { DiceOverlay } from "./components/table/DiceOverlay";
@@ -27,6 +28,7 @@ import { Compendium } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
+import { toastActionFailure } from "./lib/actionFailure";
 import { OnlineContext } from "./lib/online";
 import { usePreferences } from "./lib/preferences";
 import { type LightInput, undoableActions, withoutId } from "./lib/tableActions";
@@ -72,7 +74,23 @@ export function Table({ worldId, user }: Props) {
     diceTrayOpen,
     draw,
     view,
-  } = useTableUi();
+  } = useTableUi(
+    // Only these fields: pings and effects also live in the store and must not re-render the table.
+    useShallow((ui) => ({
+      tab: ui.tab,
+      drawerOpen: ui.drawerOpen,
+      tool: ui.tool,
+      selectedTokenId: ui.selectedTokenId,
+      selectedTokenIds: ui.selectedTokenIds,
+      gmViewSceneId: ui.gmViewSceneId,
+      gmViewFloorId: ui.gmViewFloorId,
+      layers: ui.layers,
+      viewAsUserId: ui.viewAsUserId,
+      diceTrayOpen: ui.diceTrayOpen,
+      draw: ui.draw,
+      view: ui.view,
+    })),
+  );
   const {
     setTab,
     toggleDrawer,
@@ -134,7 +152,7 @@ export function Table({ worldId, user }: Props) {
   const move = useCallback((tokenId: string, x: number, y: number) => send({ type: "token.move", tokenId, x, y }), [send]);
   const isGmRole = can.isGm;
   const actions = useMemo(
-    () => undoableActions(worldId, move, isGmRole ? useUndo.getState().record : () => undefined),
+    () => undoableActions(worldId, move, isGmRole ? useUndo.getState().record : () => () => undefined),
     [worldId, move, isGmRole],
   );
   useEffect(() => useUndo.getState().clear, [worldId]);
@@ -292,7 +310,7 @@ export function Table({ worldId, user }: Props) {
               onMove={move}
               vision={state.vision}
               layers={viewAs || view === "tv" ? PLAYER_LAYERS : layers}
-              onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
+              onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(toastActionFailure)}
               onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus, floorId: isGm ? floor?.id : undefined })}
               onEffectPoint={(x, y) => {
                 if (!isGm || viewAs) return;
@@ -361,7 +379,7 @@ export function Table({ worldId, user }: Props) {
                 <DrawOptions
                   isGm={isGm}
                   lockedLayers={scene.lockedLayers}
-                  onClear={() => floor && void api.clearDrawings(scene.id, floor.id).catch(() => undefined)}
+                  onClear={() => floor && void api.clearDrawings(scene.id, floor.id).catch(toastActionFailure)}
                 />
               )}
               {tool === "light" && isGm && !viewAs && (
@@ -423,7 +441,7 @@ export function Table({ worldId, user }: Props) {
                       onLayerChange={setLayer}
                       viewAsUserId={viewAs}
                       onViewAsChange={changeViewAs}
-                      onLockChange={(lockedLayers) => scene && void actions.changeScene(scene, { lockedLayers }).catch(() => undefined)}
+                      onLockChange={(lockedLayers) => scene && void actions.changeScene(scene, { lockedLayers }).catch(toastActionFailure)}
                     />
                   )
                 }

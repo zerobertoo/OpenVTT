@@ -8,6 +8,8 @@ interface CombatantRow {
   name: string;
   score: number;
   hidden: number;
+  scene_id: string;
+  floor_id: string;
 }
 
 /** Initiative order: one combat per world, made of tokens with a score. Only the game master changes it. */
@@ -17,7 +19,7 @@ export class CombatService {
   private rows(worldId: string): CombatantRow[] {
     return this.db
       .prepare(
-        `SELECT c.token_id, t.name, c.score, t.hidden FROM combatants c JOIN tokens t ON t.id = c.token_id
+        `SELECT c.token_id, t.name, c.score, t.hidden, t.scene_id, t.floor_id FROM combatants c JOIN tokens t ON t.id = c.token_id
          WHERE c.world_id = ? ORDER BY c.score DESC, c.rowid`,
       )
       .all(worldId) as unknown as CombatantRow[];
@@ -27,13 +29,18 @@ export class CombatService {
     return !!this.db.prepare("SELECT 1 AS ok FROM combatants WHERE token_id = ?").get(tokenId);
   }
 
-  /** What the viewer may know: players never get a hidden token's name, score or turn. */
-  stateFor(worldId: string, viewer: Viewer): CombatDto | null {
+  /**
+   * What the viewer may know: players get only visible tokens on the scene and floor they look at.
+   * Fog of war does not apply, so the order stays stable while tokens walk in and out of sight.
+   */
+  stateFor(worldId: string, viewer: Viewer, activeSceneId: string | null, floorId: string | null): CombatDto | null {
     const combat = this.db.prepare("SELECT round, turn_token_id FROM combats WHERE world_id = ?").get(worldId) as
       | { round: number; turn_token_id: string | null }
       | undefined;
     if (!combat) return null;
-    const shown = this.rows(worldId).filter((r) => viewer.role === "gm" || r.hidden === 0);
+    const shown = this.rows(worldId).filter(
+      (r) => viewer.role === "gm" || (r.hidden === 0 && r.scene_id === activeSceneId && r.floor_id === floorId),
+    );
     const turn = shown.some((r) => r.token_id === combat.turn_token_id) ? combat.turn_token_id : null;
     return {
       round: combat.round,

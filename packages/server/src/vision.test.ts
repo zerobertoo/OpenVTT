@@ -1,4 +1,4 @@
-import { pathIsBlocked, pointInPolygon, visibilityPolygon } from "@openvtt/shared";
+import { landingBesideWalls, pathIsBlocked, pointInPolygon, visibilityPolygon } from "@openvtt/shared";
 import { describe, expect, it } from "vitest";
 
 const origin = { x: 500, y: 500 };
@@ -38,10 +38,73 @@ describe("visibilityPolygon", () => {
 });
 
 describe("pathIsBlocked", () => {
+  const wall = [{ x1: 100, y1: 0, x2: 100, y2: 100 }];
+
   it("lets a path run along a wall or end on it, and stops one that crosses", () => {
-    const wall = [{ x1: 100, y1: 0, x2: 100, y2: 100 }];
     expect(pathIsBlocked({ x: 0, y: 50 }, { x: 200, y: 50 }, wall)).toBe(true);
     expect(pathIsBlocked({ x: 100, y: 10 }, { x: 100, y: 90 }, wall)).toBe(false);
     expect(pathIsBlocked({ x: 0, y: 50 }, { x: 100, y: 50 }, wall)).toBe(false);
+  });
+
+  it("lets a token already on a wall step off it to either side", () => {
+    expect(pathIsBlocked({ x: 100, y: 50 }, { x: 0, y: 50 }, wall)).toBe(false);
+    expect(pathIsBlocked({ x: 100, y: 50 }, { x: 200, y: 50 }, wall)).toBe(false);
+  });
+
+  describe("at a point where two wall pieces meet", () => {
+    const straightWall = [
+      { x1: 0, y1: 140, x2: 70, y2: 70 },
+      { x1: 70, y1: 70, x2: 140, y2: 0 },
+    ];
+
+    it("stops a path going through the wall at that point", () => {
+      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 105, y: 105 }, straightWall)).toBe(true);
+    });
+
+    it("still lets a path run along the wall or stop on the joint", () => {
+      expect(pathIsBlocked({ x: 0, y: 140 }, { x: 140, y: 0 }, straightWall)).toBe(false);
+      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 70, y: 70 }, straightWall)).toBe(false);
+    });
+
+    it("still lets a path round the outside of a corner or pass the tip of one wall", () => {
+      const corner = [
+        { x1: 70, y1: 70, x2: 70, y2: 0 },
+        { x1: 70, y1: 70, x2: 0, y2: 70 },
+      ];
+      expect(pathIsBlocked({ x: 35, y: 105 }, { x: 105, y: 35 }, corner)).toBe(false);
+      expect(pathIsBlocked({ x: 35, y: 35 }, { x: 105, y: 105 }, [straightWall[0]!])).toBe(false);
+    });
+  });
+});
+
+describe("landingBesideWalls", () => {
+  const wall = [{ x1: 100, y1: 0, x2: 100, y2: 100 }];
+
+  it("keeps a landing that touches no wall", () => {
+    const to = { x: 90, y: 50 };
+    expect(landingBesideWalls({ x: 0, y: 50 }, to, wall)).toBe(to);
+  });
+
+  it("stops one pixel short of a wall, on the side the move came from", () => {
+    expect(landingBesideWalls({ x: 0, y: 50 }, { x: 100, y: 50 }, wall)).toEqual({ x: 99, y: 50 });
+    expect(landingBesideWalls({ x: 200, y: 50 }, { x: 100, y: 50 }, wall)).toEqual({ x: 101, y: 50 });
+    expect(landingBesideWalls({ x: 0, y: 0 }, { x: 100, y: 0 }, wall)).toEqual({ x: 99, y: 0 });
+  });
+
+  it("leaves the far side out of reach after stopping at a diagonal wall", () => {
+    const diagonal = [{ x1: 0, y1: 0, x2: 70, y2: 70 }];
+    const landing = landingBesideWalls({ x: 105, y: 35 }, { x: 35, y: 35 }, diagonal)!;
+    expect(landing).toEqual({ x: 36, y: 35 });
+    expect(pathIsBlocked(landing, { x: 35, y: 105 }, diagonal)).toBe(true);
+  });
+
+  it("goes back to the start for a move shorter than the step, and does not count staying put", () => {
+    expect(landingBesideWalls({ x: 99.5, y: 50 }, { x: 100, y: 50 }, wall)).toEqual({ x: 99.5, y: 50 });
+    const onWall = { x: 100, y: 50 };
+    expect(landingBesideWalls(onWall, { x: 100, y: 50 }, wall)).toEqual(onWall);
+  });
+
+  it("refuses to slide along a wall, where stepping back would still be on it", () => {
+    expect(landingBesideWalls({ x: 100, y: 10 }, { x: 100, y: 90 }, wall)).toBeNull();
   });
 });

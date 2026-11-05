@@ -1,5 +1,14 @@
 import { randomUUID } from "node:crypto";
-import type { createTokenSchema, TableRole, TokenDto, updateTokenSchema } from "@openvtt/shared";
+import {
+  type createTokenSchema,
+  floorOf,
+  landingBesideWalls,
+  pathIsBlocked,
+  type SceneDto,
+  type TableRole,
+  type TokenDto,
+  type updateTokenSchema,
+} from "@openvtt/shared";
 import type { z } from "zod";
 import type { AssetService } from "./assets.ts";
 import { type Db, transaction } from "./db.ts";
@@ -29,6 +38,29 @@ interface TokenRow {
   show_name: number;
 }
 
+/**
+ * Where a token may land: always inside the map, and for anyone but the game master never through a wall or closed door.
+ * The one rule behind every way of moving a token; null means the move is refused.
+ */
+export function resolveTokenMove(
+  token: Pick<TokenDto, "x" | "y" | "size" | "floorId">,
+  scene: SceneDto,
+  target: { x: number; y: number },
+  role: TableRole,
+): { x: number; y: number } | null {
+  const extent = token.size * scene.gridSize;
+  const x = Math.min(Math.max(target.x, 0), Math.max(scene.width - extent, 0));
+  const y = Math.min(Math.max(target.y, 0), Math.max(scene.height - extent, 0));
+  if (role === "gm") return { x, y };
+  const half = extent / 2;
+  const blockers = floorOf(scene, token.floorId).walls.filter((w) => w.kind === "wall" || !w.open);
+  const from = { x: token.x + half, y: token.y + half };
+  const to = { x: x + half, y: y + half };
+  if (pathIsBlocked(from, to, blockers)) return null;
+  const landing = landingBesideWalls(from, to, blockers);
+  return landing && { x: x + landing.x - to.x, y: y + landing.y - to.y };
+}
+
 export class TokenService {
   constructor(
     private db: Db,
@@ -40,7 +72,7 @@ export class TokenService {
     return (rows as { user_id: string }[]).map((r) => r.user_id);
   }
 
-  private toDto(row: TokenRow): TokenDto {
+  private toDto(row: TokenRow, controllerIds = this.controllers(row.id)): TokenDto {
     return {
       id: row.id,
       sceneId: row.scene_id,
@@ -54,7 +86,7 @@ export class TokenService {
       assetId: row.asset_id,
       hidden: row.hidden === 1,
       actorId: row.actor_id,
-      controllerIds: this.controllers(row.id),
+      controllerIds,
       hp: row.hp,
       hpMax: row.hp_max,
       conditions: JSON.parse(row.conditions) as string[],
@@ -76,14 +108,34 @@ export class TokenService {
   }
 
   /** The GM sees every token; others see non-hidden tokens of the active scene on `floorId` only. */
-  visibleTo(worldId: string, viewer: Viewer, activeSceneId: string | null, floorId: string | null): TokenDto[] {
+  visibleTo(
+    worldId: string,
+    viewer: Viewer,
+    activeSceneId: string | null,
+    floorId: string | null,
+    tokens: readonly TokenDto[] = this.allInWorld(worldId),
+  ): TokenDto[] {
+    return tokens.filter((t) => this.canSee(t, viewer, activeSceneId, floorId)).map((t) => this.forViewer(t, viewer));
+  }
+
+  /** Every token of the world, unfiltered: for the server's own use, never to be sent as it is. */
+  allInWorld(worldId: string): TokenDto[] {
     const rows = this.db
       .prepare("SELECT t.* FROM tokens t JOIN scenes s ON s.id = t.scene_id WHERE s.world_id = ? ORDER BY t.rowid")
       .all(worldId) as unknown as TokenRow[];
-    return rows
-      .map((r) => this.toDto(r))
-      .filter((t) => this.canSee(t, viewer, activeSceneId, floorId))
-      .map((t) => this.forViewer(t, viewer));
+    const controllerRows = this.db
+      .prepare(
+        `SELECT c.token_id, c.user_id FROM token_controllers c JOIN tokens t ON t.id = c.token_id
+         JOIN scenes s ON s.id = t.scene_id WHERE s.world_id = ?`,
+      )
+      .all(worldId) as unknown as { token_id: string; user_id: string }[];
+    const controllersByToken = Map.groupBy(controllerRows, (c) => c.token_id);
+    return rows.map((r) =>
+      this.toDto(
+        r,
+        (controllersByToken.get(r.id) ?? []).map((c) => c.user_id),
+      ),
+    );
   }
 
   canSee(token: TokenDto, viewer: Viewer, activeSceneId: string | null, floorId: string | null): boolean {

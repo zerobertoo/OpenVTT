@@ -7,7 +7,7 @@ world.json
 assets/<uuid>.<png|jpg|webp>
 ```
 
-`world.json` has `format: "openvtt-world"` and `version: 1`, plus the world settings (name, system id, sheet template overrides, active scene), `assets`, `scenes`, `actors`, `tokens` and `messages`. Ids inside the file only link records to each other; importing assigns fresh ids.
+`world.json` has `format: "openvtt-world"` and `version: 1`, plus the world settings (name, system id, sheet template overrides, active scene, `environment`, `ambient`), `assets`, `scenes`, `actors`, `tokens` and `messages`. Ids inside the file only link records to each other; importing assigns fresh ids.
 
 A scene's `gridType` is `square`, `hexPointy`, `hexFlat` or `none`; on hex grids `gridSize` is the distance between the centers of two neighboring hexes.
 
@@ -17,6 +17,8 @@ A floor's `drawings` have a `kind` (`free`, `line`, `arrow`, `rect`, `circle`, `
 
 Each token may also carry `hp` and `hpMax` (both `null` for no health bar), `conditions` (a list of ids such as `prone` or `poisoned`) and `showName`. These are optional too.
 
+`environment` (optional) has `time`, `weather` and `season`; `ambient` (optional) has `assetId`, `playing` and `volume`. `messages` keeps up to the 10,000 most recent public messages.
+
 `handouts` (optional) lists journal entries: `title`, `body` (markdown; pictures written as `![alt](asset:<id>)`) and `shared`. Shared handouts come back readable by everyone; handouts shared with chosen players come back private to the game master, since accounts are not exported.
 
 What is **not** exported, on purpose:
@@ -25,3 +27,5 @@ What is **not** exported, on purpose:
 - whispers and GM-only rolls.
 
 Import checks the structure, that every reference resolves, that images really are PNG/JPEG/WebP, that sheet data fits the template and that the rules system is installed. Nothing is created if any check fails.
+
+Import accepts a `world.json` of up to 256 MiB. Export does not check this limit: a world above it downloads but cannot be imported back.

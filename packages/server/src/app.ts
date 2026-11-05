@@ -50,9 +50,9 @@ import { backupDatabase } from "./backup.ts";
 import { openDatabase, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 import { Hub } from "./hub.ts";
-import { registerPortabilityRoutes } from "./portability.ts";
+import { floorIdQuerySchema, registerPortabilityRoutes } from "./portability.ts";
 import { createServices } from "./services.ts";
-import type { Viewer } from "./tokens.ts";
+import { resolveTokenMove, type Viewer } from "./tokens.ts";
 
 export const SESSION_COOKIE = "openvtt_session";
 
@@ -60,6 +60,8 @@ export const SESSION_COOKIE = "openvtt_session";
 const MAX_SYSTEM_ZIP_BYTES = 8 * 1024 * 1024;
 // Timers longer than about 24 days overflow and fire at once.
 const MAX_BACKUP_INTERVAL_HOURS = 24 * 21;
+// Twenty floors of 20,000 walls at about 75 bytes each; the rest of the API keeps Fastify's 1 MiB default.
+const MAX_MAP_DATA_BODY_BYTES = 32 * 1024 * 1024;
 
 export interface AppOptions {
   dbPath: string;
@@ -95,7 +97,7 @@ export function buildApp(options: AppOptions) {
         try {
           backupDatabase(db, join(dataDir, "backups"), options.backupKeep ?? 7);
         } catch (error) {
-          app.log.error(error);
+          console.error("Scheduled database backup failed", error);
         }
       }, Math.min(options.backupIntervalHours, MAX_BACKUP_INTERVAL_HOURS) * 3_600_000)
     : undefined;
@@ -113,17 +115,21 @@ export function buildApp(options: AppOptions) {
   // Zip bodies (world and system packages) reach the routes as raw streams; routes that want the bytes collect them.
   app.addContentTypeParser("application/zip", (_req, payload, done) => done(null, payload));
 
-  app.setErrorHandler((error, _req, reply) => {
+  app.setErrorHandler((error, req, reply) => {
     if (error instanceof AppError) return reply.status(error.status).send({ error: error.code });
-    if (error instanceof ZodError || (error as { validation?: unknown }).validation)
+    if (
+      error instanceof ZodError ||
+      (error as { validation?: unknown }).validation ||
+      (error as { statusCode?: number }).statusCode === 400
+    )
       return reply.status(400).send({ error: "invalid_input" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 429)
       return reply.status(429).send({ error: "too_many_attempts" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 413)
-      return reply.status(413).send({ error: "asset_invalid" satisfies ErrorCode });
+      return reply.status(413).send({ error: "asset_too_large" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 415)
       return reply.status(415).send({ error: "asset_invalid" satisfies ErrorCode });
-    app.log.error(error);
+    console.error(`Unexpected error on ${req.method} ${req.routeOptions.url ?? "unknown route"}`, error);
     return reply.status(500).send({ error: "internal_error" satisfies ErrorCode });
   });
 
@@ -189,7 +195,10 @@ export function buildApp(options: AppOptions) {
 
   app.post("/api/auth/logout", async (req, reply) => {
     const token = req.cookies[SESSION_COOKIE];
-    if (token) s.auth.destroySession(token);
+    if (token) {
+      s.auth.destroySession(token);
+      hub.closeSession(token);
+    }
     reply.clearCookie(SESSION_COOKIE, { path: "/" });
     return { ok: true };
   });
@@ -206,7 +215,7 @@ export function buildApp(options: AppOptions) {
   app.post("/api/admin/reset-password", async (req) => {
     const actor = requireUser(req);
     const body = z.object({ username: usernameSchema, newPassword: passwordSchema }).parse(req.body);
-    await s.auth.resetPassword(actor, body.username, body.newPassword);
+    hub.closeUserConnections(await s.auth.resetPassword(actor, body.username, body.newPassword));
     return { ok: true };
   });
 
@@ -351,21 +360,64 @@ export function buildApp(options: AppOptions) {
 
   // ---- scenes -------------------------------------------------------------------------------
 
-  app.post<{ Params: { id: string } }>("/api/worlds/:id/scenes", async (req) => {
-    const { user } = requireGm(req, req.params.id);
-    const scene = s.scenes.create(req.params.id, createSceneSchema.parse(req.body));
-    s.worlds.audit(req.params.id, user.id, "scene.create", scene.name);
-    hub.broadcastState(req.params.id);
-    return scene;
+  /** Options for a route that takes a large map body: the role is checked before the body is read and parsed. */
+  const mapDataRoute = (worldIdOf: (id: string) => string | null | undefined) => ({
+    bodyLimit: MAX_MAP_DATA_BODY_BYTES,
+    // Anyone can be the game master of a world of their own, so the role check alone does not bound the parsing.
+    config: { rateLimit: { max: 300, timeWindow: "1 minute" } },
+    onRequest: async (req: FastifyRequest) => {
+      requireUser(req);
+      const worldId = worldIdOf((req.params as { id: string }).id);
+      if (!worldId) throw new AppError("not_found");
+      requireGm(req, worldId);
+    },
   });
+  const sceneMapData = mapDataRoute((id) => s.scenes.worldIdOf(id));
 
-  app.patch<{ Params: { id: string } }>("/api/scenes/:id", async (req) => {
-    const worldId = s.scenes.worldIdOf(req.params.id);
-    if (!worldId) throw new AppError("not_found");
-    requireGm(req, worldId);
-    const scene = s.scenes.update(req.params.id, updateSceneSchema.parse(req.body));
-    hub.broadcastState(worldId);
-    return scene;
+  // Registered in its own scope so they load after the rate-limit plugin, which only limits routes added once it is ready.
+  app.register(async (scope) => {
+    scope.post<{ Params: { id: string } }>(
+      "/api/worlds/:id/scenes",
+      mapDataRoute((id) => id),
+      async (req) => {
+        const { user } = requireGm(req, req.params.id);
+        const scene = s.scenes.create(req.params.id, createSceneSchema.parse(req.body));
+        s.worlds.audit(req.params.id, user.id, "scene.create", scene.name);
+        hub.broadcastState(req.params.id);
+        return scene;
+      },
+    );
+
+    scope.patch<{ Params: { id: string } }>("/api/scenes/:id", sceneMapData, async (req) => {
+      const worldId = s.scenes.worldIdOf(req.params.id);
+      if (!worldId) throw new AppError("not_found");
+      requireGm(req, worldId);
+      const scene = s.scenes.update(req.params.id, updateSceneSchema.parse(req.body));
+      hub.broadcastState(worldId);
+      return scene;
+    });
+
+    scope.post<{ Params: { id: string } }>("/api/scenes/:id/floors", sceneMapData, async (req) => {
+      const worldId = s.scenes.worldIdOf(req.params.id);
+      if (!worldId) throw new AppError("not_found");
+      requireGm(req, worldId);
+      const scene = s.scenes.addFloor(req.params.id, worldId, floorInputSchema.parse(req.body));
+      hub.broadcastState(worldId);
+      return scene;
+    });
+
+    scope.patch<{ Params: { id: string } }>(
+      "/api/floors/:id",
+      mapDataRoute((id) => s.scenes.floorOwner(id)?.worldId),
+      async (req) => {
+        const owner = s.scenes.floorOwner(req.params.id);
+        if (!owner) throw new AppError("not_found");
+        requireGm(req, owner.worldId);
+        const scene = s.scenes.updateFloor(req.params.id, owner.worldId, updateFloorSchema.parse(req.body));
+        hub.broadcastState(owner.worldId);
+        return scene;
+      },
+    );
   });
 
   app.post<{ Params: { id: string; wallId: string } }>("/api/scenes/:id/doors/:wallId", async (req) => {
@@ -378,30 +430,13 @@ export function buildApp(options: AppOptions) {
     return { ok: true };
   });
 
-  app.post<{ Params: { id: string } }>("/api/scenes/:id/floors", async (req) => {
-    const worldId = s.scenes.worldIdOf(req.params.id);
-    if (!worldId) throw new AppError("not_found");
-    requireGm(req, worldId);
-    const scene = s.scenes.addFloor(req.params.id, worldId, floorInputSchema.parse(req.body));
-    hub.broadcastState(worldId);
-    return scene;
-  });
-
-  app.patch<{ Params: { id: string } }>("/api/floors/:id", async (req) => {
-    const owner = s.scenes.floorOwner(req.params.id);
-    if (!owner) throw new AppError("not_found");
-    requireGm(req, owner.worldId);
-    const scene = s.scenes.updateFloor(req.params.id, owner.worldId, updateFloorSchema.parse(req.body));
-    hub.broadcastState(owner.worldId);
-    return scene;
-  });
-
   app.delete<{ Params: { id: string } }>("/api/floors/:id", async (req) => {
     const owner = s.scenes.floorOwner(req.params.id);
     if (!owner) throw new AppError("not_found");
     const { user } = requireGm(req, owner.worldId);
-    s.worlds.audit(owner.worldId, user.id, "floor.delete", s.scenes.get(owner.sceneId)?.floors.find((f) => f.id === req.params.id)?.name);
+    const floorName = s.scenes.get(owner.sceneId)?.floors.find((f) => f.id === req.params.id)?.name;
     const scene = s.scenes.removeFloor(req.params.id);
+    s.worlds.audit(owner.worldId, user.id, "floor.delete", floorName);
     hub.broadcastState(owner.worldId);
     return scene;
   });
@@ -410,8 +445,9 @@ export function buildApp(options: AppOptions) {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     const { user } = requireGm(req, worldId);
-    s.worlds.audit(worldId, user.id, "scene.delete", s.scenes.get(req.params.id)?.name);
+    const sceneName = s.scenes.get(req.params.id)?.name;
     s.scenes.remove(req.params.id, worldId);
+    s.worlds.audit(worldId, user.id, "scene.delete", sceneName);
     hub.broadcastState(worldId);
     return { ok: true };
   });
@@ -456,7 +492,7 @@ export function buildApp(options: AppOptions) {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     const { viewer, user } = requireParticipant(req, worldId);
-    const floorId = drawingFloorId(worldId, req.params.id, viewer, (req.query as { floorId?: string }).floorId);
+    const floorId = drawingFloorId(worldId, req.params.id, viewer, floorIdQuerySchema.parse(req.query).floorId);
     s.drawings.clear(req.params.id, floorId, viewer);
     if (viewer.role === "gm") s.worlds.audit(worldId, user.id, "drawings.clear", s.scenes.get(req.params.id)?.name);
     hub.publishDrawings(worldId, req.params.id, floorId);
@@ -469,8 +505,8 @@ export function buildApp(options: AppOptions) {
     const { user } = requireGm(req, req.params.id);
     const { assetId, playing } = setAmbientSchema.parse(req.body);
     if (!s.assets.belongsToWorld(assetId, req.params.id, "audio")) throw new AppError("asset_invalid");
-    s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     s.worlds.setAmbient(req.params.id, assetId, playing);
+    s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     hub.broadcastState(req.params.id);
     return { ok: true };
   });
@@ -546,8 +582,8 @@ export function buildApp(options: AppOptions) {
     const worldId = s.handouts.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     const { user } = requireGm(req, worldId);
-    s.worlds.audit(worldId, user.id, "handout.delete");
     s.handouts.remove(req.params.id);
+    s.worlds.audit(worldId, user.id, "handout.delete");
     hub.broadcastState(worldId);
     return { ok: true };
   });
@@ -565,7 +601,7 @@ export function buildApp(options: AppOptions) {
     const found = s.tokens.find(req.params.id);
     if (!found) throw new AppError("not_found");
     const { viewer } = requireParticipant(req, found.worldId);
-    const patch = updateTokenSchema.parse(req.body);
+    let patch = updateTokenSchema.parse(req.body);
     const activeSceneId = s.scenes.activeSceneId(found.worldId);
     const viewerFloorId = viewer.role === "gm" ? null : s.tokens.playerFloorId(found.token.sceneId, viewer.userId);
     if (!s.tokens.canSee(found.token, viewer, activeSceneId, viewerFloorId)) throw new AppError("not_found");
@@ -578,6 +614,14 @@ export function buildApp(options: AppOptions) {
       s.scenes.get(found.token.sceneId)?.lockedLayers.includes("tokens")
     )
       throw new AppError("forbidden");
+    if (patch.x !== undefined || patch.y !== undefined) {
+      const scene = s.scenes.get(found.token.sceneId);
+      if (!scene) throw new AppError("not_found");
+      const target = { x: patch.x ?? found.token.x, y: patch.y ?? found.token.y };
+      const destination = resolveTokenMove(found.token, scene, target, viewer.role);
+      if (!destination) throw new AppError("forbidden");
+      patch = { ...patch, ...destination };
+    }
     const after = s.tokens.update(found.token.id, found.worldId, patch);
     hub.publishToken(found.worldId, found.token, after);
     // A name or visibility change alters what the initiative list may show; other tokens must not cause traffic.
@@ -589,9 +633,9 @@ export function buildApp(options: AppOptions) {
     const found = s.tokens.find(req.params.id);
     if (!found) throw new AppError("not_found");
     const { user } = requireGm(req, found.worldId);
-    s.worlds.audit(found.worldId, user.id, "token.delete", found.token.name);
     const wasCombatant = s.combat.isCombatant(found.token.id);
     s.tokens.remove(found.token.id);
+    s.worlds.audit(found.worldId, user.id, "token.delete", found.token.name);
     hub.publishTokenRemoved(found.worldId, found.token);
     if (wasCombatant) hub.publishCombat(found.worldId);
     return { ok: true };
@@ -672,8 +716,8 @@ export function buildApp(options: AppOptions) {
     const actor = s.actors.find(req.params.id);
     if (!actor) throw new AppError("not_found");
     const { user } = requireGm(req, actor.worldId);
-    s.worlds.audit(actor.worldId, user.id, "actor.delete", actor.name);
     s.actors.remove(actor.id);
+    s.worlds.audit(actor.worldId, user.id, "actor.delete", actor.name);
     hub.broadcastState(actor.worldId);
     return { ok: true };
   });

@@ -6,6 +6,7 @@ import { actorTypeSchema, type SheetData, sheetTemplateSchema, validateSheetData
 import {
   buildUvtt,
   createDrawingSchema,
+  environmentSchema,
   floorOf,
   GRID_TYPES,
   lightInputSchema,
@@ -15,6 +16,7 @@ import {
   MAX_SCENE_LIGHTS,
   MAX_SCENE_WALLS,
   MAX_UPLOAD_BYTES,
+  setAmbientVolumeSchema,
   TOKEN_CONDITIONS,
   type UserDto,
   wallInputSchema,
@@ -23,6 +25,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { Unzip, UnzipInflate, UnzipPassThrough, Zip, ZipDeflate, ZipPassThrough } from "fflate";
 import { z } from "zod";
 import type { AssetRecord } from "./assets.ts";
+import { MAX_EXPORTED_MESSAGES } from "./chat.ts";
 import { transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 import type { Services } from "./services.ts";
@@ -31,9 +34,11 @@ const FORMAT = "openvtt-world";
 const FORMAT_VERSION = 1;
 /** Total decompressed size of an imported archive. */
 const MAX_IMPORT_BYTES = 1024 * 1024 * 1024;
-const MAX_WORLD_JSON_BYTES = 16 * 1024 * 1024;
+// ponytail: export has no matching check, so a world above this downloads but will not import; a full scene is about 46 MiB.
+const MAX_WORLD_JSON_BYTES = 256 * 1024 * 1024;
 
 const id = z.string().min(1).max(64);
+export const floorIdQuerySchema = z.object({ floorId: id.optional() });
 const worldFileSchema = z.object({
   format: z.literal(FORMAT),
   version: z.literal(FORMAT_VERSION),
@@ -42,6 +47,9 @@ const worldFileSchema = z.object({
     systemId: z.string().max(40),
     templateOverrides: z.partialRecord(actorTypeSchema, sheetTemplateSchema).default({}),
     activeSceneId: id.nullable(),
+    // Added later: older files omit them.
+    environment: environmentSchema.optional(),
+    ambient: z.object({ assetId: id, playing: z.boolean(), volume: setAmbientVolumeSchema.shape.volume }).nullable().default(null),
   }),
   assets: z.array(z.object({ id, file: z.string().regex(/^assets\/[A-Za-z0-9_.-]+$/) })).max(2000),
   scenes: z
@@ -122,7 +130,7 @@ const worldFileSchema = z.object({
         createdAt: z.number(),
       }),
     )
-    .max(10000),
+    .max(MAX_EXPORTED_MESSAGES),
 });
 
 interface Guards {
@@ -169,16 +177,13 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       .filter((t) => sceneIds.has(t.sceneId))
       .map(({ controllerIds: _controllers, ...t }) => t);
     const actors = s.actors.visibleTo(worldId, gmView).map(({ ownerId: _owner, ...a }) => a);
-    const messages = s.chat
-      .historyFor(worldId, gmView)
-      .filter((m) => (m.kind === "chat" || m.kind === "roll") && m.toUserId === null && !m.gmOnly)
-      .map((m) => ({
-        senderName: m.senderName,
-        kind: m.kind as "chat" | "roll",
-        content: m.content,
-        roll: m.roll,
-        createdAt: m.createdAt,
-      }));
+    const messages = s.chat.publicHistoryForExport(worldId).map((m) => ({
+      senderName: m.senderName,
+      kind: m.kind as "chat" | "roll",
+      content: m.content,
+      roll: m.roll,
+      createdAt: m.createdAt,
+    }));
 
     const worldFile = {
       format: FORMAT,
@@ -188,6 +193,8 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
         systemId: world.system_id,
         templateOverrides: JSON.parse(world.template_overrides),
         activeSceneId: world.active_scene_id,
+        environment: s.worlds.environment(worldId),
+        ambient: s.worlds.ambient(worldId),
       },
       assets,
       scenes,
@@ -220,7 +227,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     if (!worldId) throw new AppError("not_found");
     guards.requireGm(req, worldId);
     const scene = s.scenes.get(req.params.id)!;
-    const floor = floorOf(scene, (req.query as { floorId?: string }).floorId);
+    const floor = floorOf(scene, floorIdQuerySchema.parse(req.query).floorId);
     const asset = floor.assetId && floor.assetKind === "image" ? s.assets.find(floor.assetId) : null;
     const image = asset ? readFileSync(s.assets.path(asset)).toString("base64") : "";
     const slug =
@@ -266,6 +273,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     const sceneIds = new Set(file.scenes.map((sc) => sc.id));
     const actorIds = new Set(file.actors.map((a) => a.id));
     const refsOk =
+      (file.world.ambient === null || assetIds.has(file.world.ambient.assetId)) &&
       file.scenes.every(
         (sc) =>
           (sc.assetId === null || assetIds.has(sc.assetId)) &&
@@ -329,8 +337,8 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
           s.db.prepare("UPDATE actors SET data = ? WHERE id = ?").run(JSON.stringify(a.data as SheetData), created.id);
           idMap.set(a.id, created.id);
         }
-        for (const t of file.tokens)
-          s.tokens.create(worldId, {
+        for (const t of file.tokens) {
+          const created = s.tokens.create(worldId, {
             ...t,
             sceneId: idMap.get(t.sceneId)!,
             floorId: t.floorId ? idMap.get(t.floorId)! : undefined,
@@ -338,6 +346,15 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
             actorId: t.actorId ? idMap.get(t.actorId)! : null,
             controllerIds: [],
           });
+          if (t.rotation) s.tokens.update(created.id, worldId, { rotation: t.rotation });
+        }
+        if (file.world.environment) s.worlds.setEnvironment(worldId, file.world.environment);
+        if (file.world.ambient) {
+          const assetId = idMap.get(file.world.ambient.assetId)!;
+          if (!s.assets.belongsToWorld(assetId, worldId, "audio")) throw new AppError("import_invalid");
+          s.worlds.setAmbient(worldId, assetId, file.world.ambient.playing);
+          s.worlds.setAmbientVolume(worldId, file.world.ambient.volume);
+        }
         s.db
           .prepare("UPDATE worlds SET template_overrides = ?, active_scene_id = ? WHERE id = ?")
           .run(

@@ -13,8 +13,7 @@ export interface Segment {
 const cross = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
 
 /**
- * True when the two segments properly cross. Touching at an end point or running along each other does not count,
- * so a token can slide along a wall or stand in a corner without being blocked.
+ * True when the two segments properly cross. Touching at an end point or running along each other does not count.
  */
 export function segmentsCross(a: Segment, b: Segment): boolean {
   const d1 = cross(b.x1, b.y1, b.x2, b.y2, a.x1, a.y1);
@@ -24,8 +23,51 @@ export function segmentsCross(a: Segment, b: Segment): boolean {
   return d1 * d2 < 0 && d3 * d4 < 0;
 }
 
+/**
+ * True when the path goes through a point where walls meet and they continue on both of its sides: a gap-free wall
+ * that `segmentsCross` misses, because each piece is only touched at its end. Passing the tip of one wall or the
+ * outside of a corner stays allowed, since nothing lies on the far side.
+ */
+function passesThroughWallJoint(path: Segment, blockers: readonly Segment[]): boolean {
+  const lengthSquared = (path.x2 - path.x1) ** 2 + (path.y2 - path.y1) ** 2;
+  const sidesAtJoint = new Map<string, Set<number>>();
+  const visit = (endX: number, endY: number, otherX: number, otherY: number) => {
+    if (cross(path.x1, path.y1, path.x2, path.y2, endX, endY) !== 0) return false;
+    const along = (endX - path.x1) * (path.x2 - path.x1) + (endY - path.y1) * (path.y2 - path.y1);
+    if (along <= 0 || along >= lengthSquared) return false;
+    const side = Math.sign(cross(path.x1, path.y1, path.x2, path.y2, otherX, otherY));
+    if (side === 0) return false;
+    const key = `${endX},${endY}`;
+    const sides = sidesAtJoint.get(key) ?? new Set<number>();
+    sidesAtJoint.set(key, sides.add(side));
+    return sides.size === 2;
+  };
+  return blockers.some((wall) => visit(wall.x1, wall.y1, wall.x2, wall.y2) || visit(wall.x2, wall.y2, wall.x1, wall.y1));
+}
+
+const liesOnSegment = (point: Point, segment: Segment) =>
+  cross(segment.x1, segment.y1, segment.x2, segment.y2, point.x, point.y) === 0 &&
+  point.x >= Math.min(segment.x1, segment.x2) &&
+  point.x <= Math.max(segment.x1, segment.x2) &&
+  point.y >= Math.min(segment.y1, segment.y2) &&
+  point.y <= Math.max(segment.y1, segment.y2);
+
 /** Whether a straight move from `from` to `to` passes through any of the blocking segments. */
 export function pathIsBlocked(from: Point, to: Point, blockers: readonly Segment[]): boolean {
   const path = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
-  return blockers.some((wall) => segmentsCross(path, wall));
+  return blockers.some((wall) => segmentsCross(path, wall)) || passesThroughWallJoint(path, blockers);
+}
+
+const WALL_CLEARANCE_PX = 1;
+
+/**
+ * Where an allowed move ends: exactly at `to`, or a pixel short of it when `to` is on a wall. A path leaving a wall is
+ * free in both directions, so stopping on one would let the next move cross it. Null when the step back is still on a wall.
+ */
+export function landingBesideWalls(from: Point, to: Point, blockers: readonly Segment[]): Point | null {
+  const length = Math.hypot(from.x - to.x, from.y - to.y);
+  if (length === 0 || !blockers.some((wall) => liesOnSegment(to, wall))) return to;
+  const back = Math.min(WALL_CLEARANCE_PX, length) / length;
+  const landing = { x: to.x + (from.x - to.x) * back, y: to.y + (from.y - to.y) * back };
+  return blockers.some((wall) => liesOnSegment(landing, wall)) ? null : landing;
 }

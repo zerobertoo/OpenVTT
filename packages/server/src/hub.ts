@@ -1,9 +1,10 @@
 import type { IncomingMessage, Server } from "node:http";
 import {
   EFFECT_KINDS,
+  type ErrorCode,
   floorOf,
   type MessageDto,
-  pathIsBlocked,
+  type SceneDto,
   type ServerMessage,
   type TokenDto,
   tableRole,
@@ -17,13 +18,14 @@ import { canReadMessage } from "./chat.ts";
 import { AppError } from "./errors.ts";
 import { sceneForViewer, withoutHiddenFloorData } from "./scenes.ts";
 import type { Services } from "./services.ts";
-import type { Viewer } from "./tokens.ts";
+import { resolveTokenMove, type Viewer } from "./tokens.ts";
 import { flattenLights, flattenPolygons, visionRegion } from "./vision.ts";
 
 interface Connection {
   socket: WebSocket;
   viewer: Viewer;
   worldId: string;
+  sessionToken: string;
   /** Tokens this connection was last told about while its scene uses vision. */
   seenTokenIds: Set<string>;
   /** Player whose sight the game master is previewing; null shows everything. */
@@ -74,9 +76,71 @@ export function parseCookies(header: string | undefined): Record<string, string>
   const out: Record<string, string> = {};
   for (const part of (header ?? "").split(";")) {
     const i = part.indexOf("=");
-    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+    if (i > 0) out[part.slice(0, i).trim()] = decodeCookieValue(part.slice(i + 1).trim());
   }
   return out;
+}
+
+// A value that is not valid percent-encoding is kept as sent: it belongs to some other cookie and must not reject the request.
+function decodeCookieValue(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+type Sight = { vision: VisionDto; tokens: TokenDto[] };
+
+/**
+ * What the connections of a world share while one change is sent out, so each piece is loaded and worked out once.
+ * Lives only for one synchronous loop over the connections: nothing can change in the database while it is in use.
+ */
+class SendRound {
+  readonly activeSceneId: string | null;
+  private readonly sights = new Map<string, Sight | null>();
+  private scenes?: SceneDto[];
+  private activeScene?: SceneDto | null;
+  private tokens?: TokenDto[];
+
+  constructor(
+    private s: Services,
+    readonly worldId: string,
+  ) {
+    this.activeSceneId = s.scenes.activeSceneId(worldId);
+  }
+
+  allScenes(): SceneDto[] {
+    this.scenes ??= this.s.scenes.list(this.worldId);
+    return this.scenes;
+  }
+
+  sceneOnTable(): SceneDto | null {
+    if (this.activeScene === undefined) this.activeScene = this.activeSceneId ? this.s.scenes.get(this.activeSceneId) : null;
+    return this.activeScene;
+  }
+
+  allTokens(): TokenDto[] {
+    this.tokens ??= this.s.tokens.allInWorld(this.worldId);
+    return this.tokens;
+  }
+
+  /** Sight depends only on whose eyes are used, so several tabs or a game master's preview of a player share it. */
+  sightOf(subjectId: string, compute: () => Sight | null): Sight | null {
+    const known = this.sights.get(subjectId);
+    if (known !== undefined) return known;
+    const sight = compute();
+    this.sights.set(subjectId, sight);
+    return sight;
+  }
+}
+
+/** The code a client gets for a failed message. Bad input is the client's fault; anything else is a server bug and gets logged. */
+export function errorCodeForClient(error: unknown): ErrorCode {
+  if (error instanceof AppError) return error.code;
+  if (error instanceof z.ZodError || error instanceof SyntaxError) return "invalid_input";
+  console.error("Unexpected error handling a WebSocket message", error);
+  return "internal_error";
 }
 
 /**
@@ -91,6 +155,14 @@ export class Hub {
     private cookieName: string,
   ) {}
 
+  closeSession(sessionToken: string) {
+    for (const c of this.connections) if (c.sessionToken === sessionToken) c.socket.terminate();
+  }
+
+  closeUserConnections(userId: string) {
+    for (const c of this.connections) if (c.viewer.userId === userId) c.socket.terminate();
+  }
+
   /** Detaches all sockets without broadcasting; used on shutdown before the DB closes. */
   closeAll() {
     for (const c of this.connections) c.socket.removeAllListeners("close");
@@ -101,30 +173,37 @@ export class Hub {
   attach(server: Server): WebSocketServer {
     const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
     server.on("upgrade", (req, socket, head) => {
-      const url = new URL(req.url ?? "/", "http://localhost");
-      if (url.pathname !== WS_PATH) return socket.destroy();
-      const identity = this.authorize(req, url);
-      if (!identity) {
-        socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-        return socket.destroy();
+      // Nothing else catches a throw here: it would end the process, and this runs before any authentication.
+      try {
+        const url = new URL(req.url ?? "/", "http://localhost");
+        if (url.pathname !== WS_PATH) return socket.destroy();
+        const identity = this.authorize(req, url);
+        if (!identity) {
+          socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+          return socket.destroy();
+        }
+        wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, identity.viewer, identity.worldId, identity.sessionToken));
+      } catch {
+        socket.destroy();
       }
-      wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, identity.viewer, identity.worldId));
     });
     return wss;
   }
 
   private authorize(req: IncomingMessage, url: URL) {
-    const user = this.s.auth.userFromSession(parseCookies(req.headers.cookie)[this.cookieName]);
+    const sessionToken = parseCookies(req.headers.cookie)[this.cookieName];
+    const user = this.s.auth.userFromSession(sessionToken);
     const worldId = url.searchParams.get("world");
     const role = user && worldId ? this.s.worlds.roleOf(worldId, user.id) : null;
-    return user && worldId && role ? { viewer: { userId: user.id, role }, worldId } : null;
+    return user && sessionToken && worldId && role ? { viewer: { userId: user.id, role }, worldId, sessionToken } : null;
   }
 
-  private open(socket: WebSocket, viewer: Viewer, worldId: string) {
+  private open(socket: WebSocket, viewer: Viewer, worldId: string, sessionToken: string) {
     const conn: Connection = {
       socket,
       viewer,
       worldId,
+      sessionToken,
       seenTokenIds: new Set(),
       viewAs: null,
       lastPingAt: 0,
@@ -132,19 +211,32 @@ export class Hub {
       observer: true,
       floorId: null,
     };
-    this.connections.add(conn);
-    this.broadcastState(worldId);
+    // Oversized or invalid frames surface here; without a listener the error would end the process.
+    socket.on("error", () => socket.terminate());
     socket.on("message", (raw) => {
       try {
+        if (!this.s.auth.userFromSession(sessionToken)) return socket.terminate();
         this.handle(conn, clientMessageSchema.parse(JSON.parse(raw.toString())));
       } catch (error) {
-        this.send(conn, { type: "error", code: error instanceof AppError ? error.code : "invalid_input" });
+        this.send(conn, { type: "error", code: errorCodeForClient(error) });
       }
     });
     socket.on("close", () => {
       this.connections.delete(conn);
-      this.broadcastState(worldId);
+      // Nothing above an event listener catches a throw: it would end the process.
+      try {
+        this.broadcastState(worldId);
+      } catch (error) {
+        console.error("Unexpected error closing a table connection", error);
+      }
     });
+    this.connections.add(conn);
+    try {
+      this.broadcastState(worldId);
+    } catch (error) {
+      console.error("Unexpected error opening a table connection", error);
+      socket.terminate();
+    }
   }
 
   private handle(conn: Connection, msg: z.infer<typeof clientMessageSchema>) {
@@ -160,21 +252,17 @@ export class Hub {
     const { token } = found;
     if (!this.s.tokens.canSee(token, conn.viewer, activeSceneId, this.floorIdOf(conn.viewer, activeSceneId)))
       throw new AppError("not_found");
-    if (!this.s.tokens.canControl(token, conn.viewer)) throw new AppError("forbidden");
-    if (conn.observer) throw new AppError("forbidden");
+    if (!this.s.tokens.canControl(token, conn.viewer) || conn.observer) {
+      // The sender may be showing the token where they dropped it, and an error alone would leave it there.
+      this.publishToken(conn.worldId, token, token);
+      throw new AppError("forbidden");
+    }
     const scene = this.s.scenes.get(token.sceneId)!;
     if (scene.lockedLayers.includes("tokens")) return this.publishToken(conn.worldId, token, token);
-    const x = Math.min(Math.max(msg.x, 0), scene.width);
-    const y = Math.min(Math.max(msg.y, 0), scene.height);
-    // Players cannot walk through walls or closed doors; the move is dropped and everyone is told the token stayed.
-    if (conn.viewer.role !== "gm") {
-      const half = (token.size * scene.gridSize) / 2;
-      const blockers = floorOf(scene, token.floorId).walls.filter((w) => w.kind === "wall" || !w.open);
-      if (pathIsBlocked({ x: token.x + half, y: token.y + half }, { x: x + half, y: y + half }, blockers)) {
-        return this.publishToken(conn.worldId, token, token);
-      }
-    }
-    const after = this.s.tokens.update(token.id, conn.worldId, { x, y });
+    const destination = resolveTokenMove(token, scene, msg, conn.viewer.role);
+    // A refused move is dropped and everyone is told the token stayed.
+    if (!destination) return this.publishToken(conn.worldId, token, token);
+    const after = this.s.tokens.update(token.id, conn.worldId, destination);
     this.publishToken(conn.worldId, token, after);
   }
 
@@ -293,29 +381,30 @@ export class Hub {
    * master, or a scene without vision). `tokens` are the ones this viewer may be told about. A game master who is
    * previewing a player (`viewAs`) gets exactly what that player would get. Only the player's own floor counts.
    */
-  private sightOf(worldId: string, viewer: Viewer, viewAs: string | null = null): { vision: VisionDto; tokens: TokenDto[] } | null {
+  private sightOf(round: SendRound, viewer: Viewer, viewAs: string | null): Sight | null {
     const subject = this.subjectOf(viewer, viewAs);
     if (!subject) return null;
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
-    const scene = activeSceneId ? this.s.scenes.get(activeSceneId) : null;
+    const scene = round.sceneOnTable();
     if (!scene?.visionEnabled) return null;
-    const floorId = this.floorIdOf(subject, scene.id)!;
-    const floor = floorOf(scene, floorId);
-    const everything = this.s.tokens.visibleTo(worldId, { userId: "", role: "gm" }, scene.id, null);
-    const own = everything.filter((t) => t.floorId === floor.id && t.controllerIds.includes(subject.userId));
-    const region = visionRegion(scene, floor, own);
-    const tokens = this.s.tokens.visibleTo(worldId, subject, scene.id, floor.id).filter((t) => {
-      const half = (t.size * scene.gridSize) / 2;
-      return t.controllerIds.includes(subject.userId) || region.contains({ x: t.x + half, y: t.y + half });
+    return round.sightOf(subject.userId, () => {
+      const floorId = this.floorIdOf(subject, scene.id)!;
+      const floor = floorOf(scene, floorId);
+      const all = round.allTokens();
+      const own = all.filter((t) => t.floorId === floor.id && t.controllerIds.includes(subject.userId));
+      const region = visionRegion(scene, floor, own);
+      const tokens = this.s.tokens.visibleTo(round.worldId, subject, scene.id, floor.id, all).filter((t) => {
+        const half = (t.size * scene.gridSize) / 2;
+        return t.controllerIds.includes(subject.userId) || region.contains({ x: t.x + half, y: t.y + half });
+      });
+      return {
+        vision: { sceneId: scene.id, polygons: flattenPolygons(region.polygons), lights: flattenLights(region, scene.gridSize) },
+        tokens,
+      };
     });
-    return {
-      vision: { sceneId: scene.id, polygons: flattenPolygons(region.polygons), lights: flattenLights(region, scene.gridSize) },
-      tokens,
-    };
   }
 
   /** Brings one player's view in line with what their tokens see now: newly seen tokens appear, others vanish. */
-  private refreshSight(conn: Connection, sight: { vision: VisionDto; tokens: TokenDto[] }, changedTokenId: string | null) {
+  private refreshSight(conn: Connection, sight: Sight, changedTokenId: string | null) {
     const next = new Set(sight.tokens.map((t) => t.id));
     for (const token of sight.tokens)
       if (!conn.seenTokenIds.has(token.id) || token.id === changedTokenId)
@@ -332,12 +421,12 @@ export class Hub {
   }
 
   /** Builds the complete state a viewer is allowed to see. */
-  buildState(worldId: string, viewer: Viewer, online: ReadonlySet<string>, viewAs: string | null = null): WorldStateDto {
+  private buildState(round: SendRound, viewer: Viewer, online: ReadonlySet<string>, viewAs: string | null): WorldStateDto {
+    const { worldId, activeSceneId } = round;
     const world = this.s.worlds.info(worldId);
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
-    const allScenes = this.s.scenes.list(worldId);
-    const sight = this.sightOf(worldId, viewer, viewAs);
+    const sight = this.sightOf(round, viewer, viewAs);
     const viewFloorId = this.viewFloorIdOf({ viewer, viewAs }, activeSceneId);
+    const sceneOnTable = round.sceneOnTable();
     return {
       id: world.id,
       name: world.name,
@@ -347,21 +436,25 @@ export class Hub {
       members: this.s.worlds.members(worldId, online),
       scenes:
         viewer.role === "gm"
-          ? allScenes
-          : allScenes.filter((sc) => sc.id === activeSceneId).map((sc) => sceneForViewer(sc, false, viewFloorId ?? sc.tableFloorId)),
+          ? round.allScenes()
+          : sceneOnTable
+            ? [sceneForViewer(sceneOnTable, false, viewFloorId ?? sceneOnTable.tableFloorId)]
+            : [],
       viewFloorId,
-      tokens: sight ? sight.tokens : this.s.tokens.visibleTo(worldId, viewer, activeSceneId, viewFloorId),
+      tokens: sight ? sight.tokens : this.s.tokens.visibleTo(worldId, viewer, activeSceneId, viewFloorId, round.allTokens()),
       actors: this.s.actors.visibleTo(worldId, viewer),
       messages: this.s.chat.historyFor(worldId, viewer),
       vision: sight?.vision ?? null,
-      combat: this.s.combat.stateFor(worldId, viewer),
+      combat: this.s.combat.stateFor(worldId, viewer, activeSceneId, this.floorIdOf(viewer, activeSceneId)),
       handouts: this.s.handouts.visibleTo(worldId, viewer),
       ambient: this.s.worlds.ambient(worldId),
       environment: this.s.worlds.environment(worldId),
     };
   }
 
-  private sendState(conn: Connection) {
+  private sendState(conn: Connection, round = new SendRound(this.s, conn.worldId)) {
+    // A session can expire with its socket still open, and nothing else would notice.
+    if (!this.s.auth.userFromSession(conn.sessionToken)) return conn.socket.terminate();
     // Role is re-read so a role change can never keep stale privileges on an open socket.
     const memberRole = this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId);
     if (!memberRole) return conn.socket.close();
@@ -369,7 +462,7 @@ export class Hub {
     conn.viewer.role = role;
     conn.observer = memberRole === "observer";
     if (role !== "gm") conn.viewAs = null;
-    const state = this.buildState(conn.worldId, conn.viewer, this.onlineIn(conn.worldId), conn.viewAs);
+    const state = this.buildState(round, conn.viewer, this.onlineIn(conn.worldId), conn.viewAs);
     conn.seenTokenIds = new Set(state.tokens.map((t) => t.id));
     conn.floorId = state.viewFloorId;
     this.send(conn, { type: "world.state", state });
@@ -391,21 +484,23 @@ export class Hub {
   }
 
   broadcastState(worldId: string) {
-    for (const c of this.connections) if (c.worldId === worldId) this.sendState(c);
+    const round = new SendRound(this.s, worldId);
+    for (const c of this.connections) if (c.worldId === worldId) this.sendState(c, round);
   }
 
   /** `before` is the token prior to the change (null when created); it decides who must be told to drop it. */
   publishToken(worldId: string, before: TokenDto | null, after: TokenDto) {
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    const round = new SendRound(this.s, worldId);
+    const { activeSceneId } = round;
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
       // A token created, moved to another floor or taken away can change the floor a player is on: send everything again.
       const floorId = this.viewFloorIdOf(c, activeSceneId);
       if (floorId !== c.floorId) {
-        this.sendState(c);
+        this.sendState(c, round);
         continue;
       }
-      const sight = this.sightOf(worldId, c.viewer, c.viewAs);
+      const sight = this.sightOf(round, c.viewer, c.viewAs);
       if (sight) {
         this.refreshSight(c, sight, after.id);
         continue;
@@ -418,15 +513,16 @@ export class Hub {
   }
 
   publishTokenRemoved(worldId: string, token: TokenDto) {
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    const round = new SendRound(this.s, worldId);
+    const { activeSceneId } = round;
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
       const floorId = this.viewFloorIdOf(c, activeSceneId);
       if (floorId !== c.floorId) {
-        this.sendState(c);
+        this.sendState(c, round);
         continue;
       }
-      const sight = this.sightOf(worldId, c.viewer, c.viewAs);
+      const sight = this.sightOf(round, c.viewer, c.viewAs);
       if (sight) this.refreshSight(c, sight, null);
       else if (this.s.tokens.canSee(token, c.viewer, activeSceneId, floorId)) this.send(c, { type: "token.remove", tokenId: token.id });
     }
@@ -434,8 +530,13 @@ export class Hub {
 
   /** Sends each person the initiative order they may see. */
   publishCombat(worldId: string) {
+    const activeSceneId = this.s.scenes.activeSceneId(worldId);
     for (const c of this.connections)
-      if (c.worldId === worldId) this.send(c, { type: "combat.update", combat: this.s.combat.stateFor(worldId, c.viewer) });
+      if (c.worldId === worldId)
+        this.send(c, {
+          type: "combat.update",
+          combat: this.s.combat.stateFor(worldId, c.viewer, activeSceneId, this.floorIdOf(c.viewer, activeSceneId)),
+        });
   }
 
   publishMessage(worldId: string, message: MessageDto) {
