@@ -22,12 +22,22 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
-import { snapTokenCorner } from "./lib/gridGeometry";
 import { hexCentersIn, hexCorners, hexOrientationOf } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
 import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
-import { assetIdsInUse, extendSketch, isDeliberateStroke, rulerReadout, tokensInBox, zoomAtCursor } from "./lib/mapInteraction";
+import { fitView, MAX_ZOOM, minZoomFor, type View, viewCenteredOn, ZOOM_STEP, zoomAround } from "./lib/mapCamera";
+import {
+  assetIdsInUse,
+  draggedCenter,
+  dropToken,
+  extendSketch,
+  isDeliberateStroke,
+  rulerReadout,
+  tokenCenter,
+  tokensInBox,
+  zoomAtCursor,
+} from "./lib/mapInteraction";
 import { drawingView, drawStatus, hexToNumber, renderShape } from "./lib/mapShapes";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
@@ -89,21 +99,18 @@ interface Props {
   onMoveLight: (index: number, x: number, y: number) => void;
 }
 
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 8;
-/** How much one press of the zoom keys scales the view. */
-const ZOOM_STEP = 1.25;
+/** The zoom and position of the map container. */
+const viewOf = (world: Container): View => ({ scale: world.scale.x, x: world.x, y: world.y });
 
-/** The smallest zoom allowed: a huge map must still fit a small screen, so the floor drops to the fit scale when needed. */
-function minZoomFor(screen: { width: number; height: number }, scene: { width: number; height: number } | null | undefined) {
-  return scene ? Math.min(MIN_ZOOM, screen.width / scene.width, screen.height / scene.height) : MIN_ZOOM;
+/** Puts the map container at the given zoom and position. */
+function setView(world: Container, view: View) {
+  world.scale.set(view.scale);
+  world.position.set(view.x, view.y);
 }
 
 /** Shows the whole map centered in the view, never enlarged past its real size. */
 function fitToScreen(world: Container, screen: { width: number; height: number }, scene: { width: number; height: number }) {
-  const scale = Math.min(screen.width / scene.width, screen.height / scene.height, 1);
-  world.scale.set(scale);
-  world.position.set((screen.width - scene.width * scale) / 2, (screen.height - scene.height * scale) / 2);
+  setView(world, fitView(screen, scene));
 }
 const DRAG_SEND_INTERVAL_MS = 80;
 // Objects outside the view are skipped when drawing (only those marked `cullable`).
@@ -486,15 +493,8 @@ export function MapView(props: Props) {
           e.stopPropagation();
           const next = currentTwoFingers();
           if (!next || !twoFingers) return;
-          const view = applyTwoFingerGesture(
-            { scale: world.scale.x, x: world.x, y: world.y },
-            twoFingers,
-            next,
-            minZoomFor(app.screen, latest.current.scene),
-            MAX_ZOOM,
-          );
-          world.scale.set(view.scale);
-          world.position.set(view.x, view.y);
+          const view = applyTwoFingerGesture(viewOf(world), twoFingers, next, minZoomFor(app.screen, latest.current.scene), MAX_ZOOM);
+          setView(world, view);
           twoFingers = next;
         },
         true,
@@ -517,15 +517,8 @@ export function MapView(props: Props) {
           e.preventDefault();
           const rect = element.getBoundingClientRect();
           const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-          const view = zoomAtCursor(
-            { scale: world.scale.x, x: world.x, y: world.y },
-            cursor,
-            e.deltaY,
-            minZoomFor(app.screen, latest.current.scene),
-            MAX_ZOOM,
-          );
-          world.scale.set(view.scale);
-          world.position.set(view.x, view.y);
+          const view = zoomAtCursor(viewOf(world), cursor, e.deltaY, minZoomFor(app.screen, latest.current.scene), MAX_ZOOM);
+          setView(world, view);
         },
         { passive: false },
       );
@@ -563,7 +556,7 @@ export function MapView(props: Props) {
         context.arc((token.x + span / 2) * factor, (token.y + span / 2) * factor, Math.max(2.5, (span / 2) * factor), 0, Math.PI * 2);
         context.fill();
       }
-      const view = visibleArea({ x: e.world.x, y: e.world.y, scale: e.world.scale.x }, e.app.screen);
+      const view = visibleArea(viewOf(e.world), e.app.screen);
       context.strokeStyle = "#ffffff";
       context.lineWidth = 2;
       context.strokeRect(view.x * factor, view.y * factor, view.width * factor, view.height * factor);
@@ -913,23 +906,18 @@ export function MapView(props: Props) {
         const scene = props_().scene;
         if (pinching) {
           // Nothing else redraws an unchanged token, so an abandoned drag has to put it back itself.
-          for (const member of drag.members) {
-            const half = (member.token.size * (scene?.gridSize ?? 0)) / 2;
-            member.view.position.set(member.token.x + half, member.token.y + half);
-          }
+          for (const member of drag.members) member.view.position.copyFrom(tokenCenter(member.token, scene?.gridSize ?? 0));
           drag = null;
           return;
         }
         if (!scene) return;
         const local = engine.current!.world.toLocal(e.global);
-        const dx = local.x - drag.startX;
-        const dy = local.y - drag.startY;
+        const delta = { x: local.x - drag.startX, y: local.y - drag.startY };
         const send = performance.now() - drag.lastSent > DRAG_SEND_INTERVAL_MS;
         if (send) drag.lastSent = performance.now();
         for (const member of drag.members) {
-          const half = (member.token.size * scene.gridSize) / 2;
-          member.view.position.set(member.token.x + dx + half, member.token.y + dy + half);
-          if (send) props_().onMove(member.token.id, member.token.x + dx, member.token.y + dy);
+          member.view.position.copyFrom(draggedCenter(member.token, delta, scene.gridSize));
+          if (send) props_().onMove(member.token.id, member.token.x + delta.x, member.token.y + delta.y);
         }
       });
       const drop = () => {
@@ -942,12 +930,10 @@ export function MapView(props: Props) {
         drag = null;
         const moves: Move[] = [];
         for (const member of members) {
-          const half = (member.token.size * scene.gridSize) / 2;
-          const { x, y } = snapTokenCorner(scene, member.token.size, { x: member.view.x - half, y: member.view.y - half });
-          member.view.position.set(x + half, y + half);
-          props_().onMove(member.token.id, x, y);
-          if (x !== member.token.x || y !== member.token.y)
-            moves.push({ tokenId: member.token.id, from: { x: member.token.x, y: member.token.y }, to: { x, y } });
+          const { corner, move } = dropToken(scene, member.token, member.view.position);
+          member.view.position.copyFrom(tokenCenter({ ...member.token, ...corner }, scene.gridSize));
+          props_().onMove(member.token.id, corner.x, corner.y);
+          if (move) moves.push(move);
           popScale(app.ticker, member.view, 1.15, 240);
         }
         props_().onMoved(moves);
@@ -1034,21 +1020,11 @@ export function MapView(props: Props) {
       const mine = tokens.filter((tk) => tk.sceneId === scene?.id && canControl(tk));
       const target = mine.find((tk) => selectedTokenIds.includes(tk.id)) ?? mine[0];
       if (!scene || !target) return;
-      const half = (target.size * scene.gridSize) / 2;
-      const scale = e.world.scale.x;
-      e.world.position.set(center.x - (target.x + half) * scale, center.y - (target.y + half) * scale);
+      e.world.position.copyFrom(viewCenteredOn(e.app.screen, tokenCenter(target, scene.gridSize), e.world.scale.x));
       return;
     }
-    const before = e.world.toLocal(center);
-    const next = Math.min(
-      MAX_ZOOM,
-      Math.max(
-        minZoomFor(e.app.screen, latest.current.scene),
-        e.world.scale.x * (viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP),
-      ),
-    );
-    e.world.scale.set(next);
-    e.world.position.set(center.x - before.x * next, center.y - before.y * next);
+    const factor = viewCommand.kind === "zoomIn" ? ZOOM_STEP : 1 / ZOOM_STEP;
+    setView(e.world, zoomAround(viewOf(e.world), center, factor, minZoomFor(e.app.screen, latest.current.scene), MAX_ZOOM));
   }, [viewCommand, latest]);
 
   // A ping from anyone shows as a ring that grows and fades; a "look here" also brings the view to it.
@@ -1059,8 +1035,7 @@ export function MapView(props: Props) {
     if (!e || !ping || ping.sceneId !== latest.current.scene?.id || ping.floorId !== latest.current.floor?.id) return;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (ping.focus) {
-      const scale = e.world.scale.x;
-      e.world.position.set(e.app.screen.width / 2 - ping.x * scale, e.app.screen.height / 2 - ping.y * scale);
+      e.world.position.copyFrom(viewCenteredOn(e.app.screen, ping, e.world.scale.x));
     }
     const grid = latest.current.scene.gridSize;
     const ring = new Graphics();
@@ -1150,8 +1125,7 @@ export function MapView(props: Props) {
     if (!e || !scene || event.buttons === 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const point = sceneAt({ x: event.clientX - rect.left, y: event.clientY - rect.top }, minimapSize(scene), scene);
-    const scale = e.world.scale.x;
-    e.world.position.set(e.app.screen.width / 2 - point.x * scale, e.app.screen.height / 2 - point.y * scale);
+    e.world.position.copyFrom(viewCenteredOn(e.app.screen, point, e.world.scale.x));
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 

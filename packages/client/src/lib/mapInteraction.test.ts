@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { assetIdsInUse, extendSketch, isDeliberateStroke, rulerReadout, tokensInBox, zoomAtCursor } from "./mapInteraction";
+import {
+  assetIdsInUse,
+  draggedCenter,
+  dropToken,
+  extendSketch,
+  isDeliberateStroke,
+  rulerReadout,
+  tokenCenter,
+  tokensInBox,
+  zoomAtCursor,
+} from "./mapInteraction";
 
 const scene = { id: "s1", gridType: "square", gridSize: 70 };
 const token = (id: string, x: number, y: number, size = 1, sceneId = "s1") => ({ id, sceneId, x, y, size });
@@ -110,5 +120,34 @@ describe("assetIdsInUse", () => {
 
   it("copes with no floors", () => {
     expect(assetIdsInUse(null, null, [{ assetId: null }]).size).toBe(0);
+  });
+});
+
+describe("token dragging", () => {
+  const goblin = { id: "g", x: 140, y: 70, size: 2 };
+
+  it("centres a token's picture half its size from its corner", () => {
+    expect(tokenCenter(goblin, 70)).toEqual({ x: 210, y: 140 });
+  });
+
+  it("moves the picture with the pointer from the token's own centre", () => {
+    expect(draggedCenter(goblin, { x: 30, y: -20 }, 70)).toEqual({ x: 240, y: 120 });
+  });
+
+  it("snaps the corner to the grid on drop and records the move", () => {
+    // Centre (250, 190) puts the corner at (180, 120), which snaps to (210, 140).
+    expect(dropToken(scene, goblin, { x: 250, y: 190 })).toEqual({
+      corner: { x: 210, y: 140 },
+      move: { tokenId: "g", from: { x: 140, y: 70 }, to: { x: 210, y: 140 } },
+    });
+  });
+
+  it("records no move when the token lands where it was", () => {
+    expect(dropToken(scene, goblin, { x: 215, y: 143 })).toEqual({ corner: { x: 140, y: 70 }, move: null });
+  });
+
+  it("keeps the exact drop position on a map without a grid", () => {
+    const free = { id: "f", gridType: "none", gridSize: 70 };
+    expect(dropToken(free, { id: "t", x: 0, y: 0, size: 1 }, { x: 100.5, y: 60.25 }).corner).toEqual({ x: 65.5, y: 25.25 });
   });
 });

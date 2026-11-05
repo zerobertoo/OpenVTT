@@ -1,6 +1,8 @@
 import type { FloorDto, TokenDto } from "@openvtt/shared";
-import { type GridSpec, rulerDistanceInCells } from "./gridGeometry";
+import { type GridSpec, rulerDistanceInCells, snapTokenCorner } from "./gridGeometry";
+import { type View, zoomAround } from "./mapCamera";
 import type { DiagonalRule, Point, RulerShape } from "./ruler";
+import type { Move } from "./tableActions";
 
 /** Most points a free-hand stroke may hold (two numbers each); past it the server would refuse the drawing. */
 const MAX_SKETCH_NUMBERS = 3998;
@@ -69,16 +71,8 @@ export function isDeliberateStroke(points: number[], zoom: number): boolean {
 }
 
 /** The view after a wheel turn: zoomed around the cursor so the map point under it stays put, within `[min, max]`. */
-export function zoomAtCursor(
-  view: { scale: number; x: number; y: number },
-  cursor: Point,
-  wheelDeltaY: number,
-  min: number,
-  max: number,
-): { scale: number; x: number; y: number } {
-  const anchor = { x: (cursor.x - view.x) / view.scale, y: (cursor.y - view.y) / view.scale };
-  const scale = Math.min(max, Math.max(min, view.scale * Math.exp(-wheelDeltaY * WHEEL_ZOOM_SPEED)));
-  return { scale, x: cursor.x - anchor.x * scale, y: cursor.y - anchor.y * scale };
+export function zoomAtCursor(view: View, cursor: Point, wheelDeltaY: number, min: number, max: number): View {
+  return zoomAround(view, cursor, Math.exp(-wheelDeltaY * WHEEL_ZOOM_SPEED), min, max);
 }
 
 /** Backgrounds and token images on screen; their textures are never released from memory. */
@@ -88,4 +82,31 @@ export function assetIdsInUse(
   tokens: Pick<TokenDto, "assetId">[],
 ): Set<string> {
   return new Set([floor?.assetId, ghostFloor?.assetId, ...tokens.map((token) => token.assetId)].filter((id): id is string => Boolean(id)));
+}
+
+/** Where the centre of a token's picture sits on the map: its top-left corner plus half its size. */
+export function tokenCenter(token: Pick<TokenDto, "x" | "y" | "size">, gridSize: number): Point {
+  const half = (token.size * gridSize) / 2;
+  return { x: token.x + half, y: token.y + half };
+}
+
+/** Where a dragged token's picture is drawn while the pointer has moved by `delta` from where the drag began. */
+export function draggedCenter(token: Pick<TokenDto, "x" | "y" | "size">, delta: Point, gridSize: number): Point {
+  const center = tokenCenter(token, gridSize);
+  return { x: center.x + delta.x, y: center.y + delta.y };
+}
+
+/**
+ * Where a token lands when dropped with its picture centred on `center`: the corner snapped to the grid, and the
+ * move to record for undo, or null when it ended where it started.
+ */
+export function dropToken(
+  grid: GridSpec,
+  token: Pick<TokenDto, "id" | "x" | "y" | "size">,
+  center: Point,
+): { corner: Point; move: Move | null } {
+  const half = (token.size * grid.gridSize) / 2;
+  const corner = snapTokenCorner(grid, token.size, { x: center.x - half, y: center.y - half });
+  const moved = corner.x !== token.x || corner.y !== token.y;
+  return { corner, move: moved ? { tokenId: token.id, from: { x: token.x, y: token.y }, to: corner } : null };
 }
