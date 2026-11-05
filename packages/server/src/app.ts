@@ -88,10 +88,11 @@ export interface AppOptions {
   /** How often table sockets are pinged; one that stays silent for two rounds is dropped (default 30 000). */
   webSocketHeartbeatMs?: number;
   /**
-   * Believe the `X-Forwarded-For` header, so rate limits and login lockouts see each visitor's real address.
-   * Only turn it on when a reverse proxy is the sole way in; otherwise anyone can fake their address.
+   * How many reverse proxies sit in front of the server. The client address is then read from the right of
+   * `X-Forwarded-For`, counting that many hops, so a client cannot choose its own by sending the header itself.
+   * Leave it unset when the port is reachable without a proxy.
    */
-  trustProxy?: boolean;
+  trustProxy?: number;
 }
 
 /**
@@ -132,7 +133,12 @@ export function buildApp(options: AppOptions) {
     options.maxWorldsPerUser,
   );
   const hub = new Hub(s, SESSION_COOKIE, options.webSocketHeartbeatMs);
-  const app = Fastify({ logger: false, trustProxy: options.trustProxy ?? false, forceCloseConnections: true });
+  const trustedHops = options.trustProxy ?? 0;
+  const app = Fastify({
+    logger: false,
+    trustProxy: trustedHops > 0 ? (_address: string, hop: number) => hop < trustedHops : false,
+    forceCloseConnections: true,
+  });
 
   app.addHook("onSend", async (_req, reply) => {
     for (const [name, value] of Object.entries(SECURITY_HEADERS)) reply.header(name, value);

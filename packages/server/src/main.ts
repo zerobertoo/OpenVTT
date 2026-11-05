@@ -10,14 +10,15 @@ function positiveIntFromEnv(name: string): number | undefined {
   return value;
 }
 
-const port = positiveIntFromEnv("PORT") ?? 3000;
+// 0 is allowed: the system then picks a free port.
+const port = process.env.PORT === "0" ? 0 : (positiveIntFromEnv("PORT") ?? 3000);
 if (port > 65535) throw new Error(`PORT must be at most 65535, got "${port}"`);
 const app = buildApp({
   dbPath: resolve(process.env.OPENVTT_DB ?? "data/openvtt.db"),
   clientDir: resolve(import.meta.dirname, "../../client/dist"),
   maxVideoBytes: positiveIntFromEnv("OPENVTT_MAX_VIDEO_BYTES"),
   secureCookies: process.env.OPENVTT_SECURE_COOKIES === "1",
-  trustProxy: process.env.OPENVTT_TRUST_PROXY === "1",
+  trustProxy: positiveIntFromEnv("OPENVTT_TRUST_PROXY"),
   registrationsPerMinute: positiveIntFromEnv("OPENVTT_REGISTRATIONS_PER_MINUTE"),
   maxWorldsPerUser: positiveIntFromEnv("OPENVTT_MAX_WORLDS_PER_USER"),
   maxWorldAssetBytes: positiveIntFromEnv("OPENVTT_MAX_WORLD_ASSET_BYTES"),

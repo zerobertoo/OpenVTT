@@ -33,7 +33,8 @@ import type { Services } from "./services.ts";
 const FORMAT = "openvtt-world";
 const FORMAT_VERSION = 1;
 /** Total decompressed size of an imported archive. */
-const MAX_IMPORT_BYTES = 1024 * 1024 * 1024;
+/** Room for a world at the default storage allowance (2 GiB) plus its `world.json`. */
+const MAX_IMPORT_BYTES = 2 * 1024 * 1024 * 1024 + 256 * 1024 * 1024;
 const MAX_WORLD_JSON_BYTES = 256 * 1024 * 1024;
 
 /** Refuses an export that this server's own import would reject, instead of handing out a file that cannot be restored. */

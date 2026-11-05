@@ -34,6 +34,25 @@ describe("login lockout", () => {
   });
 });
 
+describe("login lockout under pressure", () => {
+  it("counts guesses that are in flight at the same time", async () => {
+    const { auth } = newAuth();
+    await auth.register("alice", PASSWORD);
+    await Promise.all(Array.from({ length: 5 }, () => auth.login("alice", "wrong password", "attacker").catch(() => undefined)));
+
+    await expect(auth.login("alice", PASSWORD, "attacker")).rejects.toMatchObject({ code: "too_many_attempts" });
+  });
+
+  it("forgets plain counters before it forgets an active lockout when the table is full", async () => {
+    const { auth } = newAuth();
+    await auth.register("alice", PASSWORD);
+    await failLogin(auth, "alice", "attacker", 5);
+    for (let i = 0; i < MAX_TRACKED_FAILURES + 50; i++) await failLogin(auth, `ghost${i}`, "other");
+
+    await expect(auth.login("alice", PASSWORD, "attacker")).rejects.toMatchObject({ code: "too_many_attempts" });
+  });
+});
+
 describe("sessions", () => {
   it("removes expired sessions when a new one is created", async () => {
     let clock = 1_000_000;

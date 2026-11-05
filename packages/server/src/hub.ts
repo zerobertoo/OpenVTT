@@ -55,11 +55,15 @@ const RESYNC_MIN_INTERVAL_MS = 1000;
 const MAX_BUFFERED_BYTES = 8 * 1024 * 1024;
 const DEFAULT_HEARTBEAT_MS = 30_000;
 
-/** True when the page that opened the socket came from the same host the request was sent to (or sent no origin at all). */
+/**
+ * True when the page that opened the socket came from the same site the request was sent to (or sent no origin at all).
+ * Only the host name is compared: a proxy may pass `Host` on without the port the browser used, and another port on
+ * the same name is the same site for cookies anyway.
+ */
 function sameOrigin(origin: string | undefined, host: string | undefined): boolean {
   if (!origin) return true;
   try {
-    return new URL(origin).host === host;
+    return !!host && new URL(origin).hostname === new URL(`http://${host}`).hostname;
   } catch {
     return false;
   }

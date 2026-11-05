@@ -32,7 +32,7 @@ export function SheetView({ actor, template, system, locale, onSave }: Props) {
             <SheetField
               // Inputs are uncontrolled, so a field remounts when its own value changes (for example a computed one),
               // and the other fields keep whatever is being typed in them.
-              key={`${field.id}:${field.type}:${JSON.stringify(values[field.id] ?? null)}`}
+              key={`${field.id}:${JSON.stringify([field, values[field.id] ?? null])}`}
               field={field}
               label={labelFor(field)}
               labelFor={labelFor}

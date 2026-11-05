@@ -72,8 +72,10 @@ export class AuthService {
     // Verify even for unknown users would need a dummy hash; the lockout already bounds enumeration speed.
     const ok = row ? await verify(row.password_hash, password) : false;
     if (!ok || !row) {
-      const lockExpired = state !== undefined && state.lockedUntil > 0 && state.lockedUntil <= this.now();
-      const count = (lockExpired ? 0 : (state?.count ?? 0)) + 1;
+      // Read again: other guesses may have been counted while the password hash was being checked.
+      const current = this.failures.get(key);
+      const lockExpired = current !== undefined && current.lockedUntil > 0 && current.lockedUntil <= this.now();
+      const count = (lockExpired ? 0 : (current?.count ?? 0)) + 1;
       this.makeRoomForFailure(key);
       this.failures.set(key, {
         count: count >= MAX_FAILED_ATTEMPTS ? 0 : count,
@@ -85,14 +87,18 @@ export class AuthService {
     return toDto(row);
   }
 
-  /** Keeps the failure counters under the cap: drops expired lockouts first, then the oldest entries. */
+  /** Keeps the failure counters under the cap: drops expired lockouts, then plain counters, and active lockouts last. */
   private makeRoomForFailure(key: string) {
     // Re-inserting moves a key to the end, so the first keys are always the least recently failed.
     this.failures.delete(key);
     if (this.failures.size < MAX_TRACKED_FAILURES) return;
     for (const [other, state] of this.failures) if (state.lockedUntil > 0 && state.lockedUntil <= this.now()) this.failures.delete(other);
+    for (const [other, state] of this.failures) {
+      if (this.failures.size < MAX_TRACKED_FAILURES) return;
+      if (state.lockedUntil === 0) this.failures.delete(other);
+    }
     for (const oldest of this.failures.keys()) {
-      if (this.failures.size < MAX_TRACKED_FAILURES) break;
+      if (this.failures.size < MAX_TRACKED_FAILURES) return;
       this.failures.delete(oldest);
     }
   }

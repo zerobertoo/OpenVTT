@@ -10,8 +10,10 @@ describe("export size limits", () => {
   it("refuses a world that the import would reject, and accepts one right at the limits", () => {
     const MiB = 1024 * 1024;
     expect(() => assertFitsImportLimits(256 * MiB, 700 * MiB)).not.toThrow();
+    // A world right at the default storage allowance of 2 GiB must still be exportable.
+    expect(() => assertFitsImportLimits(10 * MiB, 2048 * MiB)).not.toThrow();
     expect(() => assertFitsImportLimits(256 * MiB + 1, 0)).toThrow(expect.objectContaining({ code: "asset_too_large" }));
-    expect(() => assertFitsImportLimits(10 * MiB, 1024 * MiB)).toThrow(expect.objectContaining({ code: "asset_too_large" }));
+    expect(() => assertFitsImportLimits(10 * MiB, 4096 * MiB)).toThrow(expect.objectContaining({ code: "asset_too_large" }));
   });
 });
 

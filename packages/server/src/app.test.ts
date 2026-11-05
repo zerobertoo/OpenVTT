@@ -88,7 +88,7 @@ describe("auth", () => {
   });
 
   it("locks only the address that kept failing when a trusted proxy forwards real addresses", async () => {
-    const app = newApp(":memory:", { trustProxy: true });
+    const app = newApp(":memory:", { trustProxy: 1 });
     await signUp(app, "alice", "correct horse");
     const attempt = (password: string, from: string) =>
       app.inject({
@@ -101,6 +101,22 @@ describe("auth", () => {
 
     expect((await attempt("correct horse", "203.0.113.9")).json().error).toBe("too_many_attempts");
     expect((await attempt("correct horse", "198.51.100.4")).statusCode).toBe(200);
+  });
+
+  it("believes only the address the trusted proxy added, not whatever the client put in front of it", async () => {
+    const app = newApp(":memory:", { trustProxy: 1 });
+    await signUp(app, "alice", "correct horse");
+    const attempt = (password: string, forwarded: string) =>
+      app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        headers: { "x-forwarded-for": forwarded },
+        payload: { username: "alice", password },
+      });
+    // The client invents a new leading address every time; the proxy appended the same real one.
+    for (let i = 0; i < 5; i++) await attempt("wrong password", `10.0.0.${i}, 203.0.113.9`);
+
+    expect((await attempt("correct horse", "10.9.9.9, 203.0.113.9")).json().error).toBe("too_many_attempts");
   });
 
   it("ignores forwarded addresses unless the proxy is trusted", async () => {

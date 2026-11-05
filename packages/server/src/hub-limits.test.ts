@@ -32,6 +32,19 @@ describe("WebSocket upgrade origin", () => {
     expect(await tryOpen(port, world.id, gm.cookie, `http://127.0.0.1:${port}`)).toBe("open");
     expect(await tryOpen(port, world.id, gm.cookie)).toBe("open");
   });
+
+  it("accepts the app's own page when the proxy passes the host on without its port", async () => {
+    const { gm, world, port } = await setup();
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ws?world=${world.id}`, {
+      headers: { cookie: gm.cookie, origin: "https://127.0.0.1:8443", host: "127.0.0.1" },
+    });
+    const outcome = await new Promise((resolve) => {
+      ws.on("open", () => resolve("open"));
+      ws.on("error", () => resolve("refused"));
+    });
+    ws.terminate();
+    expect(outcome).toBe("open");
+  });
 });
 
 describe("WebSocket traffic limits", () => {
