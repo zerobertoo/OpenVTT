@@ -89,13 +89,13 @@ describe("moving a token over HTTP", () => {
   it("keeps a moved token inside the map", async () => {
     const { app, bob, token } = await setupWithToken(600, 100);
     const res = await call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 16000, y: -16000 });
-    expect(res.json()).toMatchObject({ x: 1000, y: 0 });
+    expect(res.json()).toMatchObject({ x: 930, y: 0 });
   });
 
   it("lets the game master move through walls, but not off the map", async () => {
     const { app, gm, token } = await setupWithToken(100, 100);
     const res = await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, { x: 16000 });
-    expect(res.json()).toMatchObject({ x: 1000, y: 100 });
+    expect(res.json()).toMatchObject({ x: 930, y: 100 });
   });
 
   it("does not treat a change without a position as a move", async () => {
@@ -215,33 +215,43 @@ describe("movement and walls", () => {
     conn.ws.close();
   });
 
-  it("does not let a player cross a wall by stopping exactly on it", async () => {
-    const { app, gm, bob, world } = await setup();
+  async function hallWith(walls: object[], x: number, y: number) {
+    const context = await setup();
+    const { app, gm, bob, world } = context;
     const scene = (
-      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, {
-        name: "Hall",
-        width: 1000,
-        height: 800,
-        gridSize: 70,
-        walls: [{ x1: 300, y1: 0, x2: 300, y2: 800 }],
-      })
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Hall", width: 1000, height: 800, gridSize: 70, walls })
     ).json() as SceneDto;
     await call(app, gm.cookie, "PATCH", `/api/worlds/${world.id}`, { activeSceneId: scene.id });
     const token = (
       await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
         sceneId: scene.id,
         name: "Hero",
-        x: 100,
-        y: 100,
+        x,
+        y,
         controllerIds: [bob.user.id],
       })
     ).json();
-    const moveTo = (x: number) => call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, { x });
+    const moveTo = (target: { x?: number; y?: number }) => call(app, bob.cookie, "PATCH", `/api/tokens/${token.id}`, target);
+    return { ...context, token, moveTo };
+  }
 
+  it("does not let a player cross a wall by stopping exactly on it", async () => {
+    const { moveTo } = await hallWith([{ x1: 300, y1: 0, x2: 300, y2: 800 }], 100, 100);
     // The token's centre is 35 from its corner, so 265 puts the centre exactly on the wall.
-    expect((await moveTo(265)).statusCode).toBe(403);
-    expect((await moveTo(400)).statusCode).toBe(403);
-    expect((await call(app, gm.cookie, "PATCH", `/api/tokens/${token.id}`, {})).json().x).toBe(100);
+    expect((await moveTo({ x: 265 })).json()).toMatchObject({ x: 264, y: 100 });
+    expect((await moveTo({ x: 400 })).statusCode).toBe(403);
+  });
+
+  it("lets a token into a grid cell whose centre a diagonal wall runs through, on the side it came from", async () => {
+    const { moveTo } = await hallWith([{ x1: 0, y1: 0, x2: 70, y2: 70 }], 70, 0);
+    expect((await moveTo({ x: 0 })).json()).toMatchObject({ x: 1, y: 0 });
+    expect((await moveTo({ x: 0, y: 70 })).statusCode).toBe(403);
+  });
+
+  it("does not let a token walk around a wall that reaches the edge of the map", async () => {
+    const { moveTo } = await hallWith([{ x1: 0, y1: 400, x2: 1000, y2: 400 }], 100, 100);
+    expect((await moveTo({ x: 16000 })).json()).toMatchObject({ x: 930, y: 100 });
+    expect((await moveTo({ y: 600 })).statusCode).toBe(403);
   });
 });
 

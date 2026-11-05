@@ -137,7 +137,7 @@ describe("tokens", () => {
 
     bobConn.ws.send(JSON.stringify({ type: "token.move", tokenId: bobToken.id, x: 9999, y: 200 }));
     const moved = await gmConn.waitFor((m) => m.type === "token.upsert" && m.token.id === bobToken.id && m.token.y === 200);
-    expect(moved.type === "token.upsert" && moved.token.x).toBe(1000);
+    expect(moved.type === "token.upsert" && moved.token.x).toBe(930);
     await carolConn.waitFor((m) => m.type === "token.upsert" && m.token.id === bobToken.id);
 
     carolConn.ws.send(JSON.stringify({ type: "token.move", tokenId: bobToken.id, x: 1, y: 1 }));
@@ -146,7 +146,7 @@ describe("tokens", () => {
     await carolConn.waitFor((m) => m.type === "error" && m.code === "invalid_input");
 
     const stored = (await call(app, gm.cookie, "PATCH", `/api/tokens/${bobToken.id}`, {})).json();
-    expect(stored).toMatchObject({ x: 1000, y: 200 });
+    expect(stored).toMatchObject({ x: 930, y: 200 });
     [bobConn, carolConn, gmConn].forEach((c) => c.ws.close());
   });
 

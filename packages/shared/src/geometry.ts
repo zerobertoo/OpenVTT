@@ -52,12 +52,22 @@ const liesOnSegment = (point: Point, segment: Segment) =>
   point.y >= Math.min(segment.y1, segment.y2) &&
   point.y <= Math.max(segment.y1, segment.y2);
 
-/**
- * Whether a straight move from `from` to `to` is refused by any of the blocking segments. Stopping on a wall counts,
- * because a path leaving a wall is free in both directions and two moves would otherwise cross it.
- */
+/** Whether a straight move from `from` to `to` passes through any of the blocking segments. */
 export function pathIsBlocked(from: Point, to: Point, blockers: readonly Segment[]): boolean {
-  if (from.x === to.x && from.y === to.y) return false;
   const path = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
-  return blockers.some((wall) => segmentsCross(path, wall) || liesOnSegment(to, wall)) || passesThroughWallJoint(path, blockers);
+  return blockers.some((wall) => segmentsCross(path, wall)) || passesThroughWallJoint(path, blockers);
+}
+
+const WALL_CLEARANCE_PX = 1;
+
+/**
+ * Where an allowed move ends: exactly at `to`, or a pixel short of it when `to` is on a wall. A path leaving a wall is
+ * free in both directions, so stopping on one would let the next move cross it. Null when the step back is still on a wall.
+ */
+export function landingBesideWalls(from: Point, to: Point, blockers: readonly Segment[]): Point | null {
+  const length = Math.hypot(from.x - to.x, from.y - to.y);
+  if (length === 0 || !blockers.some((wall) => liesOnSegment(to, wall))) return to;
+  const back = Math.min(WALL_CLEARANCE_PX, length) / length;
+  const landing = { x: to.x + (from.x - to.x) * back, y: to.y + (from.y - to.y) * back };
+  return blockers.some((wall) => liesOnSegment(landing, wall)) ? null : landing;
 }

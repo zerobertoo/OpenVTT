@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   type createTokenSchema,
   floorOf,
+  landingBesideWalls,
   pathIsBlocked,
   type SceneDto,
   type TableRole,
@@ -47,12 +48,17 @@ export function resolveTokenMove(
   target: { x: number; y: number },
   role: TableRole,
 ): { x: number; y: number } | null {
-  const x = Math.min(Math.max(target.x, 0), scene.width);
-  const y = Math.min(Math.max(target.y, 0), scene.height);
+  const extent = token.size * scene.gridSize;
+  const x = Math.min(Math.max(target.x, 0), Math.max(scene.width - extent, 0));
+  const y = Math.min(Math.max(target.y, 0), Math.max(scene.height - extent, 0));
   if (role === "gm") return { x, y };
-  const half = (token.size * scene.gridSize) / 2;
+  const half = extent / 2;
   const blockers = floorOf(scene, token.floorId).walls.filter((w) => w.kind === "wall" || !w.open);
-  return pathIsBlocked({ x: token.x + half, y: token.y + half }, { x: x + half, y: y + half }, blockers) ? null : { x, y };
+  const from = { x: token.x + half, y: token.y + half };
+  const to = { x: x + half, y: y + half };
+  if (pathIsBlocked(from, to, blockers)) return null;
+  const landing = landingBesideWalls(from, to, blockers);
+  return landing && { x: x + landing.x - to.x, y: y + landing.y - to.y };
 }
 
 export class TokenService {
