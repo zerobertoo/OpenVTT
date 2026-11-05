@@ -1,9 +1,19 @@
 import type { ServerMessage, WorldStateDto } from "@openvtt/shared";
 import { unzipSync, zipSync } from "fflate";
 import { afterEach, describe, expect, it } from "vitest";
+import { assertFitsImportLimits } from "./portability.ts";
 import { type App, call, closeApps, connect, listen, newApp, signUp, upload } from "./test-utils.ts";
 
 afterEach(closeApps);
+
+describe("export size limits", () => {
+  it("refuses a world that the import would reject, and accepts one right at the limits", () => {
+    const MiB = 1024 * 1024;
+    expect(() => assertFitsImportLimits(256 * MiB, 700 * MiB)).not.toThrow();
+    expect(() => assertFitsImportLimits(256 * MiB + 1, 0)).toThrow(expect.objectContaining({ code: "asset_too_large" }));
+    expect(() => assertFitsImportLimits(10 * MiB, 1024 * MiB)).toThrow(expect.objectContaining({ code: "asset_too_large" }));
+  });
+});
 
 const OGG = Buffer.concat([Buffer.from("OggS"), Buffer.alloc(4096, 1)]);
 
