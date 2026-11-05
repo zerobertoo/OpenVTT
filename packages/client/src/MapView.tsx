@@ -606,6 +606,7 @@ export function MapView(props: Props) {
 
     // Each run replaces the one before; a run that wakes up after a newer one started must not touch the background.
     let latestRun = 0;
+    let measuredFloorId: string | null = null;
     async function syncScene() {
       const e = engine.current;
       const { scene, floor } = props_();
@@ -613,8 +614,12 @@ export function MapView(props: Props) {
       const run = ++latestRun;
       e.background.removeChildren().forEach((c) => c.destroy());
       e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
-      e.ruler.clear();
-      e.rulerLabel.text = "";
+      // A measurement belongs to the floor it was taken on; other updates must leave it in place.
+      if ((floor?.id ?? null) !== measuredFloorId) {
+        measuredFloorId = floor?.id ?? null;
+        e.ruler.clear();
+        e.rulerLabel.text = "";
+      }
       if (!scene || !floor) {
         e.grid.clear();
         e.shownGrid = "";
@@ -1034,7 +1039,7 @@ export function MapView(props: Props) {
 
     function drawToken(view: Container, token: TokenDto, gridSize: number, selected: boolean) {
       const px = token.size * gridSize;
-      view.removeChildren().forEach((c) => c.destroy());
+      view.removeChildren().forEach((c) => c.destroy({ children: true }));
       view.pivot.set(0, 0);
       view.position.set(token.x + px / 2, token.y + px / 2);
       view.rotation = (token.rotation * Math.PI) / 180;
