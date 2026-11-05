@@ -176,19 +176,21 @@ export class SceneService {
     const drawings = this.db
       .prepare(`SELECT * FROM drawings WHERE scene_id IN (${marks}) ORDER BY rowid`)
       .all(...ids) as unknown as DrawingRow[];
+    const floorsByScene = Map.groupBy(floors, (f) => f.scene_id);
+    const wallsByFloor = Map.groupBy(walls, (w) => w.floor_id);
+    const lightsByFloor = Map.groupBy(lights, (l) => l.floor_id);
+    const drawingsByFloor = Map.groupBy(drawings, (d) => d.floor_id);
     return rows.map((r) =>
       toDto(
         r,
-        floors
-          .filter((f) => f.scene_id === r.id)
-          .map((f) =>
-            toFloor(
-              f,
-              walls.filter((w) => w.floor_id === f.id).map(toWall),
-              lights.filter((l) => l.floor_id === f.id).map(toLight),
-              drawings.filter((d) => d.floor_id === f.id).map(toDrawing),
-            ),
+        (floorsByScene.get(r.id) ?? []).map((f) =>
+          toFloor(
+            f,
+            (wallsByFloor.get(f.id) ?? []).map(toWall),
+            (lightsByFloor.get(f.id) ?? []).map(toLight),
+            (drawingsByFloor.get(f.id) ?? []).map(toDrawing),
           ),
+        ),
       ),
     );
   }

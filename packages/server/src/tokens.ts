@@ -66,7 +66,7 @@ export class TokenService {
     return (rows as { user_id: string }[]).map((r) => r.user_id);
   }
 
-  private toDto(row: TokenRow): TokenDto {
+  private toDto(row: TokenRow, controllerIds = this.controllers(row.id)): TokenDto {
     return {
       id: row.id,
       sceneId: row.scene_id,
@@ -80,7 +80,7 @@ export class TokenService {
       assetId: row.asset_id,
       hidden: row.hidden === 1,
       actorId: row.actor_id,
-      controllerIds: this.controllers(row.id),
+      controllerIds,
       hp: row.hp,
       hpMax: row.hp_max,
       conditions: JSON.parse(row.conditions) as string[],
@@ -102,14 +102,34 @@ export class TokenService {
   }
 
   /** The GM sees every token; others see non-hidden tokens of the active scene on `floorId` only. */
-  visibleTo(worldId: string, viewer: Viewer, activeSceneId: string | null, floorId: string | null): TokenDto[] {
+  visibleTo(
+    worldId: string,
+    viewer: Viewer,
+    activeSceneId: string | null,
+    floorId: string | null,
+    tokens: readonly TokenDto[] = this.allInWorld(worldId),
+  ): TokenDto[] {
+    return tokens.filter((t) => this.canSee(t, viewer, activeSceneId, floorId)).map((t) => this.forViewer(t, viewer));
+  }
+
+  /** Every token of the world, unfiltered: for the server's own use, never to be sent as it is. */
+  allInWorld(worldId: string): TokenDto[] {
     const rows = this.db
       .prepare("SELECT t.* FROM tokens t JOIN scenes s ON s.id = t.scene_id WHERE s.world_id = ? ORDER BY t.rowid")
       .all(worldId) as unknown as TokenRow[];
-    return rows
-      .map((r) => this.toDto(r))
-      .filter((t) => this.canSee(t, viewer, activeSceneId, floorId))
-      .map((t) => this.forViewer(t, viewer));
+    const controllerRows = this.db
+      .prepare(
+        `SELECT c.token_id, c.user_id FROM token_controllers c JOIN tokens t ON t.id = c.token_id
+         JOIN scenes s ON s.id = t.scene_id WHERE s.world_id = ?`,
+      )
+      .all(worldId) as unknown as { token_id: string; user_id: string }[];
+    const controllersByToken = Map.groupBy(controllerRows, (c) => c.token_id);
+    return rows.map((r) =>
+      this.toDto(
+        r,
+        (controllersByToken.get(r.id) ?? []).map((c) => c.user_id),
+      ),
+    );
   }
 
   canSee(token: TokenDto, viewer: Viewer, activeSceneId: string | null, floorId: string | null): boolean {
