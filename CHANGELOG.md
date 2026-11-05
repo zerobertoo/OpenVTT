@@ -10,6 +10,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - Community files: code of conduct, support, governance, issue and pull request templates, code owners, suggested labels, `.editorconfig`, `CITATION.cff`.
 - The features listed under "Built" in the [roadmap](docs/ROADMAP.md): scenes with images, videos and imported Universal VTT maps, floors, square and hex grids, walls, doors, lights and fog of war, tokens, initiative, chat with server-side dice, sheets from rules systems, journal, music, undo, world export and import, scheduled database backups, English and Brazilian Portuguese UI.
 
+### Fixed
+
+- Scenes and floors with up to the promised 20,000 walls can be saved; larger requests report that they are too large.
+
 ### Security
 
 - A malformed cookie, upgrade URL or WebSocket frame no longer stops the server.

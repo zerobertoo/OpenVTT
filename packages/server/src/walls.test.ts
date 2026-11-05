@@ -39,6 +39,28 @@ const stateOf = async (app: Parameters<typeof listen>[0], worldId: string, cooki
   return msg.state;
 };
 
+describe("size of map data", () => {
+  const wallsOf = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({ x1: 1000.25 + (i % 500), y1: 2000.75, x2: 3000.25, y2: 4000.75 + (i % 500) }));
+
+  it("accepts the 20,000 walls a floor is allowed to have", async () => {
+    const { app, gm, scene } = await setup();
+    const res = await call(app, gm.cookie, "PATCH", `/api/floors/${scene.floors[0]!.id}`, { walls: wallsOf(20000) });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().floors[0].walls).toHaveLength(20000);
+  });
+
+  it("answers too large above the limit, and asks for a session before reading the body", async () => {
+    const { app, gm, scene } = await setup();
+    const url = `/api/floors/${scene.floors[0]!.id}`;
+    const body = { name: "x".repeat(33 * 1024 * 1024) };
+    const tooLarge = await call(app, gm.cookie, "PATCH", url, body);
+    expect(tooLarge.statusCode).toBe(413);
+    expect(tooLarge.json()).toEqual({ error: "asset_too_large" });
+    expect((await app.inject({ method: "PATCH", url, payload: body })).statusCode).toBe(401);
+  });
+});
+
 describe("moving a token over HTTP", () => {
   async function setupWithToken(x: number, y: number) {
     const context = await setup();

@@ -60,6 +60,8 @@ export const SESSION_COOKIE = "openvtt_session";
 const MAX_SYSTEM_ZIP_BYTES = 8 * 1024 * 1024;
 // Timers longer than about 24 days overflow and fire at once.
 const MAX_BACKUP_INTERVAL_HOURS = 24 * 21;
+// Twenty floors of 20,000 walls at about 75 bytes each; the rest of the API keeps Fastify's 1 MiB default.
+const MAX_MAP_DATA_BODY_BYTES = 32 * 1024 * 1024;
 
 export interface AppOptions {
   dbPath: string;
@@ -120,7 +122,7 @@ export function buildApp(options: AppOptions) {
     if ((error as { statusCode?: number }).statusCode === 429)
       return reply.status(429).send({ error: "too_many_attempts" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 413)
-      return reply.status(413).send({ error: "asset_invalid" satisfies ErrorCode });
+      return reply.status(413).send({ error: "asset_too_large" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 415)
       return reply.status(415).send({ error: "asset_invalid" satisfies ErrorCode });
     console.error(`Unexpected error on ${req.method} ${req.routeOptions.url ?? "unknown route"}`, error);
@@ -354,7 +356,15 @@ export function buildApp(options: AppOptions) {
 
   // ---- scenes -------------------------------------------------------------------------------
 
-  app.post<{ Params: { id: string } }>("/api/worlds/:id/scenes", async (req) => {
+  const mapDataRoute = {
+    bodyLimit: MAX_MAP_DATA_BODY_BYTES,
+    // Authenticates before the large body is read, so only signed-in people can make the server parse one.
+    onRequest: async (req: FastifyRequest) => {
+      requireUser(req);
+    },
+  };
+
+  app.post<{ Params: { id: string } }>("/api/worlds/:id/scenes", mapDataRoute, async (req) => {
     const { user } = requireGm(req, req.params.id);
     const scene = s.scenes.create(req.params.id, createSceneSchema.parse(req.body));
     s.worlds.audit(req.params.id, user.id, "scene.create", scene.name);
@@ -362,7 +372,7 @@ export function buildApp(options: AppOptions) {
     return scene;
   });
 
-  app.patch<{ Params: { id: string } }>("/api/scenes/:id", async (req) => {
+  app.patch<{ Params: { id: string } }>("/api/scenes/:id", mapDataRoute, async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     requireGm(req, worldId);
@@ -381,7 +391,7 @@ export function buildApp(options: AppOptions) {
     return { ok: true };
   });
 
-  app.post<{ Params: { id: string } }>("/api/scenes/:id/floors", async (req) => {
+  app.post<{ Params: { id: string } }>("/api/scenes/:id/floors", mapDataRoute, async (req) => {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     requireGm(req, worldId);
@@ -390,7 +400,7 @@ export function buildApp(options: AppOptions) {
     return scene;
   });
 
-  app.patch<{ Params: { id: string } }>("/api/floors/:id", async (req) => {
+  app.patch<{ Params: { id: string } }>("/api/floors/:id", mapDataRoute, async (req) => {
     const owner = s.scenes.floorOwner(req.params.id);
     if (!owner) throw new AppError("not_found");
     requireGm(req, owner.worldId);
