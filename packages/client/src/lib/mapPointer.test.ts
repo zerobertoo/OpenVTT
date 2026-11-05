@@ -189,6 +189,15 @@ describe("drawing", () => {
     expect(props.onDraw).not.toHaveBeenCalled();
   });
 
+  it("leaves marks on a locked layer alone when erasing", () => {
+    props.floor = floor([{ id: "d1", kind: "line", layer: "objects", points: [0, 0, 100, 0] }]);
+    props.draw = { kind: "erase", color: "#000000", text: "", layer: "objects" };
+    (scene as unknown as { lockedLayers: string[] }).lockedLayers = ["objects"];
+    controller.pointerDown(event(50, 3));
+    (scene as unknown as { lockedLayers: string[] }).lockedLayers = [];
+    expect(props.onErase).not.toHaveBeenCalled();
+  });
+
   it("erases the mark under the pointer if the person may erase it and its layer is open", () => {
     props.floor = floor([
       { id: "d1", kind: "line", layer: "objects", points: [0, 0, 100, 0] },
