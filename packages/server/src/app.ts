@@ -189,7 +189,10 @@ export function buildApp(options: AppOptions) {
 
   app.post("/api/auth/logout", async (req, reply) => {
     const token = req.cookies[SESSION_COOKIE];
-    if (token) s.auth.destroySession(token);
+    if (token) {
+      s.auth.destroySession(token);
+      hub.closeSession(token);
+    }
     reply.clearCookie(SESSION_COOKIE, { path: "/" });
     return { ok: true };
   });
@@ -206,7 +209,7 @@ export function buildApp(options: AppOptions) {
   app.post("/api/admin/reset-password", async (req) => {
     const actor = requireUser(req);
     const body = z.object({ username: usernameSchema, newPassword: passwordSchema }).parse(req.body);
-    await s.auth.resetPassword(actor, body.username, body.newPassword);
+    hub.closeUserConnections(await s.auth.resetPassword(actor, body.username, body.newPassword));
     return { ok: true };
   });
 

@@ -24,6 +24,7 @@ interface Connection {
   socket: WebSocket;
   viewer: Viewer;
   worldId: string;
+  sessionToken: string;
   /** Tokens this connection was last told about while its scene uses vision. */
   seenTokenIds: Set<string>;
   /** Player whose sight the game master is previewing; null shows everything. */
@@ -108,6 +109,14 @@ export class Hub {
     private cookieName: string,
   ) {}
 
+  closeSession(sessionToken: string) {
+    for (const c of this.connections) if (c.sessionToken === sessionToken) c.socket.close();
+  }
+
+  closeUserConnections(userId: string) {
+    for (const c of this.connections) if (c.viewer.userId === userId) c.socket.close();
+  }
+
   /** Detaches all sockets without broadcasting; used on shutdown before the DB closes. */
   closeAll() {
     for (const c of this.connections) c.socket.removeAllListeners("close");
@@ -127,7 +136,7 @@ export class Hub {
           socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
           return socket.destroy();
         }
-        wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, identity.viewer, identity.worldId));
+        wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, identity.viewer, identity.worldId, identity.sessionToken));
       } catch {
         socket.destroy();
       }
@@ -136,17 +145,19 @@ export class Hub {
   }
 
   private authorize(req: IncomingMessage, url: URL) {
-    const user = this.s.auth.userFromSession(parseCookies(req.headers.cookie)[this.cookieName]);
+    const sessionToken = parseCookies(req.headers.cookie)[this.cookieName];
+    const user = this.s.auth.userFromSession(sessionToken);
     const worldId = url.searchParams.get("world");
     const role = user && worldId ? this.s.worlds.roleOf(worldId, user.id) : null;
-    return user && worldId && role ? { viewer: { userId: user.id, role }, worldId } : null;
+    return user && sessionToken && worldId && role ? { viewer: { userId: user.id, role }, worldId, sessionToken } : null;
   }
 
-  private open(socket: WebSocket, viewer: Viewer, worldId: string) {
+  private open(socket: WebSocket, viewer: Viewer, worldId: string, sessionToken: string) {
     const conn: Connection = {
       socket,
       viewer,
       worldId,
+      sessionToken,
       seenTokenIds: new Set(),
       viewAs: null,
       lastPingAt: 0,

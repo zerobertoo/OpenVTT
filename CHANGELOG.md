@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - A malformed cookie, upgrade URL or WebSocket frame no longer stops the server.
 - Players can no longer move a token through walls or off the map with a direct HTTP request.
+- Signing out or having a password reset now closes the live table connections of that session.
 - Rate limits on login, world and scene export and world import (HTTP 429, error code `too_many_attempts`).
 - Dice notation parsing no longer uses backtracking regexes that could be slow on long input.
 - The CI workflow token is read-only.
