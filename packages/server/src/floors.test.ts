@@ -312,8 +312,8 @@ describe("the migration to floors", () => {
   it("wraps every existing scene in one floor holding its background, walls, lights, drawings and tokens", () => {
     const db = new DatabaseSync(":memory:");
     db.exec("PRAGMA foreign_keys = ON");
-    // The floors migration is the third to last one; the next two only add columns.
-    for (const sql of MIGRATIONS.slice(0, -3)) db.exec(sql);
+    // The floors migration is the fourth to last one; the next three only add columns.
+    for (const sql of MIGRATIONS.slice(0, -4)) db.exec(sql);
     db.exec(`
       INSERT INTO users (id, username, password_hash, role, created_at) VALUES ('u1', 'a', 'x', 'user', 1);
       INSERT INTO worlds (id, name, created_at) VALUES ('w1', 'World', 1);
@@ -323,6 +323,7 @@ describe("the migration to floors", () => {
       INSERT INTO lights (id, scene_id, x, y, radius, intensity, color) VALUES ('light1', 's1', 5, 5, 2, 1, '#ffffff');
       INSERT INTO tokens (id, scene_id, name, x, y, size, color) VALUES ('t1', 's1', 'Hero', 0, 0, 1, '#112233');
     `);
+    db.exec(MIGRATIONS.at(-4)!);
     db.exec(MIGRATIONS.at(-3)!);
     db.exec(MIGRATIONS.at(-2)!);
     db.exec(MIGRATIONS.at(-1)!);

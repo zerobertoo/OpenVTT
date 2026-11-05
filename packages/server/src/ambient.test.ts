@@ -30,8 +30,12 @@ it("accepts mp3 and ogg uploads, plays one for the table and refuses audio as a 
   expect((await call(app, bob.cookie, "PUT", `/api/worlds/${world.id}/ambient`, { assetId: ogg.id, playing: true })).statusCode).toBe(403);
   expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/ambient`, { assetId: ogg.id, playing: true })).statusCode).toBe(200);
 
+  expect((await call(app, bob.cookie, "PUT", `/api/worlds/${world.id}/ambient/volume`, { volume: 0.3 })).statusCode).toBe(403);
+  expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/ambient/volume`, { volume: 2 })).statusCode).toBe(400);
+  expect((await call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/ambient/volume`, { volume: 0.3 })).statusCode).toBe(200);
+
   const conn = connect(await listen(app), world.id, bob.cookie);
   const msg = await conn.waitFor((m): m is Extract<ServerMessage, { type: "world.state" }> => m.type === "world.state");
   conn.ws.close();
-  expect(msg.state.ambient).toEqual({ assetId: ogg.id, playing: true });
+  expect(msg.state.ambient).toEqual({ assetId: ogg.id, playing: true, volume: 0.3 });
 });

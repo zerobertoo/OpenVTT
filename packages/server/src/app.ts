@@ -27,6 +27,7 @@ import {
   placeCompendiumSchema,
   sendMessageSchema,
   setAmbientSchema,
+  setAmbientVolumeSchema,
   setCombatantSchema,
   tableRole,
   type UserDto,
@@ -469,6 +470,13 @@ export function buildApp(options: AppOptions) {
     if (!s.assets.belongsToWorld(assetId, req.params.id, "audio")) throw new AppError("asset_invalid");
     s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     s.worlds.setAmbient(req.params.id, assetId, playing);
+    hub.broadcastState(req.params.id);
+    return { ok: true };
+  });
+
+  app.put<{ Params: { id: string } }>("/api/worlds/:id/ambient/volume", async (req) => {
+    requireGm(req, req.params.id);
+    s.worlds.setAmbientVolume(req.params.id, setAmbientVolumeSchema.parse(req.body).volume);
     hub.broadcastState(req.params.id);
     return { ok: true };
   });

@@ -38,12 +38,19 @@ export function TableSounds({ state, userId }: { state: WorldStateDto; userId: s
     if (lastMessage.kind === "whisper" && lastMessage.toUserId === userId) chime();
   }, [lastMessage, userId]);
 
-  return <TableMusic assetId={state.ambient?.assetId ?? null} playing={state.ambient?.playing ?? false} />;
+  return (
+    <TableMusic
+      assetId={state.ambient?.assetId ?? null}
+      playing={state.ambient?.playing ?? false}
+      masterVolume={state.ambient?.volume ?? 1}
+    />
+  );
 }
 
-function TableMusic({ assetId, playing }: { assetId: string | null; playing: boolean }) {
+function TableMusic({ assetId, playing, masterVolume }: { assetId: string | null; playing: boolean; masterVolume: number }) {
   const { t } = useTranslation();
-  const volume = usePreferences((p) => p.musicVolume);
+  // The game master's volume for the table, scaled by this person's own fine adjustment.
+  const volume = usePreferences((p) => p.musicVolume) * masterVolume;
   const audio = useRef<HTMLAudioElement>(null);
   // Browsers refuse to start sound before the person has interacted with the page.
   const [blocked, setBlocked] = useState(false);

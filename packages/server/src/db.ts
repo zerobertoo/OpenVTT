@@ -250,6 +250,8 @@ CREATE INDEX tokens_floor ON tokens (floor_id);
   // Lighting: how dark a scene is (1 = fully lit, today's look) and how softly each light fades out at its edge.
   `ALTER TABLE scenes ADD COLUMN ambient_light REAL NOT NULL DEFAULT 1;
 ALTER TABLE lights ADD COLUMN feather REAL NOT NULL DEFAULT 0.4;`,
+  // Table music volume set by the game master for everyone.
+  `ALTER TABLE worlds ADD COLUMN ambient_volume REAL NOT NULL DEFAULT 1;`,
 ];
 
 /** Opens (and creates/migrates if needed) the SQLite database. Use ":memory:" for tests. */

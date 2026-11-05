@@ -391,9 +391,12 @@ export interface WorldStateDto {
 export interface AmbientDto {
   assetId: string;
   playing: boolean;
+  /** 0 to 1, set by the game master for everyone; each person's own volume is applied on top of it. */
+  volume: number;
 }
 
 export const setAmbientSchema = z.object({ assetId: z.string().uuid().nullable(), playing: z.boolean() });
+export const setAmbientVolumeSchema = z.object({ volume: z.number().finite().min(0).max(1) });
 
 /** Server → client messages. */
 export type ServerMessage =

@@ -97,10 +97,14 @@ export class WorldService {
   }
 
   ambient(worldId: string): AmbientDto | null {
-    const row = this.db.prepare("SELECT ambient_asset_id, ambient_playing FROM worlds WHERE id = ?").get(worldId) as
-      | { ambient_asset_id: string | null; ambient_playing: number }
+    const row = this.db.prepare("SELECT ambient_asset_id, ambient_playing, ambient_volume FROM worlds WHERE id = ?").get(worldId) as
+      | { ambient_asset_id: string | null; ambient_playing: number; ambient_volume: number }
       | undefined;
-    return row?.ambient_asset_id ? { assetId: row.ambient_asset_id, playing: row.ambient_playing === 1 } : null;
+    return row?.ambient_asset_id ? { assetId: row.ambient_asset_id, playing: row.ambient_playing === 1, volume: row.ambient_volume } : null;
+  }
+
+  setAmbientVolume(worldId: string, volume: number): void {
+    this.db.prepare("UPDATE worlds SET ambient_volume = ? WHERE id = ?").run(volume, worldId);
   }
 
   setAmbient(worldId: string, assetId: string | null, playing: boolean): void {

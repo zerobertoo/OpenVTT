@@ -74,6 +74,7 @@ export const api = {
   compendium: (worldId: string) => get<CompendiumEntry[]>(`/api/worlds/${worldId}/compendium`),
   placeCompendium: (worldId: string, entryId: string, body: { sceneId: string; floorId?: string; x: number; y: number; locale?: string }) =>
     post<TokenDto>(`/api/worlds/${worldId}/compendium/${entryId}/place`, body),
+  setAmbientVolume: (worldId: string, volume: number) => put(`/api/worlds/${worldId}/ambient/volume`, { volume }),
   setAmbient: (worldId: string, body: { assetId: string | null; playing: boolean }) => put(`/api/worlds/${worldId}/ambient`, body),
   createHandout: (worldId: string, body: object) => post<{ id: string }>(`/api/worlds/${worldId}/handouts`, body),
   updateHandout: (handoutId: string, body: object) => patch(`/api/handouts/${handoutId}`, body),
