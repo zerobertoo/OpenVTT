@@ -27,3 +27,5 @@ What is **not** exported, on purpose:
 - whispers and GM-only rolls.
 
 Import checks the structure, that every reference resolves, that images really are PNG/JPEG/WebP, that sheet data fits the template and that the rules system is installed. Nothing is created if any check fails.
+
+O `world.json` é aceito na importação até 256 MiB. A exportação não checa esse limite: um mundo acima dele é baixado, mas não pode ser importado de volta.

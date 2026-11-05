@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - When only some of the selected tokens accept a delete or a turn, the error is shown and undo covers the ones that changed.
 - A token dropped after losing control of it goes back to its real position.
 - A request body that is not valid JSON now gets `invalid_input` instead of a logged server error.
+- Importing a world now accepts a `world.json` of up to 256 MiB instead of 16 MiB, so large exported worlds can be restored.
 - Exporting a world now keeps token rotation, time of day, weather, season, the music and up to 10,000 public chat messages.
 - A ruler measurement no longer disappears when something else changes on the table.
 - Redrawing tokens no longer leaks memory for their condition badges.

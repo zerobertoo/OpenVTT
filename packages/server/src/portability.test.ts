@@ -66,6 +66,25 @@ describe("exporting and importing a world", () => {
     expect(messages[129].content).toBe("line 129");
   });
 
+  it("imports back a world whose file is larger than 16 MiB", async () => {
+    const { app, gm, world } = await setup();
+    const page = { body: "x".repeat(50000), audience: [] };
+    for (let i = 0; i < 340; i++) await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/handouts`, { ...page, title: `Page ${i}` });
+
+    const zip = (await call(app, gm.cookie, "GET", `/api/worlds/${world.id}/export`)).rawPayload;
+    expect(unzipSync(zip)["world.json"]!.length).toBeGreaterThan(16 * 1024 * 1024);
+    const imported = await importZip(app, gm.cookie, zip);
+    expect(imported.statusCode).toBe(200);
+    expect((await stateOf(app, imported.json().id, gm.cookie)).handouts).toHaveLength(340);
+  });
+
+  it("still stops a world file above the limit", async () => {
+    const { app, gm } = await setup();
+    const res = await importZip(app, gm.cookie, zipSync({ "world.json": new Uint8Array(257 * 1024 * 1024) }));
+    expect(res.statusCode).toBe(413);
+    expect(res.json()).toEqual({ error: "asset_too_large" });
+  });
+
   it("imports files written before the atmosphere and music were exported", async () => {
     const { app, gm, world } = await setup();
     const file = worldJsonOf((await call(app, gm.cookie, "GET", `/api/worlds/${world.id}/export`)).rawPayload);

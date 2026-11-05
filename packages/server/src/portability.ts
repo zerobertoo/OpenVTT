@@ -34,7 +34,8 @@ const FORMAT = "openvtt-world";
 const FORMAT_VERSION = 1;
 /** Total decompressed size of an imported archive. */
 const MAX_IMPORT_BYTES = 1024 * 1024 * 1024;
-const MAX_WORLD_JSON_BYTES = 16 * 1024 * 1024;
+// ponytail: export has no matching check, so a world above this downloads but will not import; a full scene is about 46 MiB.
+const MAX_WORLD_JSON_BYTES = 256 * 1024 * 1024;
 
 const id = z.string().min(1).max(64);
 export const floorIdQuerySchema = z.object({ floorId: id.optional() });
