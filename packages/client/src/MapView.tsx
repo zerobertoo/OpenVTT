@@ -23,6 +23,7 @@ import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./li
 import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
+import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
@@ -30,7 +31,11 @@ import type { Move } from "./lib/tableActions";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
-export type MapTool = "select" | "ruler" | "draw" | "light";
+/** How long after it was fired an effect still plays, and how many token changes play at once. */
+const EFFECT_FRESH_MS = 3000;
+const MAX_TOKEN_EFFECTS = 12;
+
+export type MapTool = "select" | "ruler" | "draw" | "light" | "effect";
 
 interface Props {
   scene: SceneDto | null;
@@ -56,6 +61,8 @@ interface Props {
   onToggleDoor: (wallId: string, open: boolean) => void;
   /** Alt+click marks a spot for everybody; Alt+Shift+click (game master) also asks them to look at it. */
   onPing: (x: number, y: number, focus: boolean) => void;
+  /** A click on the map while the effect tool is active (scene pixels). */
+  onEffectPoint: (x: number, y: number) => void;
   /** Formats the ruler label; receives distance in grid cells. */
   formatDistance: (cells: number) => string;
   rulerShape: RulerShape;
@@ -322,6 +329,9 @@ export function MapView(props: Props) {
         } else if (p === "light" && e.button === 0 && e.target === app.stage) {
           const point = toWorld(e);
           props_().onAddLight(point.x, point.y);
+        } else if (p === "effect" && e.button === 0) {
+          const point = toWorld(e);
+          props_().onEffectPoint(point.x, point.y);
         } else if (p === "ruler" && e.button === 0) {
           rulerStart = toWorld(e);
         } else if (p === "draw" && e.button === 0) {
@@ -1151,6 +1161,39 @@ export function MapView(props: Props) {
       if (!ring.destroyed) ring.destroy();
     };
   }, [ping, latest]);
+
+  // Effects the game master starts play once on every screen showing that floor; they stop with the map.
+  const effect = useTableUi((ui) => ui.effect);
+  useEffect(() => {
+    const e = engine.current;
+    // An effect that is already old (the map was mounted again since it was fired) is not replayed.
+    if (!e || !effect || Date.now() - effect.at > EFFECT_FRESH_MS) return;
+    if (effect.sceneId !== latest.current.scene?.id || effect.floorId !== latest.current.floor?.id) return;
+    // Each effect ends by itself, so a newer one never cuts an older one short.
+    playEffect(e.world, e.app.ticker, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, [effect, latest]);
+
+  // Tokens that arrive, lose hit points or heal show it on every screen, worked out from the state each already has.
+  const seenTokens = useRef<{ floorKey: string; tokens: Map<string, TokenDto> } | null>(null);
+  const { tokens: floorTokens, scene: currentScene, floor: currentFloor } = props;
+  useEffect(() => {
+    if (!currentScene || !currentFloor) return;
+    const floorKey = `${currentScene.id}/${currentFloor.id}`;
+    const seen = seenTokens.current;
+    // The baseline is kept even before the map engine is ready, so the first change after it is ready is not lost.
+    seenTokens.current = { floorKey, tokens: new Map(floorTokens.map((tk) => [tk.id, tk])) };
+    const e = engine.current;
+    // Opening a map or switching floors shows what is already there, not a burst of arrivals.
+    if (!e || !seen || seen.floorKey !== floorKey) return;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // A whole new list (a resync, a group placed at once) plays only the first few, so it cannot flood the map.
+    const changes = tokenChangeEffects(seen.tokens, floorTokens, currentScene.gridSize, !currentScene.visionEnabled).slice(
+      0,
+      MAX_TOKEN_EFFECTS,
+    );
+    for (const change of changes)
+      playEffect(e.world, e.app.ticker, { ...change, sceneId: currentScene.id, floorId: currentFloor.id }, currentScene.gridSize, reduced);
+  }, [floorTokens, currentScene, currentFloor]);
 
   useEffect(() => {
     engine.current?.ruler.clear();

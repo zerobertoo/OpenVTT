@@ -10,6 +10,7 @@ import { Field } from "../components/ui/field";
 import { Textarea } from "../components/ui/input";
 import { PanelSection } from "../components/ui/panel-section";
 import { Select } from "../components/ui/select";
+import { EnvironmentControls } from "../components/world/EnvironmentControls";
 import { InviteLink } from "../components/world/InviteLink";
 import { MemberList } from "../components/world/MemberList";
 import { MusicControls } from "../components/world/MusicControls";
@@ -183,6 +184,7 @@ export function SettingsPanel({ state }: { state: WorldStateDto }) {
       )}
 
       {isGm && <MusicControls worldId={state.id} ambient={state.ambient} />}
+      {isGm && <EnvironmentControls worldId={state.id} environment={state.environment} />}
 
       <PanelSection title={t("settings.share")}>
         <SystemInfo worldId={state.id} />

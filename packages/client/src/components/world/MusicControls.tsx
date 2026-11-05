@@ -7,12 +7,17 @@ import { Button } from "../ui/button";
 import { Field } from "../ui/field";
 import { FileButton } from "../ui/file-button";
 import { Select } from "../ui/select";
+import { Slider } from "../ui/slider";
 
 export function MusicControls({ worldId, ambient }: { worldId: string; ambient: AmbientDto | null }) {
   const { t } = useTranslation();
   const { run, error, pending } = useAction();
   const [tracks, setTracks] = useState<AssetSummaryDto[]>([]);
   const [choice, setChoice] = useState(ambient?.assetId ?? "");
+  // Follows the server's value, but moves freely while the slider is dragged.
+  const [master, setMaster] = useState(ambient?.volume ?? 1);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync only when the server's value changes
+  useEffect(() => setMaster(ambient?.volume ?? 1), [ambient?.volume]);
   const load = () => run(async () => setTracks((await api.worldAssets(worldId)).filter((a) => a.mime.startsWith("audio/"))));
   // biome-ignore lint/correctness/useExhaustiveDependencies: loads once per world
   useEffect(() => void load(), [worldId]);
@@ -35,6 +40,21 @@ export function MusicControls({ worldId, ambient }: { worldId: string; ambient: 
           )}
         </Field>
       )}
+      <Field label={t("alerts.masterVolume")}>
+        {(control) => (
+          <Slider
+            {...control}
+            aria-label={t("alerts.masterVolume")}
+            min={0}
+            max={1}
+            step={0.05}
+            value={master}
+            disabled={!ambient}
+            onValueChange={setMaster}
+            onValueCommit={(volume) => void run(() => api.setAmbientVolume(worldId, volume))}
+          />
+        )}
+      </Field>
       <div className="flex flex-wrap gap-2">
         {ambient?.playing ? (
           <Button size="sm" pending={pending} onClick={() => set(ambient.assetId, false)}>

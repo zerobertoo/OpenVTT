@@ -201,6 +201,28 @@ describe("what each person receives", () => {
     gmConn.ws.close();
   });
 
+  it("lets only the game master start effects, and keeps them to the floor they happen on", async () => {
+    const { gm, bob, cellar, vault, open } = await setup();
+    const { conn: bobConn } = await open(bob.cookie);
+    const { conn: gmConn } = await open(gm.cookie);
+    // A player's effect is ignored.
+    bobConn.ws.send(JSON.stringify({ type: "map.effect", kind: "blast", x: 5, y: 5 }));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(gmConn.seen.filter((m) => m.type === "map.effect")).toEqual([]);
+    // An effect on the secret floor stays off Bob's screen.
+    gmConn.ws.send(JSON.stringify({ type: "map.effect", kind: "damage", x: 10, y: 10, value: 7, floorId: vault.id }));
+    await gmConn.waitFor((m) => m.type === "map.effect");
+    await bobConn.settle();
+    expect(bobConn.seen.filter((m) => m.type === "map.effect")).toEqual([]);
+    // On the table floor it reaches him, with the point kept inside the scene.
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    gmConn.ws.send(JSON.stringify({ type: "map.effect", kind: "projectile", x: -50, y: 20, toX: 30, toY: 40, floorId: cellar.id }));
+    const got = await bobConn.waitFor((m): m is Extract<ServerMessage, { type: "map.effect" }> => m.type === "map.effect");
+    expect(got.effect).toMatchObject({ kind: "projectile", floorId: cellar.id, x: 0, y: 20, toX: 30, toY: 40 });
+    bobConn.ws.close();
+    gmConn.ws.close();
+  });
+
   it("makes a player draw on their own floor, whatever floor they ask for", async () => {
     const { app, gm, bob, ground, vault, scene, token, open } = await setup();
     await token("Hero", ground.id, { controllerIds: [bob.user.id] });
@@ -312,8 +334,9 @@ describe("the migration to floors", () => {
   it("wraps every existing scene in one floor holding its background, walls, lights, drawings and tokens", () => {
     const db = new DatabaseSync(":memory:");
     db.exec("PRAGMA foreign_keys = ON");
-    // The floors migration is the third to last one; the next two only add columns.
-    for (const sql of MIGRATIONS.slice(0, -3)) db.exec(sql);
+    // Run everything before the floors migration, then it and all the later ones (which only add columns).
+    const floorsAt = MIGRATIONS.findIndex((sql) => sql.includes("CREATE TABLE floors"));
+    for (const sql of MIGRATIONS.slice(0, floorsAt)) db.exec(sql);
     db.exec(`
       INSERT INTO users (id, username, password_hash, role, created_at) VALUES ('u1', 'a', 'x', 'user', 1);
       INSERT INTO worlds (id, name, created_at) VALUES ('w1', 'World', 1);
@@ -323,9 +346,7 @@ describe("the migration to floors", () => {
       INSERT INTO lights (id, scene_id, x, y, radius, intensity, color) VALUES ('light1', 's1', 5, 5, 2, 1, '#ffffff');
       INSERT INTO tokens (id, scene_id, name, x, y, size, color) VALUES ('t1', 's1', 'Hero', 0, 0, 1, '#112233');
     `);
-    db.exec(MIGRATIONS.at(-3)!);
-    db.exec(MIGRATIONS.at(-2)!);
-    db.exec(MIGRATIONS.at(-1)!);
+    for (const sql of MIGRATIONS.slice(floorsAt)) db.exec(sql);
     // Existing lights keep today's look: scene fully lit, light feathered at the default.
     expect(db.prepare("SELECT ambient_light FROM scenes").get()).toEqual({ ambient_light: 1 });
     expect(db.prepare("SELECT feather FROM lights").get()).toEqual({ feather: 0.4 });

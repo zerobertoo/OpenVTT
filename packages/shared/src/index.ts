@@ -386,14 +386,31 @@ export interface WorldStateDto {
   handouts: HandoutDto[];
   /** What the game master plays for the whole table; null when nothing was picked. */
   ambient: AmbientDto | null;
+  /** Time of day, weather and season the game master lays over the map for everyone. */
+  environment: EnvironmentDto;
 }
+
+export const TIMES_OF_DAY = ["day", "dawn", "dusk", "night"] as const;
+export const WEATHERS = ["clear", "rain", "storm", "snow", "fog"] as const;
+export const SEASONS = ["none", "spring", "summer", "autumn", "winter"] as const;
+
+export const environmentSchema = z.object({
+  time: z.enum(TIMES_OF_DAY),
+  weather: z.enum(WEATHERS),
+  season: z.enum(SEASONS),
+});
+export type EnvironmentDto = z.infer<typeof environmentSchema>;
+export const DEFAULT_ENVIRONMENT: EnvironmentDto = { time: "day", weather: "clear", season: "none" };
 
 export interface AmbientDto {
   assetId: string;
   playing: boolean;
+  /** 0 to 1, set by the game master for everyone; each person's own volume is applied on top of it. */
+  volume: number;
 }
 
 export const setAmbientSchema = z.object({ assetId: z.string().uuid().nullable(), playing: z.boolean() });
+export const setAmbientVolumeSchema = z.object({ volume: z.number().finite().min(0).max(1) });
 
 /** Server → client messages. */
 export type ServerMessage =
@@ -407,7 +424,28 @@ export type ServerMessage =
   | { type: "scene.drawings"; sceneId: string; floorId: string; drawings: DrawingDto[] }
   /** A short-lived marker on the map; `focus` also asks everyone to look at it (game master only). */
   | { type: "map.ping"; ping: PingDto }
+  /** A short-lived visual effect on the map, started by the game master. */
+  | { type: "map.effect"; effect: EffectDto }
   | { type: "error"; code: ErrorCode };
+
+/** What a visual effect on the map looks like. `projectile` travels from (x, y) to (toX, toY). */
+export const EFFECT_KINDS = ["arrive", "vanish", "damage", "heal", "blast", "projectile"] as const;
+export type EffectKind = (typeof EFFECT_KINDS)[number];
+
+export interface EffectDto {
+  sceneId: string;
+  /** Only people looking at this floor see the effect. */
+  floorId: string;
+  kind: EffectKind;
+  /** Scene pixels. */
+  x: number;
+  y: number;
+  /** Where a projectile lands. */
+  toX?: number;
+  toY?: number;
+  /** The number shown for damage and healing; the radius in cells for a blast. */
+  value?: number;
+}
 
 export interface PingDto {
   sceneId: string;
@@ -426,6 +464,8 @@ export type ClientMessage =
   | { type: "token.move"; tokenId: string; x: number; y: number }
   /** Marks a spot on the active scene for everybody; `focus` is for the game master. */
   | { type: "map.ping"; x: number; y: number; focus?: boolean; floorId?: string }
+  /** Game master only: starts a visual effect on the map for everybody. */
+  | { type: "map.effect"; kind: EffectKind; x: number; y: number; toX?: number; toY?: number; value?: number; floorId?: string }
   /** Game master only: see the table the way this player does (their tokens' sight); null goes back to seeing everything. */
   | { type: "world.viewAs"; userId: string | null };
 

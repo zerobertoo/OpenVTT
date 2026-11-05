@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import {
   type AmbientDto,
   type AuditEntryDto,
+  type EnvironmentDto,
   type MemberDto,
   type TableRole,
   tableRole,
@@ -97,10 +98,27 @@ export class WorldService {
   }
 
   ambient(worldId: string): AmbientDto | null {
-    const row = this.db.prepare("SELECT ambient_asset_id, ambient_playing FROM worlds WHERE id = ?").get(worldId) as
-      | { ambient_asset_id: string | null; ambient_playing: number }
+    const row = this.db.prepare("SELECT ambient_asset_id, ambient_playing, ambient_volume FROM worlds WHERE id = ?").get(worldId) as
+      | { ambient_asset_id: string | null; ambient_playing: number; ambient_volume: number }
       | undefined;
-    return row?.ambient_asset_id ? { assetId: row.ambient_asset_id, playing: row.ambient_playing === 1 } : null;
+    return row?.ambient_asset_id ? { assetId: row.ambient_asset_id, playing: row.ambient_playing === 1, volume: row.ambient_volume } : null;
+  }
+
+  environment(worldId: string): EnvironmentDto {
+    const row = this.db.prepare("SELECT env_time, env_weather, env_season FROM worlds WHERE id = ?").get(worldId) as
+      | { env_time: EnvironmentDto["time"]; env_weather: EnvironmentDto["weather"]; env_season: EnvironmentDto["season"] }
+      | undefined;
+    return { time: row?.env_time ?? "day", weather: row?.env_weather ?? "clear", season: row?.env_season ?? "none" };
+  }
+
+  setEnvironment(worldId: string, env: EnvironmentDto): void {
+    this.db
+      .prepare("UPDATE worlds SET env_time = ?, env_weather = ?, env_season = ? WHERE id = ?")
+      .run(env.time, env.weather, env.season, worldId);
+  }
+
+  setAmbientVolume(worldId: string, volume: number): void {
+    this.db.prepare("UPDATE worlds SET ambient_volume = ? WHERE id = ?").run(volume, worldId);
   }
 
   setAmbient(worldId: string, assetId: string | null, playing: boolean): void {

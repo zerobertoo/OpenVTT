@@ -5,13 +5,13 @@ import type { MapTool } from "../../MapView";
 import { DockButton, DockGroup } from "../ui/dock";
 import { ToolbarChoices } from "../ui/toolbar";
 
-const TOOLS = ["select", "ruler", "draw", "light"] as const satisfies readonly MapTool[];
+const TOOLS = ["select", "ruler", "draw", "light", "effect"] as const satisfies readonly MapTool[];
 
 interface Props {
   tool: MapTool;
   onToolChange: (tool: MapTool) => void;
   canDraw: boolean;
-  /** Placing and editing lights is for the game master. */
+  /** Placing and editing lights, and starting effects, is for the game master. */
   canLight: boolean;
   diceTrayOpen: boolean;
   onToggleDiceTray: () => void;
@@ -28,7 +28,7 @@ export function MapToolbar({ tool, onToolChange, canDraw, canLight, diceTrayOpen
         label={t("map.tools")}
         value={tool}
         onValueChange={onToolChange}
-        choices={TOOLS.filter((id) => (canDraw || id !== "draw") && (canLight || id !== "light")).map((id) => ({
+        choices={TOOLS.filter((id) => (canDraw || id !== "draw") && (canLight || (id !== "light" && id !== "effect"))).map((id) => ({
           value: id,
           label: t(`map.${id}`),
           icon: <Icon name={id} />,

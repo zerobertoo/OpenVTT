@@ -1,4 +1,4 @@
-import type { DrawingKind, DrawingLayer, PingDto } from "@openvtt/shared";
+import type { DrawingKind, DrawingLayer, EffectDto, EffectKind, PingDto } from "@openvtt/shared";
 import { create } from "zustand";
 import type { MapTool } from "./MapView";
 
@@ -82,6 +82,16 @@ interface TableUiState {
   /** Latest ping received; `id` makes two pings at the same spot distinct events. */
   ping: (PingDto & { id: number }) | null;
   showPing: (ping: PingDto) => void;
+  /** Latest map effect received; `id` makes two effects at the same spot distinct events. */
+  effect: (EffectDto & { id: number; at: number }) | null;
+  showEffect: (effect: EffectDto) => void;
+  /** What the effect tool fires: its kind and its number (damage, healing or blast radius). */
+  effectKind: EffectKind;
+  effectValue: number;
+  setEffectChoice: (choice: Partial<Pick<TableUiState, "effectKind" | "effectValue">>) => void;
+  /** Where the next projectile starts, after the first click of the two it takes. */
+  effectOrigin: { x: number; y: number } | null;
+  setEffectOrigin: (origin: { x: number; y: number } | null) => void;
   /** Whether the overview map shows in the corner. */
   minimapOpen: boolean;
   toggleMinimap: () => void;
@@ -122,6 +132,10 @@ const initialState = {
   viewAsUserId: null,
   viewCommand: null,
   ping: null,
+  effect: null,
+  effectKind: "damage" as EffectKind,
+  effectValue: 5,
+  effectOrigin: null,
   minimapOpen: true,
   diceTrayOpen: false,
   initiativeOpen: true,
@@ -137,6 +151,10 @@ export const useTableUi = create<TableUiState>((set) => ({
   setViewAs: (viewAsUserId) => set({ viewAsUserId }),
   changeView: (kind) => set((state) => ({ viewCommand: { kind, id: (state.viewCommand?.id ?? 0) + 1 } })),
   showPing: (ping) => set((state) => ({ ping: { ...ping, id: (state.ping?.id ?? 0) + 1 } })),
+  showEffect: (effect) => set((state) => ({ effect: { ...effect, id: (state.effect?.id ?? 0) + 1, at: Date.now() } })),
+  // Picking another effect forgets a half-made projectile.
+  setEffectChoice: (choice) => set({ ...choice, effectOrigin: null }),
+  setEffectOrigin: (effectOrigin) => set({ effectOrigin }),
   toggleMinimap: () => set((state) => ({ minimapOpen: !state.minimapOpen })),
   setDiceTrayOpen: (diceTrayOpen) => set({ diceTrayOpen }),
   setInitiativeOpen: (initiativeOpen) => set({ initiativeOpen }),
@@ -144,7 +162,8 @@ export const useTableUi = create<TableUiState>((set) => ({
   setDraw: (draw) => set((state) => ({ draw: { ...state.draw, ...draw } })),
   setTab: (tab) => set({ tab }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
-  setTool: (tool) => set({ tool }),
+  // Leaving the effect tool forgets a half-made projectile.
+  setTool: (tool) => set({ tool, effectOrigin: null }),
   selectToken: (selectedTokenId) => set({ selectedTokenId, selectedTokenIds: selectedTokenId ? [selectedTokenId] : [] }),
   toggleToken: (tokenId) =>
     set((state) => {

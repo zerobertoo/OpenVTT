@@ -215,7 +215,25 @@
     "pauseVideo": "Pausar animação do mapa",
     "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele.",
     "draw": "Desenhar",
-    "light": "Luzes"
+    "light": "Luzes",
+    "effect": "Efeitos"
+  },
+  "effects": {
+    "options": "Opções de efeito",
+    "kind": "Efeito",
+    "amount": "Valor",
+    "radius": "Raio (casas)",
+    "hint": "Clique no mapa para mostrar o efeito para todos.",
+    "hintOrigin": "Clique onde o disparo começa.",
+    "hintTarget": "Agora clique onde ele acerta.",
+    "kinds": {
+      "arrive": "Chegada",
+      "vanish": "Desaparecimento",
+      "damage": "Dano",
+      "heal": "Cura",
+      "blast": "Explosão",
+      "projectile": "Projétil"
+    }
   },
   "light": {
     "options": "Opções da luz",
@@ -543,12 +561,22 @@
     "video": "Vídeo",
     "insert": "Inserir no texto"
   },
+  "environment": {
+    "title": "Atmosfera",
+    "time": "Horário do dia",
+    "weather": "Clima",
+    "season": "Estação",
+    "timeOptions": { "day": "Dia", "dawn": "Amanhecer", "dusk": "Entardecer", "night": "Noite" },
+    "weatherOptions": { "clear": "Limpo", "rain": "Chuva", "storm": "Tempestade", "snow": "Neve", "fog": "Neblina" },
+    "seasonOptions": { "none": "Nenhuma", "spring": "Primavera", "summer": "Verão", "autumn": "Outono", "winter": "Inverno" }
+  },
   "alerts": {
     "yourTurn": "Sua vez!",
     "playMusic": "Tocar a música da mesa",
     "sounds": "Sons",
     "soundsHint": "Um sinal sonoro quando for sua vez ou alguém sussurrar para você.",
-    "musicVolume": "Volume da música da mesa",
+    "musicVolume": "Seu volume da música (ajuste fino)",
+    "masterVolume": "Volume da música para todos",
     "music": "Música da mesa",
     "track": "Faixa",
     "noTrack": "Escolha uma faixa",

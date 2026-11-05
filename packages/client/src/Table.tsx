@@ -9,6 +9,8 @@ import { DiceOverlay } from "./components/table/DiceOverlay";
 import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
 import { DrawOptions } from "./components/table/DrawOptions";
+import { EffectOptions } from "./components/table/EffectOptions";
+import { EnvironmentOverlay } from "./components/table/EnvironmentOverlay";
 import { FloorSwitcher } from "./components/table/FloorSwitcher";
 import { LightOptions } from "./components/table/LightOptions";
 import { MapLayersMenu } from "./components/table/MapLayersMenu";
@@ -102,6 +104,10 @@ export function Table({ worldId, user }: Props) {
   const [selectedLight, setSelectedLight] = useState<number | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the selection only has to reset when the tool or the viewed floor changes
   useEffect(() => setSelectedLight(null), [tool, gmViewSceneId, gmViewFloorId]);
+  // A projectile started on one scene or floor is not finished on another.
+  const activeSceneId = state?.activeSceneId;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the scene or floor on screen changes
+  useEffect(() => useTableUi.getState().setEffectOrigin(null), [gmViewSceneId, gmViewFloorId, activeSceneId]);
 
   // A connection that stays down may mean the person lost access (removed, world deleted, session ended),
   // not only a bad network. Re-checking makes the router show the right screen instead of retrying forever.
@@ -288,6 +294,18 @@ export function Table({ worldId, user }: Props) {
               layers={viewAs || view === "tv" ? PLAYER_LAYERS : layers}
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
               onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus, floorId: isGm ? floor?.id : undefined })}
+              onEffectPoint={(x, y) => {
+                if (!isGm || viewAs) return;
+                const { effectKind: kind, effectValue: value, effectOrigin: origin, setEffectOrigin } = useTableUi.getState();
+                const base = { type: "map.effect", kind, floorId: floor?.id } as const;
+                // A projectile takes two clicks: where it starts, then where it lands.
+                if (kind === "projectile") {
+                  if (!origin) return setEffectOrigin({ x, y });
+                  setEffectOrigin(null);
+                  return send({ ...base, x: origin.x, y: origin.y, toX: x, toY: y });
+                }
+                send({ ...base, x, y, ...(kind !== "arrive" && kind !== "vanish" && { value }) });
+              }}
               formatDistance={(cells) => format.distance(cells, scene)}
               rulerShape={rulerShape}
               diagonalRule={diagonalRule}
@@ -316,6 +334,8 @@ export function Table({ worldId, user }: Props) {
             <EmptyMap isGm={isGm} />
           )}
 
+          {scene && <EnvironmentOverlay environment={state.environment} />}
+
           {/* Secret rolls and whispers must not animate or chime on the shared screen. */}
           {view !== "tv" && <DiceOverlay messages={state.messages} userId={user.id} />}
           {view !== "tv" && <TableSounds state={state} userId={user.id} />}
@@ -336,6 +356,7 @@ export function Table({ worldId, user }: Props) {
             <>
               <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
               {tool === "ruler" && <RulerOptions scene={scene} />}
+              {tool === "effect" && isGm && !viewAs && <EffectOptions />}
               {tool === "draw" && scene && (
                 <DrawOptions
                   isGm={isGm}
