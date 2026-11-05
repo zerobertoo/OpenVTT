@@ -77,6 +77,14 @@ export interface AppOptions {
   /** Copies the database into `<data>/backups` this often; off when not given. */
   backupIntervalHours?: number;
   backupKeep?: number;
+  /** New accounts one address may register per minute (default 10). */
+  registrationsPerMinute?: number;
+  /** Chat messages one account may send per minute (default 120). */
+  chatMessagesPerMinute?: number;
+  /** Most worlds one account may run as game master (default 25). */
+  maxWorldsPerUser?: number;
+  /** Total file storage of one world in bytes (default 2 GiB). */
+  maxWorldAssetBytes?: number;
   /** How often table sockets are pinged; one that stays silent for two rounds is dropped (default 30 000). */
   webSocketHeartbeatMs?: number;
   /**
@@ -86,14 +94,49 @@ export interface AppOptions {
   trustProxy?: boolean;
 }
 
+/**
+ * Everything the app loads comes from its own origin (scripts, styles, uploaded images and media, and the table
+ * socket). Styles allow inline because the interface sets some through the `style` attribute; scripts do not.
+ * `blob:` is for decoded map images and media, and `wasm-unsafe-eval` for the 3D and map engines.
+ */
+const SECURITY_HEADERS = {
+  "content-security-policy": [
+    "default-src 'self'",
+    "script-src 'self' 'wasm-unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "media-src 'self' blob:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; "),
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "same-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+} as const;
+
 export function buildApp(options: AppOptions) {
   const db = openDatabase(options.dbPath);
   const dataDir =
     options.dataDir ?? (options.dbPath === ":memory:" ? mkdtempSync(join(tmpdir(), "openvtt-data-")) : dirname(resolve(options.dbPath)));
   const maxVideoBytes = options.maxVideoBytes ?? DEFAULT_MAX_VIDEO_BYTES;
-  const s = createServices(db, dataDir, options.systemsDir ?? resolve(import.meta.dirname, "../../../systems"), { maxVideoBytes });
+  const s = createServices(
+    db,
+    dataDir,
+    options.systemsDir ?? resolve(import.meta.dirname, "../../../systems"),
+    { maxVideoBytes, maxWorldBytes: options.maxWorldAssetBytes },
+    options.maxWorldsPerUser,
+  );
   const hub = new Hub(s, SESSION_COOKIE, options.webSocketHeartbeatMs);
   const app = Fastify({ logger: false, trustProxy: options.trustProxy ?? false, forceCloseConnections: true });
+
+  app.addHook("onSend", async (_req, reply) => {
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) reply.header(name, value);
+  });
 
   app.register(fastifyCookie);
   // Opt-in per route (`config.rateLimit`); a client IP behind a reverse proxy is the proxy's, so limits are generous.
@@ -173,6 +216,13 @@ export function buildApp(options: AppOptions) {
     return ctx;
   };
 
+  /** A per-minute limit counted per account (its session), so people sharing one address do not use up each other's. */
+  const perAccountLimit = (max: number) => ({
+    max,
+    timeWindow: "1 minute",
+    keyGenerator: (req: FastifyRequest) => req.cookies[SESSION_COOKIE] ?? req.ip,
+  });
+
   const startSession = (reply: FastifyReply, user: UserDto) => {
     reply.setCookie(SESSION_COOKIE, s.auth.createSession(user.id), {
       httpOnly: true,
@@ -188,9 +238,17 @@ export function buildApp(options: AppOptions) {
 
   // ---- accounts -----------------------------------------------------------------------------
 
-  app.post("/api/auth/register", async (req, reply) => {
-    const { username, password } = credentialsSchema.parse(req.body);
-    return startSession(reply, await s.auth.register(username, password));
+  // Each registration costs a password hash, and the limit is per address (the real one only when `trustProxy` is on).
+  // Like the routes below, it lives in its own scope so that it loads after the rate-limit plugin.
+  app.register(async (scope) => {
+    scope.post(
+      "/api/auth/register",
+      { config: { rateLimit: { max: options.registrationsPerMinute ?? 10, timeWindow: "1 minute" } } },
+      async (req, reply) => {
+        const { username, password } = credentialsSchema.parse(req.body);
+        return startSession(reply, await s.auth.register(username, password));
+      },
+    );
   });
 
   // Registered in its own scope so it loads after the rate-limit plugin, which only limits routes added once it is ready.
@@ -319,20 +377,22 @@ export function buildApp(options: AppOptions) {
 
   // ---- assets -------------------------------------------------------------------------------
 
-  app.post<{ Params: { id: string } }>("/api/worlds/:id/assets", async (req, reply) => {
-    requireGm(req, req.params.id);
-    if (Buffer.isBuffer(req.body)) {
-      const asset = s.assets.save(req.params.id, req.body);
+  app.register(async (scope) => {
+    scope.post<{ Params: { id: string } }>("/api/worlds/:id/assets", { config: { rateLimit: perAccountLimit(60) } }, async (req, reply) => {
+      requireGm(req, req.params.id);
+      if (Buffer.isBuffer(req.body)) {
+        const asset = s.assets.save(req.params.id, req.body);
+        return { id: asset.id, mime: asset.mime };
+      }
+      if (!(req.body instanceof Readable)) throw new AppError("asset_invalid");
+      // Refuse early when the declared size is already too big, without reading the body.
+      if (Number(req.headers["content-length"] ?? 0) > maxVideoBytes) {
+        reply.header("connection", "close");
+        throw new AppError("asset_too_large");
+      }
+      const asset = await s.assets.saveMediaStream(req.params.id, req.body);
       return { id: asset.id, mime: asset.mime };
-    }
-    if (!(req.body instanceof Readable)) throw new AppError("asset_invalid");
-    // Refuse early when the declared size is already too big, without reading the body.
-    if (Number(req.headers["content-length"] ?? 0) > maxVideoBytes) {
-      reply.header("connection", "close");
-      throw new AppError("asset_too_large");
-    }
-    const asset = await s.assets.saveMediaStream(req.params.id, req.body);
-    return { id: asset.id, mime: asset.mime };
+    });
   });
 
   app.get<{ Params: { id: string } }>("/api/worlds/:id/assets", async (req) => {
@@ -682,15 +742,21 @@ export function buildApp(options: AppOptions) {
 
   // ---- chat ---------------------------------------------------------------------------------
 
-  app.post<{ Params: { id: string } }>("/api/worlds/:id/messages", async (req) => {
-    const worldId = req.params.id;
-    const { user, viewer } = requireParticipant(req, worldId);
-    const input = sendMessageSchema.parse(req.body);
-    const member = s.worlds.member(worldId, user.id)!;
-    if (member.muted) throw new AppError("forbidden");
-    const message = s.chat.send(worldId, { userId: user.id, displayName: member.displayName, role: viewer.role }, input);
-    hub.publishMessage(worldId, message);
-    return message;
+  app.register(async (scope) => {
+    scope.post<{ Params: { id: string } }>(
+      "/api/worlds/:id/messages",
+      { config: { rateLimit: perAccountLimit(options.chatMessagesPerMinute ?? 120) } },
+      async (req) => {
+        const worldId = req.params.id;
+        const { user, viewer } = requireParticipant(req, worldId);
+        const input = sendMessageSchema.parse(req.body);
+        const member = s.worlds.member(worldId, user.id)!;
+        if (member.muted) throw new AppError("forbidden");
+        const message = s.chat.send(worldId, { userId: user.id, displayName: member.displayName, role: viewer.role }, input);
+        hub.publishMessage(worldId, message);
+        return message;
+      },
+    );
   });
 
   app.get<{ Params: { id: string } }>("/api/worlds/:id/log.md", async (req, reply) => {

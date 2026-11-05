@@ -14,6 +14,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - `OPENVTT_TRUST_PROXY` makes rate limits and login lockouts use each visitor's real address behind a reverse proxy. `compose.dokploy.yaml` turns it on.
 
+- Limits against abuse on a public instance: a cap on worlds per account and on file storage per world, a per-address limit on registrations, per-account limits on chat and uploads, and table sockets that flood, stall or stop answering pings are dropped. Table sockets from pages on other sites are refused. All of them are configurable (see Configuration).
+- Security headers on every answer, including a Content-Security-Policy that only allows the app's own scripts, styles and media.
+
 ### Fixed
 
 - Shutting down (`SIGTERM`/`SIGINT`, or closing the app with a table open or a request in flight) no longer hangs, and `PORT` is validated at startup.

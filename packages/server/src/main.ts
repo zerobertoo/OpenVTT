@@ -18,6 +18,9 @@ const app = buildApp({
   maxVideoBytes: positiveIntFromEnv("OPENVTT_MAX_VIDEO_BYTES"),
   secureCookies: process.env.OPENVTT_SECURE_COOKIES === "1",
   trustProxy: process.env.OPENVTT_TRUST_PROXY === "1",
+  registrationsPerMinute: positiveIntFromEnv("OPENVTT_REGISTRATIONS_PER_MINUTE"),
+  maxWorldsPerUser: positiveIntFromEnv("OPENVTT_MAX_WORLDS_PER_USER"),
+  maxWorldAssetBytes: positiveIntFromEnv("OPENVTT_MAX_WORLD_ASSET_BYTES"),
   backupIntervalHours: positiveIntFromEnv("OPENVTT_BACKUP_INTERVAL_HOURS"),
   backupKeep: positiveIntFromEnv("OPENVTT_BACKUP_KEEP"),
 });

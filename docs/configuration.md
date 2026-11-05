@@ -9,6 +9,9 @@ OpenVTT is configured with environment variables only. Unset means the default. 
 | `OPENVTT_DB` | `data/openvtt.db` | SQLite file. Uploaded assets (`assets/`), installed systems (`systems/`) and backups (`backups/`) are stored next to it |
 | `OPENVTT_SECURE_COOKIES` | off | Set to `1` when users reach the server over HTTPS. Without it the session cookie is not marked `Secure` |
 | `OPENVTT_TRUST_PROXY` | off | Set to `1` when a reverse proxy is the only way to reach the server. Rate limits and login lockouts then use each visitor's real address (`X-Forwarded-For`) instead of the proxy's. Leave it off when the port is reachable directly, because anyone could then fake their address |
+| `OPENVTT_REGISTRATIONS_PER_MINUTE` | `10` | New accounts one address may register per minute. Raise it for an event where many people sign up from one network (set `OPENVTT_TRUST_PROXY` so addresses are told apart behind a proxy) |
+| `OPENVTT_MAX_WORLDS_PER_USER` | `25` | Worlds one account may run as game master, counting imports. Past it the server answers that the limit was reached |
+| `OPENVTT_MAX_WORLD_ASSET_BYTES` | `2147483648` (2 GiB) | Total size of the uploaded files (maps, images, music) of one world. Uploads past it are refused; delete files you no longer use, or raise the limit |
 | `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video or music file (MP3, Ogg). Images stay capped at 15 MiB |
 | `OPENVTT_BACKUP_INTERVAL_HOURS` | off | Copy the database into `backups/` every N hours (at most 504) |
 | `OPENVTT_BACKUP_KEEP` | `7` | How many copies to keep; older ones are deleted |

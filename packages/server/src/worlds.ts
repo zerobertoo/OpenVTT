@@ -15,11 +15,19 @@ import { AppError } from "./errors.ts";
 
 const DEFAULT_COLORS = ["#e4572e", "#17bebb", "#ffc914", "#76b041", "#7768ae", "#f18f01"];
 
+/** How many worlds one account may run as game master unless the server says otherwise. */
+export const DEFAULT_MAX_WORLDS_PER_USER = 25;
+
 export class WorldService {
-  constructor(private db: Db) {}
+  constructor(
+    private db: Db,
+    private maxWorldsPerUser = DEFAULT_MAX_WORLDS_PER_USER,
+  ) {}
 
   /** Creator becomes GM of the new world. */
   create(user: UserDto, name: string, systemId = "generic"): WorldSummaryDto {
+    const { n } = this.db.prepare("SELECT COUNT(*) AS n FROM members WHERE user_id = ? AND role = 'gm'").get(user.id) as { n: number };
+    if (n >= this.maxWorldsPerUser) throw new AppError("quota_exceeded");
     const id = randomUUID();
     transaction(this.db, () => {
       this.db.prepare("INSERT INTO worlds (id, name, system_id, created_at) VALUES (?, ?, ?, ?)").run(id, name, systemId, Date.now());

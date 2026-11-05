@@ -31,6 +31,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}/api/systems`,
     // /api/systems answers 401 without a session, which still proves the server is up.
     reuseExistingServer: false,
-    env: { PORT: String(PORT), OPENVTT_DB: TEMP_DB },
+    env: { PORT: String(PORT), OPENVTT_DB: TEMP_DB, OPENVTT_REGISTRATIONS_PER_MINUTE: "10000" },
   },
 });

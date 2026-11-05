@@ -11,6 +11,7 @@ const STATUS: Record<ErrorCode, number> = {
   invite_invalid: 404,
   asset_invalid: 400,
   asset_too_large: 413,
+  quota_exceeded: 403,
   roll_invalid: 400,
   template_invalid: 400,
   import_invalid: 400,

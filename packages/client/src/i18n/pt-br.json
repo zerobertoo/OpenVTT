@@ -506,6 +506,7 @@
     "invite_invalid": "Este link de convite não é válido.",
     "asset_invalid": "Esse arquivo não é uma imagem ou vídeo válido.",
     "asset_too_large": "Esse arquivo é grande demais.",
+    "quota_exceeded": "Isso passaria do limite definido pelo servidor.",
     "roll_invalid": "Essa notação de dados não é válida.",
     "template_invalid": "Esse modelo de ficha não é válido.",
     "import_invalid": "Não foi possível importar esse arquivo.",

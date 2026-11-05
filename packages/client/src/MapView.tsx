@@ -12,6 +12,8 @@ import {
   type Ticker,
   VideoSource,
 } from "pixi.js";
+// Pixi builds some drawing code at run time, which the server's Content-Security-Policy forbids; this swaps in the fixed versions.
+import "pixi.js/unsafe-eval";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "./api";
