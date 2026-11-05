@@ -22,11 +22,12 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
-import { rulerDistanceInCells, snapTokenCorner } from "./lib/gridGeometry";
+import { snapTokenCorner } from "./lib/gridGeometry";
 import { hexCentersIn, hexCorners, hexOrientationOf } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
 import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
+import { assetIdsInUse, extendSketch, isDeliberateStroke, rulerReadout, tokensInBox, zoomAtCursor } from "./lib/mapInteraction";
 import { drawingView, drawStatus, hexToNumber, renderShape } from "./lib/mapShapes";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
@@ -380,11 +381,7 @@ export function MapView(props: Props) {
         if (sketch) {
           const point = toWorld(e);
           const { draw, scene } = props_();
-          if (draw.kind === "free") {
-            const [lastX, lastY] = sketch.slice(-2) as [number, number];
-            // A point every few screen pixels is plenty, and keeps long strokes under the server's limit.
-            if (Math.hypot(point.x - lastX, point.y - lastY) * world.scale.x >= 4 && sketch.length < 3998) sketch.push(point.x, point.y);
-          } else sketch = [sketch[0]!, sketch[1]!, point.x, point.y];
+          sketch = extendSketch(sketch, draw.kind, point, world.scale.x);
           ruler.clear();
           if (draw.kind !== "erase") renderShape(ruler, { kind: draw.kind, points: sketch, color: draw.color }, scene?.gridSize ?? 70);
           return;
@@ -405,25 +402,21 @@ export function MapView(props: Props) {
           const area = { color: 0xffc914, alpha: 0.18 };
           const dx = end.x - rulerStart.x;
           const dy = end.y - rulerStart.y;
-          const cellsOf = (pixels: number) => (scene ? pixels / scene.gridSize : 0);
           ruler.clear();
           if (rulerShape === "circle") {
             ruler.circle(rulerStart.x, rulerStart.y, Math.hypot(dx, dy)).fill(area).stroke(line);
             ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-            label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
           } else if (rulerShape === "cone") {
             ruler
               .poly(conePoints(rulerStart, end).flatMap((p) => [p.x, p.y]))
               .fill(area)
               .stroke(line);
-            label.text = formatDistance(cellsOf(Math.hypot(dx, dy)));
           } else if (rulerShape === "rectangle") {
             ruler.rect(Math.min(rulerStart.x, end.x), Math.min(rulerStart.y, end.y), Math.abs(dx), Math.abs(dy)).fill(area).stroke(line);
-            label.text = `${formatDistance(cellsOf(Math.abs(dx)))} × ${formatDistance(cellsOf(Math.abs(dy)))}`;
           } else {
             ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-            label.text = formatDistance(scene ? rulerDistanceInCells(scene, rulerStart, end, diagonalRule) : 0);
           }
+          label.text = rulerReadout(rulerShape, rulerStart, end, scene, diagonalRule, formatDistance);
           label.scale.set(1 / world.scale.x);
           label.position.set(end.x + 8 / world.scale.x, end.y + 8 / world.scale.x);
         }
@@ -440,24 +433,16 @@ export function MapView(props: Props) {
           sketch = null;
           ruler.clear();
           const { draw } = props_();
-          const long = points.length >= 4 && Math.hypot(points.at(-2)! - points[0]!, points.at(-1)! - points[1]!) * world.scale.x >= 3;
-          if (long && draw.kind !== "erase") props_().onDraw({ kind: draw.kind, layer: draw.layer, points, color: draw.color, text: "" });
+          if (isDeliberateStroke(points, world.scale.x) && draw.kind !== "erase")
+            props_().onDraw({ kind: draw.kind, layer: draw.layer, points, color: draw.color, text: "" });
         }
         if (boxStart) {
           const end = toWorld(e);
-          const [x1, x2] = [Math.min(boxStart.x, end.x), Math.max(boxStart.x, end.x)];
-          const [y1, y2] = [Math.min(boxStart.y, end.y), Math.max(boxStart.y, end.y)];
+          const corner = boxStart;
           boxStart = null;
           ruler.clear();
           const { scene, tokens } = props_();
-          if (scene) {
-            const inside = tokens.filter((tk) => {
-              if (tk.sceneId !== scene.id) return false;
-              const half = (tk.size * scene.gridSize) / 2;
-              return tk.x + half >= x1 && tk.x + half <= x2 && tk.y + half >= y1 && tk.y + half <= y2;
-            });
-            props_().onSelectMany(inside.map((tk) => tk.id));
-          }
+          if (scene) props_().onSelectMany(tokensInBox(tokens, scene, corner, end));
         }
         if (rulerStart) {
           // Ruler stays visible until the next measurement or tool change.
@@ -533,13 +518,15 @@ export function MapView(props: Props) {
           e.preventDefault();
           const rect = element.getBoundingClientRect();
           const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-          const before = world.toLocal(cursor);
-          const next = Math.min(
+          const view = zoomAtCursor(
+            { scale: world.scale.x, x: world.x, y: world.y },
+            cursor,
+            e.deltaY,
+            minZoomFor(app.screen, latest.current.scene),
             MAX_ZOOM,
-            Math.max(minZoomFor(app.screen, latest.current.scene), world.scale.x * Math.exp(-e.deltaY * 0.0015)),
           );
-          world.scale.set(next);
-          world.position.set(cursor.x - before.x * next, cursor.y - before.y * next);
+          world.scale.set(view.scale);
+          world.position.set(view.x, view.y);
         },
         { passive: false },
       );
@@ -548,7 +535,7 @@ export function MapView(props: Props) {
     const props_ = () => latest.current;
     const assetsInUse = () => {
       const { floor, ghostFloor, tokens } = props_();
-      return new Set([floor?.assetId, ghostFloor?.assetId, ...tokens.map((t) => t.assetId)].filter((id): id is string => Boolean(id)));
+      return assetIdsInUse(floor, ghostFloor, tokens);
     };
 
     /** Scene outline, tokens as dots and the part of the map on screen, on the overview canvas. */
