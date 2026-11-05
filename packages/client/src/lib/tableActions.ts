@@ -42,11 +42,28 @@ export function undoableActions(
   };
   const apply = (step: () => Promise<unknown>, entry: UndoEntry) => {
     // Recorded right away so an immediate undo works; the queue makes that undo wait for this step's outcome.
-    const forget = record({ undo: () => run(entry.undo), redo: () => run(entry.redo) });
+    let refused = false;
+    const unlessRefused = (direction: () => Promise<unknown>) => () => run(() => (refused ? Promise.resolve() : direction()));
+    const forget = record({ undo: unlessRefused(entry.undo), redo: unlessRefused(entry.redo) });
     void run(step).catch((error) => {
+      refused = true;
       forget();
       toastActionFailure(error);
     });
+  };
+  // Like `apply` for a change sent per item: undo and redo cover only the items the server accepted.
+  const applyToEach = <T>(items: T[], change: (item: T) => Promise<unknown>, undoItem: (item: T) => Promise<unknown>) => {
+    let accepted = items;
+    const forAccepted = (act: (item: T) => Promise<unknown>) => () => Promise.all(accepted.map(act));
+    const step = async () => {
+      const results = await Promise.allSettled(items.map(change));
+      accepted = items.filter((_, index) => results[index]?.status === "fulfilled");
+      const failure = results.find((result) => result.status === "rejected");
+      if (!failure) return;
+      if (accepted.length === 0) throw failure.reason;
+      toastActionFailure(failure.reason);
+    };
+    apply(step, { undo: forAccepted(undoItem), redo: forAccepted(change) });
   };
 
   const createToken = async (token: TokenDto) => {
@@ -133,14 +150,12 @@ export function undoableActions(
     },
 
     rotate(tokens: TokenDto[], degrees: number) {
-      const turn = (by: number) => () =>
-        Promise.all(tokens.map((t) => api.updateToken(current(t.id), { rotation: (((t.rotation + by) % 360) + 360) % 360 })));
-      apply(turn(degrees), { undo: turn(0), redo: turn(degrees) });
+      const turn = (by: number) => (t: TokenDto) => api.updateToken(current(t.id), { rotation: (((t.rotation + by) % 360) + 360) % 360 });
+      applyToEach(tokens, turn(degrees), turn(0));
     },
 
     remove(tokens: TokenDto[]) {
-      const drop = () => Promise.all(tokens.map((t) => api.deleteToken(current(t.id))));
-      apply(drop, { undo: () => Promise.all(tokens.map(createToken)), redo: drop });
+      applyToEach(tokens, (t) => api.deleteToken(current(t.id)), createToken);
     },
 
     draw(sceneId: string, floorId: string, drawing: NewDrawing) {

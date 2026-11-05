@@ -1,5 +1,5 @@
-import type { DrawingDto } from "@openvtt/shared";
-import { beforeEach, expect, it, vi } from "vitest";
+import type { DrawingDto, TokenDto } from "@openvtt/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../api";
 import { toastActionFailure } from "./actionFailure";
 import { undoableActions } from "./tableActions";
@@ -10,6 +10,8 @@ vi.mock("../api", () => ({
   api: {
     createDrawing: vi.fn(),
     deleteDrawing: vi.fn(),
+    createToken: vi.fn(),
+    deleteToken: vi.fn(),
     updateScene: vi.fn(),
     updateToken: vi.fn(),
     createActor: vi.fn(),
@@ -50,6 +52,65 @@ it("forgets a change the server refused and reports it", async () => {
   expect(useUndo.getState().past).toHaveLength(0);
   expect(await useUndo.getState().undo()).toBe(false);
   expect(api.deleteDrawing).not.toHaveBeenCalled();
+});
+
+it("drops an undo pressed while the change was pending once the server refuses that change", async () => {
+  let refuse: (reason: Error) => void = () => undefined;
+  vi.mocked(api.createDrawing).mockImplementationOnce(() => new Promise((_, reject) => (refuse = reject)) as never);
+  actions().draw("s", "f", line);
+  const undone = useUndo.getState().undo();
+  await vi.waitFor(() => expect(api.createDrawing).toHaveBeenCalled());
+  refuse(new Error("refused"));
+  await undone;
+  expect(api.deleteDrawing).not.toHaveBeenCalled();
+  expect(useUndo.getState().future).toHaveLength(0);
+});
+
+describe("a change to several tokens that only some of them accept", () => {
+  const tokenA = { id: "a", name: "A", rotation: 0 } as TokenDto;
+  const tokenB = { id: "b", name: "B", rotation: 0 } as TokenDto;
+  const gone = new Error("gone");
+
+  beforeEach(() => {
+    vi.mocked(api.deleteToken)
+      .mockReset()
+      .mockImplementation(async (id) => {
+        if (id === "b") throw gone;
+        return undefined as never;
+      });
+    vi.mocked(api.createToken)
+      .mockReset()
+      .mockResolvedValue({ id: "a2" } as never);
+    vi.mocked(api.updateToken)
+      .mockReset()
+      .mockImplementation(async (id) => {
+        if (id === "b") throw gone;
+        return {} as never;
+      });
+  });
+
+  it("reports the failure and undoes the deletion of the ones that were deleted", async () => {
+    actions().remove([tokenA, tokenB]);
+    await vi.waitFor(() => expect(toastActionFailure).toHaveBeenCalledWith(gone));
+    expect(useUndo.getState().past).toHaveLength(1);
+    await useUndo.getState().undo();
+    expect(vi.mocked(api.createToken).mock.calls).toEqual([["w", { name: "A" }]]);
+  });
+
+  it("turns back only the ones that turned", async () => {
+    actions().rotate([tokenA, tokenB], 90);
+    await vi.waitFor(() => expect(api.updateToken).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(useUndo.getState().past).toHaveLength(1));
+    vi.mocked(api.updateToken).mockClear();
+    await useUndo.getState().undo();
+    expect(vi.mocked(api.updateToken).mock.calls).toEqual([["a", { rotation: 0 }]]);
+  });
+
+  it("forgets the change when none of them accepted it", async () => {
+    vi.mocked(api.deleteToken).mockReset().mockRejectedValue(gone);
+    actions().remove([tokenA, tokenB]);
+    await vi.waitFor(() => expect(useUndo.getState().past).toHaveLength(0));
+  });
 });
 
 it("follows ids through several recreations", async () => {
