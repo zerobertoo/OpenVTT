@@ -23,7 +23,7 @@ import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./li
 import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
-import { playEffect } from "./lib/mapEffects";
+import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
@@ -1165,6 +1165,22 @@ export function MapView(props: Props) {
     if (!e || !effect || effect.sceneId !== latest.current.scene?.id || effect.floorId !== latest.current.floor?.id) return;
     return playEffect(e.world, e.app.ticker, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, [effect, latest]);
+
+  // Tokens that arrive, lose hit points or heal show it on every screen, worked out from the state each already has.
+  const seenTokens = useRef<{ floorKey: string; tokens: Map<string, TokenDto> } | null>(null);
+  const { tokens: floorTokens, scene: currentScene, floor: currentFloor } = props;
+  useEffect(() => {
+    const e = engine.current;
+    if (!e || !currentScene || !currentFloor) return;
+    const floorKey = `${currentScene.id}/${currentFloor.id}`;
+    const seen = seenTokens.current;
+    seenTokens.current = { floorKey, tokens: new Map(floorTokens.map((tk) => [tk.id, tk])) };
+    // Opening a map or switching floors shows what is already there, not a burst of arrivals.
+    if (!seen || seen.floorKey !== floorKey) return;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for (const change of tokenChangeEffects(seen.tokens, floorTokens, currentScene.gridSize, !currentScene.visionEnabled))
+      playEffect(e.world, e.app.ticker, { ...change, sceneId: currentScene.id, floorId: currentFloor.id }, currentScene.gridSize, reduced);
+  }, [floorTokens, currentScene, currentFloor]);
 
   useEffect(() => {
     engine.current?.ruler.clear();

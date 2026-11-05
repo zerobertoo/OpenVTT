@@ -1,4 +1,4 @@
-import type { EffectDto, EffectKind } from "@openvtt/shared";
+import type { EffectDto, EffectKind, TokenDto } from "@openvtt/shared";
 import { Container, Graphics, Text, type Ticker } from "pixi.js";
 
 const GOLD = 0xffc914;
@@ -17,6 +17,26 @@ function around(count: number, radius: number, turn = 0) {
     const angle = (i / count) * Math.PI * 2 + turn;
     return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
   });
+}
+
+/**
+ * The effects worth showing when the tokens on a floor change: a token that appeared arrives, and one whose hit points
+ * moved takes damage or heals. Every screen works this out from the state it already has, so nothing is sent.
+ * `arrivals` is off when tokens come and go with sight, which would make every step of a player flash.
+ */
+export function tokenChangeEffects(before: ReadonlyMap<string, TokenDto>, after: readonly TokenDto[], grid: number, arrivals: boolean) {
+  const effects: Pick<EffectDto, "kind" | "x" | "y" | "value">[] = [];
+  for (const token of after) {
+    const x = token.x + (token.size * grid) / 2;
+    const y = token.y + (token.size * grid) / 2;
+    const old = before.get(token.id);
+    if (!old) {
+      if (arrivals) effects.push({ kind: "arrive", x, y });
+    } else if (old.hp !== null && token.hp !== null && old.hp !== token.hp) {
+      effects.push({ kind: token.hp < old.hp ? "damage" : "heal", x, y, value: Math.abs(token.hp - old.hp) });
+    }
+  }
+  return effects;
 }
 
 interface Effect {
