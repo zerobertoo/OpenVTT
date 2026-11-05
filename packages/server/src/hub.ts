@@ -1,12 +1,15 @@
 import type { IncomingMessage, Server } from "node:http";
 import {
+  AREA_EFFECTS,
   EFFECT_KINDS,
   type ErrorCode,
   floorOf,
   type MessageDto,
+  NUMBERED_EFFECTS,
   type SceneDto,
   type ServerMessage,
   type TokenDto,
+  TRAVELLING_EFFECTS,
   tableRole,
   type VisionDto,
   type WorldStateDto,
@@ -354,10 +357,11 @@ export class Hub {
   private effect(conn: Connection, msg: Extract<z.infer<typeof clientMessageSchema>, { type: "map.effect" }>) {
     if (conn.viewer.role !== "gm") return;
     const inside = (n: number, max: number) => Math.min(Math.max(n, 0), max);
-    // Only what the kind uses is relayed: a landing spot for a projectile, a number for damage, healing and blasts.
-    const lands = msg.kind === "projectile" && msg.toX !== undefined && msg.toY !== undefined;
-    if (msg.kind === "projectile" && !lands) return;
-    const hasNumber = (msg.kind === "damage" || msg.kind === "heal" || msg.kind === "blast") && msg.value !== undefined;
+    // Only what the kind uses is relayed: a landing spot for what travels, a number for hits and areas.
+    const travels = TRAVELLING_EFFECTS.includes(msg.kind);
+    const lands = travels && msg.toX !== undefined && msg.toY !== undefined;
+    if (travels && !lands) return;
+    const hasNumber = NUMBERED_EFFECTS.includes(msg.kind) && msg.value !== undefined;
     this.relayOnFloor(
       conn,
       msg.floorId,
@@ -370,8 +374,8 @@ export class Hub {
           x: inside(msg.x, scene.width),
           y: inside(msg.y, scene.height),
           ...(lands && { toX: inside(msg.toX!, scene.width), toY: inside(msg.toY!, scene.height) }),
-          // A blast's number is its radius in cells; the others show the size of the hit.
-          ...(hasNumber && { value: msg.kind === "blast" ? Math.min(Math.max(msg.value!, 1), 10) : Math.abs(msg.value!) }),
+          // An area's number is its radius in cells; the others show the size of the hit.
+          ...(hasNumber && { value: AREA_EFFECTS.includes(msg.kind) ? Math.min(Math.max(msg.value!, 1), 10) : Math.abs(msg.value!) }),
         },
       }),
       "lastEffectAt",

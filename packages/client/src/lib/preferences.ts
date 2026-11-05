@@ -11,6 +11,9 @@ interface PreferencesState {
   /** Throw solid dice in the overlay instead of flat ones (downloads the 3D library on first roll). */
   dice3d: boolean;
   setDice3d: (on: boolean) => void;
+  /** Play the entrance animation over the loading screen when joining a table. */
+  entryAnimation: boolean;
+  setEntryAnimation: (on: boolean) => void;
   setMeasure: (measure: Partial<MeasurePrefs>) => void;
   /** What the ruler draws and how it counts diagonals on a square grid. */
   rulerShape: RulerShape;
@@ -37,6 +40,8 @@ export const usePreferences = create<PreferencesState>()(
       setDiceOverlay: (diceOverlay) => set({ diceOverlay }),
       dice3d: true,
       setDice3d: (dice3d) => set({ dice3d }),
+      entryAnimation: true,
+      setEntryAnimation: (entryAnimation) => set({ entryAnimation }),
       setMeasure: (measure) => set((state) => ({ measure: { ...state.measure, ...measure } })),
       rulerShape: "line",
       setRulerShape: (rulerShape) => set({ rulerShape }),

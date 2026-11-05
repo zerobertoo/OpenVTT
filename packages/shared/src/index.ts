@@ -430,8 +430,14 @@ export type ServerMessage =
   | { type: "error"; code: ErrorCode };
 
 /** What a visual effect on the map looks like. `projectile` travels from (x, y) to (toX, toY). */
-export const EFFECT_KINDS = ["arrive", "vanish", "damage", "heal", "blast", "projectile"] as const;
+export const EFFECT_KINDS = ["arrive", "vanish", "damage", "heal", "blast", "projectile", "slash", "bolt", "frost", "fireball"] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
+/** Effects that travel from a start to a landing spot, so they need both. */
+export const TRAVELLING_EFFECTS: readonly EffectKind[] = ["projectile", "bolt", "fireball"];
+/** Effects that carry a number: the size of a hit, or the radius in cells of an area. */
+export const NUMBERED_EFFECTS: readonly EffectKind[] = ["damage", "heal", "blast", "frost", "fireball"];
+/** Of the numbered effects, the ones whose number is a radius in cells. */
+export const AREA_EFFECTS: readonly EffectKind[] = ["blast", "frost", "fireball"];
 
 export interface EffectDto {
   sceneId: string;

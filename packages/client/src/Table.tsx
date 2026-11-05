@@ -1,10 +1,11 @@
-import { DEFAULT_LIGHT_FEATHER, floorOf, type UserDto } from "@openvtt/shared";
+import { DEFAULT_LIGHT_FEATHER, floorOf, TRAVELLING_EFFECTS, type UserDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { api } from "./api";
+import { RoomEntry } from "./components/screens/RoomEntry";
 import { TableLoading } from "./components/screens/TableLoading";
 import { DiceOverlay } from "./components/table/DiceOverlay";
 import { DiceTray } from "./components/table/DiceTray";
@@ -29,6 +30,7 @@ import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
 import { toastActionFailure } from "./lib/actionFailure";
+import { tokenAt, VISIBILITY_DELAY_MS } from "./lib/mapEffects";
 import { OnlineContext } from "./lib/online";
 import { usePreferences } from "./lib/preferences";
 import { type LightInput, undoableActions, withoutId } from "./lib/tableActions";
@@ -316,13 +318,27 @@ export function Table({ worldId, user }: Props) {
                 if (!isGm || viewAs) return;
                 const { effectKind: kind, effectValue: value, effectOrigin: origin, setEffectOrigin } = useTableUi.getState();
                 const base = { type: "map.effect", kind, floorId: floor?.id } as const;
-                // A projectile takes two clicks: where it starts, then where it lands.
-                if (kind === "projectile") {
+                // Anything that travels takes two clicks: where it starts, then where it lands.
+                if (TRAVELLING_EFFECTS.includes(kind)) {
                   if (!origin) return setEffectOrigin({ x, y });
                   setEffectOrigin(null);
-                  return send({ ...base, x: origin.x, y: origin.y, toX: x, toY: y });
+                  return send({ ...base, x: origin.x, y: origin.y, toX: x, toY: y, value });
                 }
-                send({ ...base, x, y, ...(kind !== "arrive" && kind !== "vanish" && { value }) });
+                if (kind === "arrive" || kind === "vanish") {
+                  // On a token the effect is centred on it, and it flips between hidden and visible as the effect plays.
+                  const token = tokenAt(floorTokens, scene.gridSize, x, y);
+                  const center = token
+                    ? { x: token.x + (token.size * scene.gridSize) / 2, y: token.y + (token.size * scene.gridSize) / 2 }
+                    : { x, y };
+                  send({ ...base, ...center });
+                  if (token && token.hidden === (kind === "arrive"))
+                    setTimeout(
+                      () => void api.updateToken(token.id, { hidden: kind === "vanish" }).catch(toastActionFailure),
+                      VISIBILITY_DELAY_MS[kind],
+                    );
+                  return;
+                }
+                send({ ...base, x, y, value });
               }}
               formatDistance={(cells) => format.distance(cells, scene)}
               rulerShape={rulerShape}
@@ -357,6 +373,7 @@ export function Table({ worldId, user }: Props) {
           {/* Secret rolls and whispers must not animate or chime on the shared screen. */}
           {view !== "tv" && <DiceOverlay messages={state.messages} userId={user.id} />}
           {view !== "tv" && <TableSounds state={state} userId={user.id} />}
+          {view !== "tv" && <RoomEntry state={state} userId={user.id} fallbackName={user.username} />}
           {scene && view === "normal" && <TableTour isGm={isGm} />}
           <TableKeyboard
             scene={scene}

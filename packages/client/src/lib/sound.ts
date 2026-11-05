@@ -21,6 +21,30 @@ if (typeof window !== "undefined") {
   window.addEventListener("keydown", unlock, true);
 }
 
+/** A low rumble of filtered noise for a lightning strike (`strength` 0 to 1), synthesized like the chime. */
+export function thunder(strength = 1) {
+  if (!usePreferences.getState().sounds) return;
+  const context = audioContext();
+  if (!context) return;
+  const seconds = 2.6;
+  const buffer = context.createBuffer(1, Math.floor(context.sampleRate * seconds), context.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+  const filter = context.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 180 + strength * 120;
+  const gain = context.createGain();
+  const start = context.currentTime;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.55 * strength + 0.05, start + 0.15);
+  gain.gain.exponentialRampToValueAtTime(0.18 * strength + 0.02, start + 0.9);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
+  source.connect(filter).connect(gain).connect(context.destination);
+  source.start(start);
+}
+
 /** A short two-note chime, synthesized so no sound file is downloaded. */
 export function chime() {
   if (!usePreferences.getState().sounds) return;

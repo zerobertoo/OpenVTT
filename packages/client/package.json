@@ -25,6 +25,7 @@
     "i18next": "^26.5.12",
     "lucide-react": "^1.66.0",
     "motion": "^14.9.0",
+    "pixi-filters": "^6.1.5",
     "pixi.js": "^8.22.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",

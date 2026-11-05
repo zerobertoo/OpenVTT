@@ -4,6 +4,7 @@ import { AccountControls } from "../AccountControls";
 import { Button } from "../ui/button";
 import { Popover } from "../ui/popover";
 import { DiceSetting } from "./DiceSetting";
+import { EntrySetting } from "./EntrySetting";
 import { MeasureSettings } from "./MeasureSettings";
 import { SoundSetting } from "./SoundSetting";
 import { ThemeSetting } from "./ThemeSetting";
@@ -31,6 +32,7 @@ export function AccountMenu() {
       <AccountControls />
       <MeasureSettings />
       <DiceSetting />
+      <EntrySetting />
       <SoundSetting />
       <ThemeSetting />
     </Popover>
