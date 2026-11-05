@@ -12,6 +12,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Richer map effects built from particles, glow, screen shake and a shockwave, plus four new ones: slash, lightning bolt, frost nova and fireball.
+- Vanish and arrive effects dropped on a token hide and reveal it; the game master sees hidden tokens with a dashed ring and an eye badge.
+- Weather rebuilt as blending layers: moving fog, rain ripples, wind, and lightning with thunder when sounds are on.
+- A badge for each player at the top with a joining animation, a preload step before the table opens, and an optional entrance animation (a per-browser setting).
 - `OPENVTT_TRUST_PROXY` makes rate limits and login lockouts use each visitor's real address behind a reverse proxy. `compose.dokploy.yaml` turns it on.
 
 - Limits against abuse on a public instance: a cap on worlds per account and on file storage per world, a per-address limit on registrations, per-account limits on chat and uploads, and table sockets that flood, stall or stop answering pings are dropped. Table sockets from pages on other sites are refused. All of them are configurable (see Configuration).
@@ -19,6 +23,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A dice roll's result (chat line, natural 20 and natural 1 included) now shows only after the dice stop rolling, and its total sits in the middle of the free part of the table.
+- Changing the weather leaves nothing of the previous one on screen: snow or rain no longer stay frozen under fog.
 - Shutting down (`SIGTERM`/`SIGINT`, or closing the app with a table open or a request in flight) no longer hangs, and `PORT` is validated at startup.
 - A login lockout now applies to the address that kept failing, so a stranger can no longer lock the owner (or the admin) out. The failure counters are capped and expired sessions are deleted.
 - The scene, token and sheet forms keep what you are typing when someone else changes another field of the same scene, token or sheet.
