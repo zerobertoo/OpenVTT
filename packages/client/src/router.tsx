@@ -59,7 +59,8 @@ const worldRoute = createRoute({
     if (worlds.isSuccess && !isMember) return <WorldUnavailableScreen />;
     return (
       <Suspense fallback={<TableLoading />}>
-        <Table worldId={worldId} user={user} />
+        {/* The key drops all table state when the route moves straight from one world to another. */}
+        <Table key={worldId} worldId={worldId} user={user} />
       </Suspense>
     );
   },

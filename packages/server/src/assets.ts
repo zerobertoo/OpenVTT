@@ -136,7 +136,12 @@ export interface AssetRecord {
 
 export interface AssetLimits {
   maxVideoBytes: number;
+  /** Total stored size of one world's files; a world past it takes no more uploads. */
+  maxWorldBytes?: number;
 }
+
+/** Default storage allowance of a world: 2 GiB. */
+export const DEFAULT_MAX_WORLD_BYTES = 2 * 1024 * 1024 * 1024;
 
 export class AssetService {
   constructor(
@@ -150,6 +155,19 @@ export class AssetService {
   /** Largest accepted size for a type of asset. */
   maxBytesFor(mime: AssetType): number {
     return isStreamedType(mime) ? this.limits.maxVideoBytes : MAX_UPLOAD_BYTES;
+  }
+
+  /** Bytes this world may still store. */
+  roomLeft(worldId: string): number {
+    const { used } = this.db.prepare("SELECT COALESCE(SUM(size), 0) AS used FROM assets WHERE world_id = ?").get(worldId) as {
+      used: number;
+    };
+    return (this.limits.maxWorldBytes ?? DEFAULT_MAX_WORLD_BYTES) - used;
+  }
+
+  /** Refuses before anything is written when `incoming` bytes would pass the world's storage allowance. */
+  private assertRoom(worldId: string, incoming: number) {
+    if (incoming > this.roomLeft(worldId)) throw new AppError("quota_exceeded");
   }
 
   listFor(worldId: string): AssetSummaryDto[] {
@@ -171,6 +189,7 @@ export class AssetService {
     if (buffer.length > MAX_UPLOAD_BYTES) throw new AppError("asset_too_large");
     const mime = detectImageType(buffer);
     if (!mime) throw new AppError("asset_invalid");
+    this.assertRoom(worldId, buffer.length);
     const id = randomUUID();
     const fileName = `${id}.${EXTENSIONS[mime]}`;
     writeFileSync(join(this.dir, fileName), buffer);
@@ -184,7 +203,11 @@ export class AssetService {
   async saveMediaStream(worldId: string, source: Readable): Promise<AssetRecord> {
     const id = randomUUID();
     const partPath = join(this.dir, `${id}.part`);
-    const max = this.limits.maxVideoBytes;
+    const room = this.roomLeft(worldId);
+    if (room <= 0) throw new AppError("quota_exceeded");
+    const max = Math.min(this.limits.maxVideoBytes, room);
+    // Tells a world that ran out of room apart from a single file that is simply too large.
+    const quotaBinds = room < this.limits.maxVideoBytes;
     let size = 0;
     let head = Buffer.alloc(0);
     let mime: VideoType | AudioType | null = null;
@@ -196,7 +219,7 @@ export class AssetService {
       transform(chunk: Buffer, _encoding, done) {
         try {
           size += chunk.length;
-          if (size > max) throw new AppError("asset_too_large");
+          if (size > max) throw new AppError(quotaBinds ? "quota_exceeded" : "asset_too_large");
           if (!mime) {
             head = Buffer.concat([head, chunk]);
             if (head.length >= SIGNATURE_BYTES) checkHead();
@@ -242,6 +265,7 @@ export class AssetService {
     const mime = detectImageType(head) ?? detectVideoType(head) ?? detectAudioType(head);
     if (!mime || size === 0) throw new AppError("asset_invalid");
     if (size > this.maxBytesFor(mime)) throw new AppError("asset_too_large");
+    this.assertRoom(worldId, size);
     const id = randomUUID();
     const fileName = `${id}.${EXTENSIONS[mime]}`;
     renameSync(sourcePath, join(this.dir, fileName));

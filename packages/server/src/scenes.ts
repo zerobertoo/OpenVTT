@@ -352,7 +352,9 @@ export class SceneService {
         const order = scene.floors.map((f) => f.id).filter((id) => id !== floorId);
         order.splice(Math.min(input.position, order.length), 0, floorId);
         const set = this.db.prepare("UPDATE floors SET position = ? WHERE id = ?");
-        order.forEach((id, position) => set.run(position, id));
+        order.forEach((id, position) => {
+          set.run(position, id);
+        });
       }
     });
     return this.get(owner.sceneId)!;
@@ -369,7 +371,9 @@ export class SceneService {
       this.db.prepare("DELETE FROM floors WHERE id = ?").run(floorId);
       const remaining = scene.floors.filter((f) => f.id !== floorId);
       const setPosition = this.db.prepare("UPDATE floors SET position = ? WHERE id = ?");
-      remaining.forEach((f, position) => setPosition.run(position, f.id));
+      remaining.forEach((f, position) => {
+        setPosition.run(position, f.id);
+      });
       if (scene.tableFloorId === floorId) {
         this.db.prepare("UPDATE scenes SET table_floor_id = ? WHERE id = ?").run(remaining[0]!.id, owner.sceneId);
       }

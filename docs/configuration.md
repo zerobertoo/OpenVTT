@@ -1,6 +1,6 @@
 # Configuration
 
-OpenVTT is configured with environment variables only. Unset means the default. A numeric variable that is set to something that is not a positive integer stops the server at startup with a clear message.
+OpenVTT is configured with environment variables only. Unset means the default. A numeric variable that is set to something that is not a positive integer stops the server at startup with a clear message (`PORT` must also be at most 65535). On `SIGTERM` or `SIGINT` the server closes its connections and the database before exiting.
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -8,6 +8,10 @@ OpenVTT is configured with environment variables only. Unset means the default. 
 | `HOST` | `0.0.0.0` | Address to bind. Use `127.0.0.1` when a reverse proxy on the same machine is the only entry point |
 | `OPENVTT_DB` | `data/openvtt.db` | SQLite file. Uploaded assets (`assets/`), installed systems (`systems/`) and backups (`backups/`) are stored next to it |
 | `OPENVTT_SECURE_COOKIES` | off | Set to `1` when users reach the server over HTTPS. Without it the session cookie is not marked `Secure` |
+| `OPENVTT_TRUST_PROXY` | off | How many reverse proxies sit between the visitors and the server (`1` for a single Traefik, nginx or Caddy). Rate limits and login lockouts then use each visitor's real address, read from the right of `X-Forwarded-For`, so a visitor cannot pick their own. Leave it off when the port is reachable directly. Without it, everyone behind the proxy shares the proxy's address, so one person's failed logins and registrations count against all |
+| `OPENVTT_REGISTRATIONS_PER_MINUTE` | `10` | New accounts one address may register per minute. Raise it for an event where many people sign up from one network (set `OPENVTT_TRUST_PROXY` so addresses are told apart behind a proxy) |
+| `OPENVTT_MAX_WORLDS_PER_USER` | `25` | Worlds one account may run as game master, counting imports. Past it the server answers that the limit was reached |
+| `OPENVTT_MAX_WORLD_ASSET_BYTES` | `2147483648` (2 GiB) | Total size of the uploaded files (maps, images, music) of one world. Uploads past it are refused; delete files you no longer use, or raise the limit |
 | `OPENVTT_MAX_VIDEO_BYTES` | `104857600` (100 MiB) | Largest animated map video or music file (MP3, Ogg). Images stay capped at 15 MiB |
 | `OPENVTT_BACKUP_INTERVAL_HOURS` | off | Copy the database into `backups/` every N hours (at most 504) |
 | `OPENVTT_BACKUP_KEEP` | `7` | How many copies to keep; older ones are deleted |

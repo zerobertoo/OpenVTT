@@ -6,7 +6,7 @@ afterEach(closeApps);
 
 describe("chat history in the world state", () => {
   it("gives each person the latest 100 messages they may read, oldest first", async () => {
-    const app = newApp();
+    const app = newApp(":memory:", { chatMessagesPerMinute: 1000 });
     const gm = await signUp(app, "alice");
     const bob = await signUp(app, "bob");
     const eve = await signUp(app, "eve");

@@ -28,14 +28,20 @@ export interface Services {
   systems: SystemRegistry;
 }
 
-export function createServices(db: Db, dataDir: string, builtInSystemsDir: string, assetLimits?: AssetLimits): Services {
+export function createServices(
+  db: Db,
+  dataDir: string,
+  builtInSystemsDir: string,
+  assetLimits?: AssetLimits,
+  maxWorldsPerUser?: number,
+): Services {
   const systems = new SystemRegistry(builtInSystemsDir, join(dataDir, "systems"));
   const assets = new AssetService(db, join(dataDir, "assets"), assetLimits);
   return {
     db,
     dataDir,
     auth: new AuthService(db),
-    worlds: new WorldService(db),
+    worlds: new WorldService(db, maxWorldsPerUser),
     assets,
     scenes: new SceneService(db, assets),
     tokens: new TokenService(db, assets),

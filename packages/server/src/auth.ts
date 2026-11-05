@@ -7,6 +7,8 @@ import { AppError } from "./errors.ts";
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
+/** Most client+name pairs remembered at once; past it the oldest are forgotten, so memory stays bounded. */
+export const MAX_TRACKED_FAILURES = 10_000;
 
 interface UserRow {
   id: string;
@@ -55,9 +57,14 @@ export class AuthService {
     });
   }
 
-  /** Verifies credentials, applying a per-username lockout after repeated failures. */
-  async login(username: string, password: string): Promise<UserDto> {
-    const key = username.toLowerCase();
+  /**
+   * Verifies credentials, applying a lockout after repeated failures. The lockout is per client and name, so a
+   * stranger who keeps failing against "alice" is locked out but alice (from elsewhere) is not. `client` is the
+   * request IP; behind a reverse proxy it is only meaningful when the proxy is trusted (see `trustProxy`).
+   * ponytail: attackers spread over many IPs get 5 guesses each; add a per-name global cap if that becomes real.
+   */
+  async login(username: string, password: string, client = ""): Promise<UserDto> {
+    const key = `${client}|${username.toLowerCase()}`;
     const state = this.failures.get(key);
     if (state && state.lockedUntil > this.now()) throw new AppError("too_many_attempts");
 
@@ -65,8 +72,11 @@ export class AuthService {
     // Verify even for unknown users would need a dummy hash; the lockout already bounds enumeration speed.
     const ok = row ? await verify(row.password_hash, password) : false;
     if (!ok || !row) {
-      const lockExpired = state !== undefined && state.lockedUntil > 0 && state.lockedUntil <= this.now();
-      const count = (lockExpired ? 0 : (state?.count ?? 0)) + 1;
+      // Read again: other guesses may have been counted while the password hash was being checked.
+      const current = this.failures.get(key);
+      const lockExpired = current !== undefined && current.lockedUntil > 0 && current.lockedUntil <= this.now();
+      const count = (lockExpired ? 0 : (current?.count ?? 0)) + 1;
+      this.makeRoomForFailure(key);
       this.failures.set(key, {
         count: count >= MAX_FAILED_ATTEMPTS ? 0 : count,
         lockedUntil: count >= MAX_FAILED_ATTEMPTS ? this.now() + LOCKOUT_MS : 0,
@@ -77,7 +87,25 @@ export class AuthService {
     return toDto(row);
   }
 
+  /** Keeps the failure counters under the cap: drops expired lockouts, then plain counters, and active lockouts last. */
+  private makeRoomForFailure(key: string) {
+    // Re-inserting moves a key to the end, so the first keys are always the least recently failed.
+    this.failures.delete(key);
+    if (this.failures.size < MAX_TRACKED_FAILURES) return;
+    for (const [other, state] of this.failures) if (state.lockedUntil > 0 && state.lockedUntil <= this.now()) this.failures.delete(other);
+    for (const [other, state] of this.failures) {
+      if (this.failures.size < MAX_TRACKED_FAILURES) return;
+      if (state.lockedUntil === 0) this.failures.delete(other);
+    }
+    for (const oldest of this.failures.keys()) {
+      if (this.failures.size < MAX_TRACKED_FAILURES) return;
+      this.failures.delete(oldest);
+    }
+  }
+
   createSession(userId: string): string {
+    // Expired sessions are never read again, so they are cleared as new ones are made.
+    this.db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(this.now());
     const token = randomBytes(32).toString("base64url");
     this.db
       .prepare("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)")

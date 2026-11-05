@@ -33,9 +33,14 @@ import type { Services } from "./services.ts";
 const FORMAT = "openvtt-world";
 const FORMAT_VERSION = 1;
 /** Total decompressed size of an imported archive. */
-const MAX_IMPORT_BYTES = 1024 * 1024 * 1024;
-// ponytail: export has no matching check, so a world above this downloads but will not import; a full scene is about 46 MiB.
+/** Room for a world at the default storage allowance (2 GiB) plus its `world.json`. */
+const MAX_IMPORT_BYTES = 2 * 1024 * 1024 * 1024 + 256 * 1024 * 1024;
 const MAX_WORLD_JSON_BYTES = 256 * 1024 * 1024;
+
+/** Refuses an export that this server's own import would reject, instead of handing out a file that cannot be restored. */
+export function assertFitsImportLimits(worldJsonBytes: number, assetBytes: number) {
+  if (worldJsonBytes > MAX_WORLD_JSON_BYTES || worldJsonBytes + assetBytes > MAX_IMPORT_BYTES) throw new AppError("asset_too_large");
+}
 
 const id = z.string().min(1).max(64);
 export const floorIdQuerySchema = z.object({ floorId: id.optional() });
@@ -163,7 +168,8 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     const assetRows = s.db.prepare("SELECT id FROM assets WHERE world_id = ?").all(worldId) as { id: string }[];
     const records = assetRows.map(({ id: assetId }) => s.assets.find(assetId)!);
     // Fails with a normal error response (before any byte is sent) if a file went missing from disk.
-    for (const record of records) statSync(s.assets.path(record));
+    let assetBytes = 0;
+    for (const record of records) assetBytes += statSync(s.assets.path(record)).size;
     const assets = records.map((record) => ({ id: record.id, file: `assets/${record.fileName}` }));
     // Authors are accounts, which never leave the server.
     const scenes = s.scenes.list(worldId).map((sc) => ({
@@ -203,6 +209,8 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       handouts: s.handouts.visibleTo(worldId, gmView).map((h) => ({ title: h.title, body: h.body, shared: h.audience.includes("*") })),
       messages,
     };
+    const worldFileBytes = encode(worldFile);
+    assertFitsImportLimits(worldFileBytes.length, assetBytes);
     const slug =
       world.name
         .replace(/[^A-Za-z0-9]+/g, "-")
@@ -214,7 +222,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
       .send(
         Readable.from(
           zipChunks(
-            encode(worldFile),
+            worldFileBytes,
             records.map((r) => ({ name: `assets/${r.fileName}`, open: () => s.assets.open(r) })),
           ),
         ),

@@ -1,14 +1,26 @@
 import type { ServerMessage, WorldStateDto } from "@openvtt/shared";
 import { unzipSync, zipSync } from "fflate";
 import { afterEach, describe, expect, it } from "vitest";
+import { assertFitsImportLimits } from "./portability.ts";
 import { type App, call, closeApps, connect, listen, newApp, signUp, upload } from "./test-utils.ts";
 
 afterEach(closeApps);
 
+describe("export size limits", () => {
+  it("refuses a world that the import would reject, and accepts one right at the limits", () => {
+    const MiB = 1024 * 1024;
+    expect(() => assertFitsImportLimits(256 * MiB, 700 * MiB)).not.toThrow();
+    // A world right at the default storage allowance of 2 GiB must still be exportable.
+    expect(() => assertFitsImportLimits(10 * MiB, 2048 * MiB)).not.toThrow();
+    expect(() => assertFitsImportLimits(256 * MiB + 1, 0)).toThrow(expect.objectContaining({ code: "asset_too_large" }));
+    expect(() => assertFitsImportLimits(10 * MiB, 4096 * MiB)).toThrow(expect.objectContaining({ code: "asset_too_large" }));
+  });
+});
+
 const OGG = Buffer.concat([Buffer.from("OggS"), Buffer.alloc(4096, 1)]);
 
-async function setup() {
-  const app = newApp();
+async function setup(options: Parameters<typeof newApp>[1] = {}) {
+  const app = newApp(":memory:", options);
   const gm = await signUp(app, "alice");
   const world = (await call(app, gm.cookie, "POST", "/api/worlds", { name: "Table" })).json();
   return { app, gm, world };
@@ -56,7 +68,7 @@ describe("exporting and importing a world", () => {
   });
 
   it("keeps the whole public chat, not only what the table shows, and no private messages", async () => {
-    const { app, gm, world } = await setup();
+    const { app, gm, world } = await setup({ chatMessagesPerMinute: 1000 });
     for (let i = 0; i < 130; i++) await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/messages`, { content: `line ${i}` });
     await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/messages`, { content: "secret", gmOnly: true });
 

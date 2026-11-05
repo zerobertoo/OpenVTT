@@ -1,6 +1,6 @@
 import type { MessageDto, ServerMessage, TokenDto } from "@openvtt/shared";
 import { zipSync } from "fflate";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { type App, call, closeApps, connect, listen, newApp, PNG, signUp, upload } from "./test-utils.ts";
 
 afterEach(closeApps);
@@ -147,7 +147,7 @@ describe("tokens", () => {
 
     const stored = (await call(app, gm.cookie, "PATCH", `/api/tokens/${bobToken.id}`, {})).json();
     expect(stored).toMatchObject({ x: 930, y: 200 });
-    [bobConn, carolConn, gmConn].forEach((c) => c.ws.close());
+    for (const conn of [bobConn, carolConn, gmConn]) conn.ws.close();
   });
 
   it("rejects controllers who are not members of the world", async () => {
@@ -198,7 +198,7 @@ describe("chat and dice", () => {
     const late = connect(port, world.id, carol.cookie);
     const state = await late.waitFor((m) => m.type === "world.state");
     expect(state.type === "world.state" && state.state.messages.map((m) => m.content)).toEqual(["hello all"]);
-    [gmConn, bobConn, carolConn, late].forEach((c) => c!.ws.close());
+    for (const conn of [gmConn, bobConn, carolConn, late]) conn?.ws.close();
   });
 
   it("limits whispers to GM ↔ player conversations", async () => {

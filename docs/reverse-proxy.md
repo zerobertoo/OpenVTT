@@ -66,6 +66,8 @@ services:
     build: .
     environment:
       OPENVTT_SECURE_COOKIES: "1"
+      # Only when Traefik is the sole way in; see Configuration.
+      OPENVTT_TRUST_PROXY: "1"
     volumes:
       - openvtt-data:/data
     labels:

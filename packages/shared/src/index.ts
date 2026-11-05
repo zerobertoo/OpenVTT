@@ -17,6 +17,7 @@ export const ERROR_CODES = [
   "invite_invalid",
   "asset_invalid",
   "asset_too_large",
+  "quota_exceeded",
   "roll_invalid",
   "template_invalid",
   "import_invalid",

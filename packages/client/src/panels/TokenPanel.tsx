@@ -163,21 +163,9 @@ export function TokenPanel({ state, userId, viewSceneId, viewFloorId, token, act
 
       {token && canControl && (
         <TokenEditor
-          // Uncontrolled inputs read their defaults once, so remount when the token changes from outside.
-          key={
-            token.id +
-            JSON.stringify([
-              token.name,
-              token.size,
-              token.hidden,
-              token.actorId,
-              token.assetId,
-              token.hp,
-              token.hpMax,
-              token.conditions,
-              token.showName,
-            ])
-          }
+          // Uncontrolled inputs read their defaults once, so another token gets a fresh editor; changes from outside
+          // are applied field by field inside it.
+          key={token.id}
           token={token}
           players={players}
           actors={state.actors}

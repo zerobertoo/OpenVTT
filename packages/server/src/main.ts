@@ -10,15 +10,37 @@ function positiveIntFromEnv(name: string): number | undefined {
   return value;
 }
 
-const port = Number(process.env.PORT ?? 3000);
+// 0 is allowed: the system then picks a free port.
+const port = process.env.PORT === "0" ? 0 : (positiveIntFromEnv("PORT") ?? 3000);
+if (port > 65535) throw new Error(`PORT must be at most 65535, got "${port}"`);
 const app = buildApp({
   dbPath: resolve(process.env.OPENVTT_DB ?? "data/openvtt.db"),
   clientDir: resolve(import.meta.dirname, "../../client/dist"),
   maxVideoBytes: positiveIntFromEnv("OPENVTT_MAX_VIDEO_BYTES"),
   secureCookies: process.env.OPENVTT_SECURE_COOKIES === "1",
+  trustProxy: positiveIntFromEnv("OPENVTT_TRUST_PROXY"),
+  registrationsPerMinute: positiveIntFromEnv("OPENVTT_REGISTRATIONS_PER_MINUTE"),
+  maxWorldsPerUser: positiveIntFromEnv("OPENVTT_MAX_WORLDS_PER_USER"),
+  maxWorldAssetBytes: positiveIntFromEnv("OPENVTT_MAX_WORLD_ASSET_BYTES"),
   backupIntervalHours: positiveIntFromEnv("OPENVTT_BACKUP_INTERVAL_HOURS"),
   backupKeep: positiveIntFromEnv("OPENVTT_BACKUP_KEEP"),
 });
 
 await app.listen({ port, host: process.env.HOST ?? "0.0.0.0" });
 console.log(`OpenVTT listening on http://localhost:${port}`);
+
+// Docker and process managers stop the container with SIGTERM; closing cleanly flushes the database before exit.
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.once(signal, () => {
+    console.log(`${signal} received, shutting down`);
+    // Safety net in case something keeps the process alive after close.
+    setTimeout(() => process.exit(1), 10_000).unref();
+    app.close().then(
+      () => process.exit(0),
+      (error) => {
+        console.error("Shutdown failed", error);
+        process.exit(1);
+      },
+    );
+  });
+}

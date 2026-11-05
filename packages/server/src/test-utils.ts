@@ -58,7 +58,7 @@ export function connect(port: number, worldId: string, cookie: string) {
   const waiters: (() => void)[] = [];
   ws.on("message", (raw) => {
     seen.push(JSON.parse(raw.toString()));
-    waiters.splice(0).forEach((w) => w());
+    for (const wake of waiters.splice(0)) wake();
   });
   const opened = new Promise<void>((resolve, reject) => {
     ws.on("open", () => resolve());

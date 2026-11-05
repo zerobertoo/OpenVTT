@@ -22,8 +22,7 @@ export function SheetView({ actor, template, system, locale, onSave }: Props) {
   const labelFor = (item: { id: string; label?: SheetFieldDef["label"] }) => resolveLabel(item.label, locale, system.strings, item.id);
 
   return (
-    // Remounting on server changes keeps uncontrolled inputs in sync with computed values.
-    <form key={JSON.stringify(actor.data) + JSON.stringify(template)} onSubmit={(e) => e.preventDefault()} className="grid gap-3">
+    <form onSubmit={(e) => e.preventDefault()} className="grid gap-3">
       {template.sections.map((section) => (
         <Card key={section.id} variant="inset" as="section" aria-labelledby={`${actor.id}-${section.id}`} className="grid gap-3">
           <h4 id={`${actor.id}-${section.id}`} className="m-0 text-base">
@@ -31,7 +30,9 @@ export function SheetView({ actor, template, system, locale, onSave }: Props) {
           </h4>
           {section.fields.map((field) => (
             <SheetField
-              key={field.id}
+              // Inputs are uncontrolled, so a field remounts when its own value changes (for example a computed one),
+              // and the other fields keep whatever is being typed in them.
+              key={`${field.id}:${JSON.stringify([field, values[field.id] ?? null])}`}
               field={field}
               label={labelFor(field)}
               labelFor={labelFor}

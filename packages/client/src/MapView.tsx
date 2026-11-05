@@ -12,6 +12,8 @@ import {
   type Ticker,
   VideoSource,
 } from "pixi.js";
+// Pixi builds some drawing code at run time, which the server's Content-Security-Policy forbids; this swaps in the fixed versions.
+import "pixi.js/unsafe-eval";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { assetUrl } from "./api";
@@ -20,13 +22,15 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
-import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
+import { rulerDistanceInCells, snapTokenCorner } from "./lib/gridGeometry";
+import { hexCentersIn, hexCorners, hexOrientationOf } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
 import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
+import { drawingView, drawStatus, hexToNumber, renderShape } from "./lib/mapShapes";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
-import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
+import { conePoints, type DiagonalRule, type RulerShape } from "./lib/ruler";
 import type { Move } from "./lib/tableActions";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
@@ -144,8 +148,6 @@ function loadTexture(assetId: string, inUse: () => Set<string>, still = false): 
   return cached;
 }
 
-const hexToNumber = (hex: string) => parseInt(hex.slice(1), 16);
-
 /** An animated map background. Only one lives at a time; it is rebuilt only when the scene's asset changes. */
 interface VideoBackground {
   assetId: string;
@@ -217,12 +219,15 @@ export function MapView(props: Props) {
   const minimap = useRef<HTMLCanvasElement>(null);
   const minimapOpen = useTableUi((ui) => ui.minimapOpen && ui.view !== "tv");
   const [videoUi, setVideoUi] = useState<VideoUi>({ status: "none", playing: false });
+  /** True when the renderer could not start (no WebGL, or the browser blocked it). */
+  const [renderFailed, setRenderFailed] = useState(false);
 
   // One Pixi application for the lifetime of the component.
   useEffect(() => {
     const element = host.current!;
     const app = new Application();
     let destroyed = false;
+    let failed = false;
     // True while two fingers are down; token drags, pans and the ruler stand still meanwhile.
     let pinching = false;
     const ready = app
@@ -288,6 +293,13 @@ export function MapView(props: Props) {
           drawMinimap();
         });
         syncAll.current();
+      })
+      .catch((error: unknown) => {
+        // Without a renderer the start failed (no WebGL): there is nothing to draw on or destroy later.
+        // Any other error came from setting up the scene and keeps surfacing as before.
+        if (app.renderer) throw error;
+        failed = true;
+        if (!destroyed) setRenderFailed(true);
       });
 
     // The light marker being dragged with the light tool; its map data is rebuilt after the drop saves.
@@ -321,7 +333,8 @@ export function MapView(props: Props) {
         const p = props_().tool;
         if (p === "select" && e.button === 0 && e.shiftKey && e.target === app.stage) {
           const start = toWorld(e);
-          return void (boxStart = start);
+          boxStart = start;
+          return;
         }
         if (e.button === 1 || e.button === 2 || (p === "select" && e.target === app.stage)) {
           panning = { x: e.global.x - world.x, y: e.global.y - world.y };
@@ -409,15 +422,7 @@ export function MapView(props: Props) {
             label.text = `${formatDistance(cellsOf(Math.abs(dx)))} × ${formatDistance(cellsOf(Math.abs(dy)))}`;
           } else {
             ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-            // The diagonal rules count whole grid steps, so they only apply on a square grid; a hex grid counts hexes.
-            const hex = scene ? hexOrientationOf(scene.gridType) : null;
-            const cells =
-              scene?.gridType === "square"
-                ? lineCells(dx, dy, scene.gridSize, diagonalRule)
-                : hex && scene
-                  ? hexDistance(rulerStart, end, scene.gridSize, hex)
-                  : cellsOf(Math.hypot(dx, dy));
-            label.text = formatDistance(cells);
+            label.text = formatDistance(scene ? rulerDistanceInCells(scene, rulerStart, end, diagonalRule) : 0);
           }
           label.scale.set(1 / world.scale.x);
           label.position.set(end.x + 8 / world.scale.x, end.y + 8 / world.scale.x);
@@ -595,7 +600,7 @@ export function MapView(props: Props) {
       const drawings = floor?.drawings ?? null;
       if (drawings === e.shownDrawings) return;
       e.shownDrawings = drawings;
-      for (const layer of Object.values(e.drawingLayers)) layer.removeChildren().forEach((c) => c.destroy({ children: true }));
+      for (const layer of Object.values(e.drawingLayers)) for (const child of layer.removeChildren()) child.destroy({ children: true });
       if (!scene || !floor) return;
       for (const drawing of floor.drawings) {
         const view = drawingView(drawing, scene.gridSize);
@@ -630,8 +635,8 @@ export function MapView(props: Props) {
         return;
       shownMap = { scene, floor, ghost, layers, lightsEdited };
       const run = ++latestRun;
-      e.background.removeChildren().forEach((c) => c.destroy());
-      e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
+      for (const child of e.background.removeChildren()) child.destroy();
+      for (const child of e.mapData.removeChildren()) child.destroy({ children: true });
       // A measurement belongs to the floor it was taken on; other updates must leave it in place.
       if ((floor?.id ?? null) !== measuredFloorId) {
         measuredFloorId = floor?.id ?? null;
@@ -652,7 +657,7 @@ export function MapView(props: Props) {
         const loaded = await e.video!.ready;
         // Another floor, scene or setting was shown while the video loaded; its own sync draws the map.
         if (run !== latestRun) return;
-        e.background.removeChildren().forEach((c) => c.destroy());
+        for (const child of e.background.removeChildren()) child.destroy();
         if (loaded) {
           const sprite = new Sprite(loaded.texture);
           sprite.width = scene.width;
@@ -782,41 +787,6 @@ export function MapView(props: Props) {
       e.mapData.addChild(lights, walls, doors);
     }
 
-    function drawingView(drawing: DrawingDto, gridSize: number): Container {
-      const [x, y] = drawing.points as [number, number];
-      if (drawing.kind === "text" || drawing.kind === "note") {
-        const view = new Container();
-        view.position.set(x, y);
-        const color = hexToNumber(drawing.color);
-        const label = new Text({
-          text: drawing.text,
-          style: {
-            fill: color,
-            fontSize: Math.max(14, gridSize / 2.6),
-            fontWeight: "600",
-            stroke: { color: 0x000000, width: 4 },
-            wordWrap: true,
-            wordWrapWidth: gridSize * 6,
-          },
-        });
-        if (drawing.kind === "note") {
-          view.addChild(
-            new Graphics()
-              .circle(0, 0, Math.max(8, gridSize / 6))
-              .fill(color)
-              .stroke({ width: 3, color: 0x000000 }),
-          );
-          label.anchor.set(0.5, 0);
-          label.position.set(0, Math.max(10, gridSize / 5));
-        } else label.anchor.set(0, 0.5);
-        view.addChild(label);
-        return view;
-      }
-      const shape = new Graphics();
-      renderShape(shape, drawing, gridSize);
-      return shape;
-    }
-
     /**
      * Darkens what a player cannot see and what no light reaches. A player's polygons and light pools come from the
      * server, which never sends walls; the game master's pools are computed here from the floor's own walls.
@@ -856,31 +826,6 @@ export function MapView(props: Props) {
       e.shade.height = scene.height;
     }
 
-    /** Draws a line-based mark into `g`; also used for the preview while the pointer is down. */
-    function renderShape(g: Graphics, drawing: Pick<DrawingDto, "kind" | "points" | "color">, gridSize: number) {
-      const p = drawing.points;
-      const stroke = {
-        width: Math.max(3, gridSize / 20),
-        color: hexToNumber(drawing.color),
-        cap: "round" as const,
-        join: "round" as const,
-      };
-      if (p.length < 4) return;
-      const [x1, y1, x2, y2] = [p[0]!, p[1]!, p.at(-2)!, p.at(-1)!];
-      if (drawing.kind === "rect") g.rect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1)).stroke(stroke);
-      else if (drawing.kind === "circle") g.circle(x1, y1, Math.hypot(x2 - x1, y2 - y1)).stroke(stroke);
-      else {
-        g.moveTo(x1, y1);
-        if (drawing.kind === "free") for (let i = 2; i < p.length; i += 2) g.lineTo(p[i]!, p[i + 1]!);
-        else g.lineTo(x2, y2);
-        if (drawing.kind === "arrow") {
-          const [left, right] = arrowHead({ x: x1, y: y1 }, { x: x2, y: y2 }, Math.max(14, gridSize / 3));
-          g.moveTo(left.x, left.y).lineTo(x2, y2).lineTo(right.x, right.y);
-        }
-        g.stroke(stroke);
-      }
-    }
-
     /** Starts loading an animated background; it plays at once unless the person prefers reduced motion. */
     function startVideo(e: NonNullable<typeof engine.current>, assetId: string): VideoBackground {
       const background: VideoBackground = {
@@ -898,7 +843,10 @@ export function MapView(props: Props) {
           }
           const texture = new Texture({ source: new VideoSource({ resource: element, autoPlay: false }) });
           background.loaded = { element, texture };
-          if (background.wantPlaying) await element.play().catch(() => void (background.wantPlaying = false));
+          if (background.wantPlaying)
+            await element.play().catch(() => {
+              background.wantPlaying = false;
+            });
           // A decode failure after the first frame (corrupt file, lost connection) ends the animation cleanly.
           element.addEventListener("error", () => setVideoUi({ status: "unsupported", playing: false }));
           setVideoUi({ status: "ready", playing: background.wantPlaying });
@@ -983,7 +931,8 @@ export function MapView(props: Props) {
             const half = (member.token.size * (scene?.gridSize ?? 0)) / 2;
             member.view.position.set(member.token.x + half, member.token.y + half);
           }
-          return void (drag = null);
+          drag = null;
+          return;
         }
         if (!scene) return;
         const local = engine.current!.world.toLocal(e.global);
@@ -999,24 +948,16 @@ export function MapView(props: Props) {
       });
       const drop = () => {
         const scene = props_().scene;
-        if (!drag || !scene) return void (drag = null);
+        if (!drag || !scene) {
+          drag = null;
+          return;
+        }
         const { members } = drag;
         drag = null;
         const moves: Move[] = [];
         for (const member of members) {
           const half = (member.token.size * scene.gridSize) / 2;
-          let x = member.view.x - half;
-          let y = member.view.y - half;
-          if (scene.gridType === "square") {
-            x = Math.round(x / scene.gridSize) * scene.gridSize;
-            y = Math.round(y / scene.gridSize) * scene.gridSize;
-          }
-          const hex = hexOrientationOf(scene.gridType);
-          if (hex) {
-            const center = snapToHex({ x: x + half, y: y + half }, scene.gridSize, hex);
-            x = center.x - half;
-            y = center.y - half;
-          }
+          const { x, y } = snapTokenCorner(scene, member.token.size, { x: member.view.x - half, y: member.view.y - half });
           member.view.position.set(x + half, y + half);
           props_().onMove(member.token.id, x, y);
           if (x !== member.token.x || y !== member.token.y)
@@ -1033,44 +974,9 @@ export function MapView(props: Props) {
 
     const currentToken = (id: string) => props_().tokens.find((t) => t.id === id);
 
-    /** Health bar, name and condition badges around a token; counter-rotated so they stay upright and out of the way of clicks. */
-    function drawStatus(token: TokenDto, px: number, gridSize: number): Container {
-      const status = new Container();
-      status.eventMode = "none";
-      status.rotation = -((token.rotation * Math.PI) / 180);
-      let belowY = px / 2 + 2;
-      if (token.hp !== null && token.hpMax !== null) {
-        const width = px * 0.9;
-        const height = Math.max(5, gridSize / 10);
-        const ratio = healthRatio(token.hp, token.hpMax);
-        const bar = new Graphics().roundRect(-width / 2, belowY, width, height, height / 2).fill({ color: 0x000000, alpha: 0.7 });
-        if (ratio > 0)
-          bar.roundRect(-width / 2, belowY, Math.max(height, width * ratio), height, height / 2).fill({ color: healthColor(ratio) });
-        status.addChild(bar);
-        belowY += height + 2;
-      }
-      if (token.showName) {
-        const name = new Text({
-          text: token.name,
-          style: { fill: 0xffffff, fontSize: Math.max(12, gridSize / 4.5), fontWeight: "600", stroke: { color: 0x000000, width: 4 } },
-        });
-        name.anchor.set(0.5, 0);
-        name.position.set(0, belowY);
-        status.addChild(name);
-      }
-      const badge = Math.max(16, gridSize / 3.4);
-      token.conditions.slice(0, 4).forEach((id, i, shown) => {
-        const glyph = new Text({ text: CONDITION_GLYPHS[id as keyof typeof CONDITION_GLYPHS] ?? "", style: { fontSize: badge * 0.85 } });
-        glyph.anchor.set(0.5);
-        glyph.position.set((i - (shown.length - 1) / 2) * badge, -px / 2 - badge * 0.2);
-        status.addChild(glyph);
-      });
-      return status;
-    }
-
     function drawToken(view: Container, token: TokenDto, gridSize: number, selected: boolean) {
       const px = token.size * gridSize;
-      view.removeChildren().forEach((c) => c.destroy({ children: true }));
+      for (const child of view.removeChildren()) child.destroy({ children: true });
       view.pivot.set(0, 0);
       view.position.set(token.x + px / 2, token.y + px / 2);
       view.rotation = (token.rotation * Math.PI) / 180;
@@ -1106,7 +1012,7 @@ export function MapView(props: Props) {
       void ready.then(() => {
         if (engine.current) disposeVideo(engine.current);
         engine.current = null;
-        app.destroy(true, { children: true });
+        if (!failed) app.destroy(true, { children: true });
       });
     };
     // The application is created once; prop changes are pushed through `syncAll` below.
@@ -1294,6 +1200,11 @@ export function MapView(props: Props) {
           props.onDropEntry(entryId, point.x, point.y);
         }}
       />
+      {renderFailed && (
+        <p role="alert" className="video-control video-notice">
+          {t("map.renderUnavailable")}
+        </p>
+      )}
       {minimapOpen && props.scene && (
         // The overview is a pointer shortcut; the keyboard has pan, zoom and "center on my token".
         <div aria-hidden="true" className="minimap">

@@ -168,6 +168,8 @@ export default function Dice3D({ dice, launch, onUnavailable }: Props) {
     return () => {
       cancelAnimationFrame(frame);
       for (const item of disposables) item.dispose();
+      // Browsers cap live WebGL contexts, and dispose() alone leaves the context to the garbage collector.
+      renderer.forceContextLoss();
       renderer.dispose();
       renderer.domElement.remove();
     };

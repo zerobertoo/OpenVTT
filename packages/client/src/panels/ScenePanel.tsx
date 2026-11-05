@@ -171,9 +171,9 @@ export function ScenePanel({ state, viewSceneId, onView, onChangeScene, onRename
 
       {current && (
         <PanelSection title={t("scene.settingsOf", { name: current.name })} className="border-line border-t-[1.5px] pt-4">
-          {/* The key makes the uncontrolled inputs reset when another scene (or a server update) is shown. */}
+          {/* The key resets the uncontrolled inputs when another scene is shown; server updates are handled per field. */}
           <SceneSettingsForm
-            key={JSON.stringify(current)}
+            key={current.id}
             scene={current}
             onSubmit={save}
             pending={pending}
