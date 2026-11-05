@@ -4,6 +4,7 @@ import {
   type ErrorCode,
   floorOf,
   type MessageDto,
+  type SceneDto,
   type ServerMessage,
   type TokenDto,
   tableRole,
@@ -86,6 +87,51 @@ function decodeCookieValue(value: string): string {
     return decodeURIComponent(value);
   } catch {
     return value;
+  }
+}
+
+type Sight = { vision: VisionDto; tokens: TokenDto[] };
+
+/**
+ * What the connections of a world share while one change is sent out, so each piece is loaded and worked out once.
+ * Lives only for one synchronous loop over the connections: nothing can change in the database while it is in use.
+ */
+class SendRound {
+  readonly activeSceneId: string | null;
+  private readonly sights = new Map<string, Sight | null>();
+  private scenes?: SceneDto[];
+  private activeScene?: SceneDto | null;
+  private tokens?: TokenDto[];
+
+  constructor(
+    private s: Services,
+    readonly worldId: string,
+  ) {
+    this.activeSceneId = s.scenes.activeSceneId(worldId);
+  }
+
+  allScenes(): SceneDto[] {
+    this.scenes ??= this.s.scenes.list(this.worldId);
+    return this.scenes;
+  }
+
+  sceneOnTable(): SceneDto | null {
+    if (this.activeScene === undefined) this.activeScene = this.activeSceneId ? this.s.scenes.get(this.activeSceneId) : null;
+    return this.activeScene;
+  }
+
+  allTokens(): TokenDto[] {
+    this.tokens ??= this.s.tokens.allInWorld(this.worldId);
+    return this.tokens;
+  }
+
+  /** Sight depends only on whose eyes are used, so several tabs or a game master's preview of a player share it. */
+  sightOf(subjectId: string, compute: () => Sight | null): Sight | null {
+    const known = this.sights.get(subjectId);
+    if (known !== undefined) return known;
+    const sight = compute();
+    this.sights.set(subjectId, sight);
+    return sight;
   }
 }
 
@@ -321,29 +367,30 @@ export class Hub {
    * master, or a scene without vision). `tokens` are the ones this viewer may be told about. A game master who is
    * previewing a player (`viewAs`) gets exactly what that player would get. Only the player's own floor counts.
    */
-  private sightOf(worldId: string, viewer: Viewer, viewAs: string | null = null): { vision: VisionDto; tokens: TokenDto[] } | null {
+  private sightOf(round: SendRound, viewer: Viewer, viewAs: string | null): Sight | null {
     const subject = this.subjectOf(viewer, viewAs);
     if (!subject) return null;
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
-    const scene = activeSceneId ? this.s.scenes.get(activeSceneId) : null;
+    const scene = round.sceneOnTable();
     if (!scene?.visionEnabled) return null;
-    const floorId = this.floorIdOf(subject, scene.id)!;
-    const floor = floorOf(scene, floorId);
-    const everything = this.s.tokens.visibleTo(worldId, { userId: "", role: "gm" }, scene.id, null);
-    const own = everything.filter((t) => t.floorId === floor.id && t.controllerIds.includes(subject.userId));
-    const region = visionRegion(scene, floor, own);
-    const tokens = this.s.tokens.visibleTo(worldId, subject, scene.id, floor.id).filter((t) => {
-      const half = (t.size * scene.gridSize) / 2;
-      return t.controllerIds.includes(subject.userId) || region.contains({ x: t.x + half, y: t.y + half });
+    return round.sightOf(subject.userId, () => {
+      const floorId = this.floorIdOf(subject, scene.id)!;
+      const floor = floorOf(scene, floorId);
+      const all = round.allTokens();
+      const own = all.filter((t) => t.floorId === floor.id && t.controllerIds.includes(subject.userId));
+      const region = visionRegion(scene, floor, own);
+      const tokens = this.s.tokens.visibleTo(round.worldId, subject, scene.id, floor.id, all).filter((t) => {
+        const half = (t.size * scene.gridSize) / 2;
+        return t.controllerIds.includes(subject.userId) || region.contains({ x: t.x + half, y: t.y + half });
+      });
+      return {
+        vision: { sceneId: scene.id, polygons: flattenPolygons(region.polygons), lights: flattenLights(region, scene.gridSize) },
+        tokens,
+      };
     });
-    return {
-      vision: { sceneId: scene.id, polygons: flattenPolygons(region.polygons), lights: flattenLights(region, scene.gridSize) },
-      tokens,
-    };
   }
 
   /** Brings one player's view in line with what their tokens see now: newly seen tokens appear, others vanish. */
-  private refreshSight(conn: Connection, sight: { vision: VisionDto; tokens: TokenDto[] }, changedTokenId: string | null) {
+  private refreshSight(conn: Connection, sight: Sight, changedTokenId: string | null) {
     const next = new Set(sight.tokens.map((t) => t.id));
     for (const token of sight.tokens)
       if (!conn.seenTokenIds.has(token.id) || token.id === changedTokenId)
@@ -360,12 +407,12 @@ export class Hub {
   }
 
   /** Builds the complete state a viewer is allowed to see. */
-  buildState(worldId: string, viewer: Viewer, online: ReadonlySet<string>, viewAs: string | null = null): WorldStateDto {
+  private buildState(round: SendRound, viewer: Viewer, online: ReadonlySet<string>, viewAs: string | null): WorldStateDto {
+    const { worldId, activeSceneId } = round;
     const world = this.s.worlds.info(worldId);
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
-    const allScenes = this.s.scenes.list(worldId);
-    const sight = this.sightOf(worldId, viewer, viewAs);
+    const sight = this.sightOf(round, viewer, viewAs);
     const viewFloorId = this.viewFloorIdOf({ viewer, viewAs }, activeSceneId);
+    const sceneOnTable = round.sceneOnTable();
     return {
       id: world.id,
       name: world.name,
@@ -375,10 +422,12 @@ export class Hub {
       members: this.s.worlds.members(worldId, online),
       scenes:
         viewer.role === "gm"
-          ? allScenes
-          : allScenes.filter((sc) => sc.id === activeSceneId).map((sc) => sceneForViewer(sc, false, viewFloorId ?? sc.tableFloorId)),
+          ? round.allScenes()
+          : sceneOnTable
+            ? [sceneForViewer(sceneOnTable, false, viewFloorId ?? sceneOnTable.tableFloorId)]
+            : [],
       viewFloorId,
-      tokens: sight ? sight.tokens : this.s.tokens.visibleTo(worldId, viewer, activeSceneId, viewFloorId),
+      tokens: sight ? sight.tokens : this.s.tokens.visibleTo(worldId, viewer, activeSceneId, viewFloorId, round.allTokens()),
       actors: this.s.actors.visibleTo(worldId, viewer),
       messages: this.s.chat.historyFor(worldId, viewer),
       vision: sight?.vision ?? null,
@@ -389,7 +438,7 @@ export class Hub {
     };
   }
 
-  private sendState(conn: Connection) {
+  private sendState(conn: Connection, round = new SendRound(this.s, conn.worldId)) {
     // Role is re-read so a role change can never keep stale privileges on an open socket.
     const memberRole = this.s.worlds.memberRoleOf(conn.worldId, conn.viewer.userId);
     if (!memberRole) return conn.socket.close();
@@ -397,7 +446,7 @@ export class Hub {
     conn.viewer.role = role;
     conn.observer = memberRole === "observer";
     if (role !== "gm") conn.viewAs = null;
-    const state = this.buildState(conn.worldId, conn.viewer, this.onlineIn(conn.worldId), conn.viewAs);
+    const state = this.buildState(round, conn.viewer, this.onlineIn(conn.worldId), conn.viewAs);
     conn.seenTokenIds = new Set(state.tokens.map((t) => t.id));
     conn.floorId = state.viewFloorId;
     this.send(conn, { type: "world.state", state });
@@ -419,21 +468,23 @@ export class Hub {
   }
 
   broadcastState(worldId: string) {
-    for (const c of this.connections) if (c.worldId === worldId) this.sendState(c);
+    const round = new SendRound(this.s, worldId);
+    for (const c of this.connections) if (c.worldId === worldId) this.sendState(c, round);
   }
 
   /** `before` is the token prior to the change (null when created); it decides who must be told to drop it. */
   publishToken(worldId: string, before: TokenDto | null, after: TokenDto) {
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    const round = new SendRound(this.s, worldId);
+    const { activeSceneId } = round;
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
       // A token created, moved to another floor or taken away can change the floor a player is on: send everything again.
       const floorId = this.viewFloorIdOf(c, activeSceneId);
       if (floorId !== c.floorId) {
-        this.sendState(c);
+        this.sendState(c, round);
         continue;
       }
-      const sight = this.sightOf(worldId, c.viewer, c.viewAs);
+      const sight = this.sightOf(round, c.viewer, c.viewAs);
       if (sight) {
         this.refreshSight(c, sight, after.id);
         continue;
@@ -446,15 +497,16 @@ export class Hub {
   }
 
   publishTokenRemoved(worldId: string, token: TokenDto) {
-    const activeSceneId = this.s.scenes.activeSceneId(worldId);
+    const round = new SendRound(this.s, worldId);
+    const { activeSceneId } = round;
     for (const c of this.connections) {
       if (c.worldId !== worldId) continue;
       const floorId = this.viewFloorIdOf(c, activeSceneId);
       if (floorId !== c.floorId) {
-        this.sendState(c);
+        this.sendState(c, round);
         continue;
       }
-      const sight = this.sightOf(worldId, c.viewer, c.viewAs);
+      const sight = this.sightOf(round, c.viewer, c.viewAs);
       if (sight) this.refreshSight(c, sight, null);
       else if (this.s.tokens.canSee(token, c.viewer, activeSceneId, floorId)) this.send(c, { type: "token.remove", tokenId: token.id });
     }
