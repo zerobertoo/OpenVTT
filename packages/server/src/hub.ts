@@ -74,9 +74,18 @@ export function parseCookies(header: string | undefined): Record<string, string>
   const out: Record<string, string> = {};
   for (const part of (header ?? "").split(";")) {
     const i = part.indexOf("=");
-    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+    if (i > 0) out[part.slice(0, i).trim()] = decodeCookieValue(part.slice(i + 1).trim());
   }
   return out;
+}
+
+// A value that is not valid percent-encoding is kept as sent: it belongs to some other cookie and must not reject the request.
+function decodeCookieValue(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 /**
@@ -101,14 +110,19 @@ export class Hub {
   attach(server: Server): WebSocketServer {
     const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
     server.on("upgrade", (req, socket, head) => {
-      const url = new URL(req.url ?? "/", "http://localhost");
-      if (url.pathname !== WS_PATH) return socket.destroy();
-      const identity = this.authorize(req, url);
-      if (!identity) {
-        socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-        return socket.destroy();
+      // Nothing else catches a throw here: it would end the process, and this runs before any authentication.
+      try {
+        const url = new URL(req.url ?? "/", "http://localhost");
+        if (url.pathname !== WS_PATH) return socket.destroy();
+        const identity = this.authorize(req, url);
+        if (!identity) {
+          socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+          return socket.destroy();
+        }
+        wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, identity.viewer, identity.worldId));
+      } catch {
+        socket.destroy();
       }
-      wss.handleUpgrade(req, socket, head, (ws) => this.open(ws, identity.viewer, identity.worldId));
     });
     return wss;
   }
@@ -134,6 +148,8 @@ export class Hub {
     };
     this.connections.add(conn);
     this.broadcastState(worldId);
+    // Oversized or invalid frames surface here; without a listener the error would end the process.
+    socket.on("error", () => socket.terminate());
     socket.on("message", (raw) => {
       try {
         this.handle(conn, clientMessageSchema.parse(JSON.parse(raw.toString())));
