@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { ServerMessage, WorldStateDto } from "@openvtt/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
-import { buildApp, SESSION_COOKIE } from "./app.ts";
+import { type AppOptions, buildApp, SESSION_COOKIE } from "./app.ts";
 
 const apps: ReturnType<typeof buildApp>[] = [];
 const tmpDirs: string[] = [];
@@ -14,8 +14,8 @@ afterEach(async () => {
   tmpDirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true }));
 });
 
-const newApp = (dbPath = ":memory:") => {
-  const app = buildApp({ dbPath });
+const newApp = (dbPath = ":memory:", options: Partial<AppOptions> = {}) => {
+  const app = buildApp({ dbPath, ...options });
   apps.push(app);
   return app;
 };
@@ -85,6 +85,37 @@ describe("auth", () => {
     const attempt = (password: string) => app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "alice", password } });
     for (let i = 0; i < 5; i++) expect((await attempt("wrong password")).json().error).toBe("invalid_credentials");
     expect((await attempt("correct horse")).json().error).toBe("too_many_attempts");
+  });
+
+  it("locks only the address that kept failing when a trusted proxy forwards real addresses", async () => {
+    const app = newApp(":memory:", { trustProxy: true });
+    await signUp(app, "alice", "correct horse");
+    const attempt = (password: string, from: string) =>
+      app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        headers: { "x-forwarded-for": from },
+        payload: { username: "alice", password },
+      });
+    for (let i = 0; i < 5; i++) await attempt("wrong password", "203.0.113.9");
+
+    expect((await attempt("correct horse", "203.0.113.9")).json().error).toBe("too_many_attempts");
+    expect((await attempt("correct horse", "198.51.100.4")).statusCode).toBe(200);
+  });
+
+  it("ignores forwarded addresses unless the proxy is trusted", async () => {
+    const app = newApp();
+    await signUp(app, "alice", "correct horse");
+    const attempt = (password: string, from: string) =>
+      app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        headers: { "x-forwarded-for": from },
+        payload: { username: "alice", password },
+      });
+    for (let i = 0; i < 5; i++) await attempt("wrong password", `203.0.113.${i}`);
+
+    expect((await attempt("correct horse", "198.51.100.4")).json().error).toBe("too_many_attempts");
   });
 
   it("lets only the admin reset passwords", async () => {

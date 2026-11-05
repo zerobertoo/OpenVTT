@@ -77,6 +77,11 @@ export interface AppOptions {
   /** Copies the database into `<data>/backups` this often; off when not given. */
   backupIntervalHours?: number;
   backupKeep?: number;
+  /**
+   * Believe the `X-Forwarded-For` header, so rate limits and login lockouts see each visitor's real address.
+   * Only turn it on when a reverse proxy is the sole way in; otherwise anyone can fake their address.
+   */
+  trustProxy?: boolean;
 }
 
 export function buildApp(options: AppOptions) {
@@ -86,7 +91,7 @@ export function buildApp(options: AppOptions) {
   const maxVideoBytes = options.maxVideoBytes ?? DEFAULT_MAX_VIDEO_BYTES;
   const s = createServices(db, dataDir, options.systemsDir ?? resolve(import.meta.dirname, "../../../systems"), { maxVideoBytes });
   const hub = new Hub(s, SESSION_COOKIE);
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, trustProxy: options.trustProxy ?? false });
 
   app.register(fastifyCookie);
   // Opt-in per route (`config.rateLimit`); a client IP behind a reverse proxy is the proxy's, so limits are generous.
@@ -189,7 +194,7 @@ export function buildApp(options: AppOptions) {
   app.register(async (scope) => {
     scope.post("/api/auth/login", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (req, reply) => {
       const { username, password } = credentialsSchema.parse(req.body);
-      return startSession(reply, await s.auth.login(username, password));
+      return startSession(reply, await s.auth.login(username, password, req.ip));
     });
   });
 

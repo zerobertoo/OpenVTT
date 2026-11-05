@@ -6,6 +6,8 @@ services:
       - openvtt-data:/data
     environment:
       OPENVTT_SECURE_COOKIES: "1"
+      # Traefik is the only way in (no published port), so its forwarded client address can be believed.
+      OPENVTT_TRUST_PROXY: "1"
       OPENVTT_MAX_VIDEO_BYTES: ${OPENVTT_MAX_VIDEO_BYTES:-104857600}
       OPENVTT_BACKUP_INTERVAL_HOURS: ${OPENVTT_BACKUP_INTERVAL_HOURS:-24}
       OPENVTT_BACKUP_KEEP: ${OPENVTT_BACKUP_KEEP:-7}

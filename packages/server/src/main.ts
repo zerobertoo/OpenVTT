@@ -16,6 +16,7 @@ const app = buildApp({
   clientDir: resolve(import.meta.dirname, "../../client/dist"),
   maxVideoBytes: positiveIntFromEnv("OPENVTT_MAX_VIDEO_BYTES"),
   secureCookies: process.env.OPENVTT_SECURE_COOKIES === "1",
+  trustProxy: process.env.OPENVTT_TRUST_PROXY === "1",
   backupIntervalHours: positiveIntFromEnv("OPENVTT_BACKUP_INTERVAL_HOURS"),
   backupKeep: positiveIntFromEnv("OPENVTT_BACKUP_KEEP"),
 });
