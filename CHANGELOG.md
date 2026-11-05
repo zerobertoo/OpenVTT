@@ -13,8 +13,12 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Fixed
 
 - A token can no longer slip through the exact point where two wall pieces meet.
-- A player's token can no longer stop with its centre exactly on a wall or closed door, which let it cross in two moves.
-- A map change the server refuses now shows an error and no longer leaves a step in the undo history.
+- A player's token that stops with its centre exactly on a wall or closed door now lands a pixel short of it, on the side it came from, which closes a way to cross in two moves.
+- A moved token now stays entirely on the map, which also closes a way around a wall reaching the map's edge.
+- A map change the server refuses now shows an error, leaves no step in the undo history and keeps what could be redone. An undo pressed while that change was pending does nothing.
+- When only some of the selected tokens accept a delete or a turn, the error is shown and undo covers the ones that changed.
+- A token dropped after losing control of it goes back to its real position.
+- A request body that is not valid JSON now gets `invalid_input` instead of a logged server error.
 - Exporting a world now keeps token rotation, time of day, weather, season, the music and up to 10,000 public chat messages.
 - A ruler measurement no longer disappears when something else changes on the table.
 - Redrawing tokens no longer leaks memory for their condition badges.
@@ -24,9 +28,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - A malformed cookie, upgrade URL or WebSocket frame no longer stops the server.
 - Players can no longer move a token through walls or off the map with a direct HTTP request.
-- Signing out or having a password reset now closes the live table connections of that session.
+- Signing out or having a password reset now drops the live table connections of that session at once, and a connection stops working when its session expires.
+- A failure while opening a table connection is logged and no longer leaves a member shown as online.
+- Saving map data now checks for the game master role before reading the body.
 - The initiative order no longer tells players about tokens on other floors or on scenes not being shown.
-- Rate limits on login, world and scene export and world import (HTTP 429, error code `too_many_attempts`).
+- Rate limits on login, world and scene export, world import and map saves (HTTP 429, error code `too_many_attempts`).
 - Dice notation parsing no longer uses backtracking regexes that could be slow on long input.
 - The CI workflow token is read-only.
 
