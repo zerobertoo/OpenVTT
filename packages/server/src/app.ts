@@ -117,7 +117,11 @@ export function buildApp(options: AppOptions) {
 
   app.setErrorHandler((error, req, reply) => {
     if (error instanceof AppError) return reply.status(error.status).send({ error: error.code });
-    if (error instanceof ZodError || (error as { validation?: unknown }).validation)
+    if (
+      error instanceof ZodError ||
+      (error as { validation?: unknown }).validation ||
+      (error as { statusCode?: number }).statusCode === 400
+    )
       return reply.status(400).send({ error: "invalid_input" satisfies ErrorCode });
     if ((error as { statusCode?: number }).statusCode === 429)
       return reply.status(429).send({ error: "too_many_attempts" satisfies ErrorCode });
@@ -356,29 +360,64 @@ export function buildApp(options: AppOptions) {
 
   // ---- scenes -------------------------------------------------------------------------------
 
-  const mapDataRoute = {
+  /** Options for a route that takes a large map body: the role is checked before the body is read and parsed. */
+  const mapDataRoute = (worldIdOf: (id: string) => string | null | undefined) => ({
     bodyLimit: MAX_MAP_DATA_BODY_BYTES,
-    // Authenticates before the large body is read, so only signed-in people can make the server parse one.
+    // Anyone can be the game master of a world of their own, so the role check alone does not bound the parsing.
+    config: { rateLimit: { max: 300, timeWindow: "1 minute" } },
     onRequest: async (req: FastifyRequest) => {
       requireUser(req);
+      const worldId = worldIdOf((req.params as { id: string }).id);
+      if (!worldId) throw new AppError("not_found");
+      requireGm(req, worldId);
     },
-  };
-
-  app.post<{ Params: { id: string } }>("/api/worlds/:id/scenes", mapDataRoute, async (req) => {
-    const { user } = requireGm(req, req.params.id);
-    const scene = s.scenes.create(req.params.id, createSceneSchema.parse(req.body));
-    s.worlds.audit(req.params.id, user.id, "scene.create", scene.name);
-    hub.broadcastState(req.params.id);
-    return scene;
   });
+  const sceneMapData = mapDataRoute((id) => s.scenes.worldIdOf(id));
 
-  app.patch<{ Params: { id: string } }>("/api/scenes/:id", mapDataRoute, async (req) => {
-    const worldId = s.scenes.worldIdOf(req.params.id);
-    if (!worldId) throw new AppError("not_found");
-    requireGm(req, worldId);
-    const scene = s.scenes.update(req.params.id, updateSceneSchema.parse(req.body));
-    hub.broadcastState(worldId);
-    return scene;
+  // Registered in its own scope so they load after the rate-limit plugin, which only limits routes added once it is ready.
+  app.register(async (scope) => {
+    scope.post<{ Params: { id: string } }>(
+      "/api/worlds/:id/scenes",
+      mapDataRoute((id) => id),
+      async (req) => {
+        const { user } = requireGm(req, req.params.id);
+        const scene = s.scenes.create(req.params.id, createSceneSchema.parse(req.body));
+        s.worlds.audit(req.params.id, user.id, "scene.create", scene.name);
+        hub.broadcastState(req.params.id);
+        return scene;
+      },
+    );
+
+    scope.patch<{ Params: { id: string } }>("/api/scenes/:id", sceneMapData, async (req) => {
+      const worldId = s.scenes.worldIdOf(req.params.id);
+      if (!worldId) throw new AppError("not_found");
+      requireGm(req, worldId);
+      const scene = s.scenes.update(req.params.id, updateSceneSchema.parse(req.body));
+      hub.broadcastState(worldId);
+      return scene;
+    });
+
+    scope.post<{ Params: { id: string } }>("/api/scenes/:id/floors", sceneMapData, async (req) => {
+      const worldId = s.scenes.worldIdOf(req.params.id);
+      if (!worldId) throw new AppError("not_found");
+      requireGm(req, worldId);
+      const scene = s.scenes.addFloor(req.params.id, worldId, floorInputSchema.parse(req.body));
+      hub.broadcastState(worldId);
+      return scene;
+    });
+
+    scope.patch<{ Params: { id: string } }>(
+      "/api/floors/:id",
+      mapDataRoute((id) => s.scenes.floorOwner(id)?.worldId),
+      async (req) => {
+        const owner = s.scenes.floorOwner(req.params.id);
+        if (!owner) throw new AppError("not_found");
+        requireGm(req, owner.worldId);
+        const scene = s.scenes.updateFloor(req.params.id, owner.worldId, updateFloorSchema.parse(req.body));
+        hub.broadcastState(owner.worldId);
+        return scene;
+      },
+    );
   });
 
   app.post<{ Params: { id: string; wallId: string } }>("/api/scenes/:id/doors/:wallId", async (req) => {
@@ -389,24 +428,6 @@ export function buildApp(options: AppOptions) {
     if (!s.scenes.setDoorOpen(req.params.id, req.params.wallId, open)) throw new AppError("not_found");
     hub.broadcastState(worldId);
     return { ok: true };
-  });
-
-  app.post<{ Params: { id: string } }>("/api/scenes/:id/floors", mapDataRoute, async (req) => {
-    const worldId = s.scenes.worldIdOf(req.params.id);
-    if (!worldId) throw new AppError("not_found");
-    requireGm(req, worldId);
-    const scene = s.scenes.addFloor(req.params.id, worldId, floorInputSchema.parse(req.body));
-    hub.broadcastState(worldId);
-    return scene;
-  });
-
-  app.patch<{ Params: { id: string } }>("/api/floors/:id", mapDataRoute, async (req) => {
-    const owner = s.scenes.floorOwner(req.params.id);
-    if (!owner) throw new AppError("not_found");
-    requireGm(req, owner.worldId);
-    const scene = s.scenes.updateFloor(req.params.id, owner.worldId, updateFloorSchema.parse(req.body));
-    hub.broadcastState(owner.worldId);
-    return scene;
   });
 
   app.delete<{ Params: { id: string } }>("/api/floors/:id", async (req) => {

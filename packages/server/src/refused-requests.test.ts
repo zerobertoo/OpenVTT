@@ -1,7 +1,10 @@
-import { afterEach, expect, it } from "vitest";
-import { call, closeApps, newApp, signUp } from "./test-utils.ts";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { type App, call, closeApps, newApp, signUp } from "./test-utils.ts";
 
-afterEach(closeApps);
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await closeApps();
+});
 
 async function setup() {
   const app = newApp();
@@ -16,6 +19,47 @@ it("leaves no audit entry when the last floor cannot be deleted", async () => {
   expect((await call(app, gm.cookie, "DELETE", `/api/floors/${scene.floors[0].id}`)).statusCode).toBe(400);
   const log = (await call(app, gm.cookie, "GET", `/api/worlds/${world.id}/audit`)).json() as { action: string }[];
   expect(log.map((entry) => entry.action)).not.toContain("floor.delete");
+});
+
+describe("large map saves", () => {
+  // A body that cannot be parsed tells whether the server read it: reading it first would answer 400.
+  const unreadableBody = { payload: "{", headers: { "content-type": "application/json" } };
+  const send = (app: App, cookie: string, method: "POST" | "PATCH", url: string) =>
+    app.inject({ method, url, payload: unreadableBody.payload, headers: { ...unreadableBody.headers, cookie } });
+
+  it("refuses anyone but the game master before reading the body", async () => {
+    const { app, world, scene } = await setup();
+    const stranger = await signUp(app, "mallory");
+    const floorId = scene.floors[0].id;
+    expect((await send(app, stranger.cookie, "PATCH", `/api/floors/${floorId}`)).statusCode).toBe(403);
+    expect((await send(app, stranger.cookie, "PATCH", `/api/scenes/${scene.id}`)).statusCode).toBe(403);
+    expect((await send(app, stranger.cookie, "POST", `/api/scenes/${scene.id}/floors`)).statusCode).toBe(403);
+    expect((await send(app, stranger.cookie, "POST", `/api/worlds/${world.id}/scenes`)).statusCode).toBe(403);
+    expect((await send(app, stranger.cookie, "PATCH", "/api/floors/nothing")).statusCode).toBe(404);
+  });
+
+  it("limits how many a client can send, since anyone can be the game master of a world of their own", async () => {
+    const { app, gm, scene } = await setup();
+    const url = `/api/floors/${scene.floors[0].id}`;
+    for (let sent = 0; sent < 300; sent++) expect((await call(app, gm.cookie, "PATCH", url, { name: "Ground" })).statusCode).toBe(200);
+    const res = await call(app, gm.cookie, "PATCH", url, { name: "Ground" });
+    expect(res.statusCode).toBe(429);
+    expect(res.json()).toEqual({ error: "too_many_attempts" });
+  });
+});
+
+it("answers a body that is not valid JSON as bad input, without logging a server failure", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const { app, gm, world } = await setup();
+  const res = await app.inject({
+    method: "PATCH",
+    url: `/api/worlds/${world.id}`,
+    payload: "{",
+    headers: { cookie: gm.cookie, "content-type": "application/json" },
+  });
+  expect(res.statusCode).toBe(400);
+  expect(res.json()).toEqual({ error: "invalid_input" });
+  expect(log).not.toHaveBeenCalled();
 });
 
 it("answers a repeated floor parameter as bad input, not a server failure", async () => {
