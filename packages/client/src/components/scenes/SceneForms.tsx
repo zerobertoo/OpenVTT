@@ -58,31 +58,35 @@ interface SettingsProps {
   pending?: boolean;
 }
 
-/** Name and grid of the scene being looked at. The parent remounts it (via `key`) when the scene changes. */
+/**
+ * Name and grid of the scene being looked at. The inputs are uncontrolled, so each one remounts (via its own `key`)
+ * when the server value behind it changes, and the others keep what is being typed. The parent remounts the whole
+ * form when another scene is shown.
+ */
 export function SceneSettingsForm({ scene, onSubmit, pending, onAdjustGrid }: SettingsProps) {
   const { t } = useTranslation();
   return (
     <form onSubmit={onSubmit} aria-label={t("scene.settings")} className="grid gap-3">
-      <Field label={t("scene.name")}>
+      <Field key={`name-${scene.name}`} label={t("scene.name")}>
         {(control) => <Input {...control} name="name" defaultValue={scene.name} required maxLength={80} />}
       </Field>
-      <GridTypeSelect defaultValue={scene.gridType} />
+      <GridTypeSelect key={`type-${scene.gridType}`} defaultValue={scene.gridType} />
       <div className="grid grid-cols-3 items-end gap-2">
-        <Field label={t("scene.gridSize")}>
+        <Field key={`size-${scene.gridSize}`} label={t("scene.gridSize")}>
           {(control) => <Input {...control} name="gridSize" type="number" min={10} max={500} defaultValue={scene.gridSize} />}
         </Field>
-        <Field label={t("scene.gridDistance")}>
+        <Field key={`distance-${scene.gridDistance}`} label={t("scene.gridDistance")}>
           {(control) => <Input {...control} name="gridDistance" type="number" min={0.1} step="any" defaultValue={scene.gridDistance} />}
         </Field>
-        <Field label={t("scene.distanceUnit")}>
+        <Field key={`unit-${scene.distanceUnit}`} label={t("scene.distanceUnit")}>
           {(control) => <Input {...control} name="distanceUnit" list="distance-units" defaultValue={scene.distanceUnit} maxLength={10} />}
         </Field>
       </div>
-      {!scene.bakedLighting && <AmbientLightField defaultValue={scene.ambientLight} />}
-      <Field label={t("scene.vision")} hint={t("scene.visionHint")} inline>
+      {!scene.bakedLighting && <AmbientLightField key={`light-${scene.ambientLight}`} defaultValue={scene.ambientLight} />}
+      <Field key={`vision-${scene.visionEnabled}`} label={t("scene.vision")} hint={t("scene.visionHint")} inline>
         {(control) => <Checkbox {...control} name="visionEnabled" defaultChecked={scene.visionEnabled} />}
       </Field>
-      <Field label={t("scene.visionRadius")}>
+      <Field key={`radius-${scene.visionRadius}`} label={t("scene.visionRadius")}>
         {(control) => (
           <Input {...control} name="visionRadius" type="number" min={1} max={200} step="any" defaultValue={scene.visionRadius} />
         )}

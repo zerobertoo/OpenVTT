@@ -64,7 +64,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
 
       <Group title={t("token.groupAppearance")}>
         {isGm && (
-          <Field label={t("token.name")}>
+          <Field key={`name-${token.name}`} label={t("token.name")}>
             {(control) => (
               <Input
                 {...control}
@@ -92,7 +92,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
         {isGm && (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <Field label={t("token.size")}>
+              <Field key={`size-${token.size}`} label={t("token.size")}>
                 {(control) => (
                   <Input
                     {...control}
@@ -121,7 +121,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               onPick={onUpload}
               onRemove={() => onPatch({ assetId: null })}
             />
-            <Field label={t("token.showName")} inline>
+            <Field key={`show-name-${token.showName}`} label={t("token.showName")} inline>
               {(control) => (
                 <Switch {...control} defaultChecked={token.showName} onChange={(e) => onPatch({ showName: e.target.checked })} />
               )}
@@ -132,7 +132,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
 
       <Group title={t("token.groupState")}>
         {!isGm && token.hp !== null && token.hpMax !== null && (
-          <Field label={t("token.hp", { max: token.hpMax })}>
+          <Field key={`player-hp-${token.hp}`} label={t("token.hp", { max: token.hpMax })}>
             {(control) => (
               <Input
                 {...control}
@@ -150,7 +150,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
         )}
         {isGm && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t("token.hpCurrent")}>
+            <Field key={`hp-${token.hp}`} label={t("token.hpCurrent")}>
               {(control) => (
                 <Input
                   {...control}
@@ -165,7 +165,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
                 />
               )}
             </Field>
-            <Field label={t("token.hpMax")}>
+            <Field key={`hp-max-${token.hpMax}`} label={t("token.hpMax")}>
               {(control) => (
                 <Input
                   {...control}
@@ -186,7 +186,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
         <fieldset className="m-0 grid grid-cols-2 gap-x-3 gap-y-1.5 border-0 p-0">
           <legend className="mb-1 p-0 font-semibold text-label">{t("token.conditions")}</legend>
           {TOKEN_CONDITIONS.map((id) => (
-            <Field key={id} label={t(`condition.${id}`)} inline>
+            <Field key={`${id}-${token.conditions.includes(id)}`} label={t(`condition.${id}`)} inline>
               {(control) => (
                 <Checkbox
                   {...control}
@@ -204,7 +204,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
       {isGm && (
         <Group title={t("token.groupAccess")}>
           {floors.length > 1 && (
-            <Field label={t("token.floor")} hint={t("token.floorHint")}>
+            <Field key={`floor-${token.floorId}`} label={t("token.floor")} hint={t("token.floorHint")}>
               {(control) => (
                 <Select {...control} defaultValue={token.floorId} onValueChange={(value) => onPatch({ floorId: value })}>
                   {[...floors].reverse().map((floor) => (
@@ -216,10 +216,10 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
               )}
             </Field>
           )}
-          <Field label={t("token.hidden")} inline>
+          <Field key={`hidden-${token.hidden}`} label={t("token.hidden")} inline>
             {(control) => <Switch {...control} defaultChecked={token.hidden} onChange={(e) => onPatch({ hidden: e.target.checked })} />}
           </Field>
-          <Field label={t("token.actor")}>
+          <Field key={`actor-${token.actorId}`} label={t("token.actor")}>
             {(control) => (
               <Select {...control} defaultValue={token.actorId ?? ""} onValueChange={(value) => onPatch({ actorId: value || null })}>
                 <option value="">{t("token.noActor")}</option>
@@ -235,7 +235,7 @@ export function TokenEditor({ token, players, actors, isGm, floors = [], onPatch
             <fieldset className="m-0 grid gap-1.5 border-0 p-0">
               <legend className="mb-1 p-0 font-semibold text-label">{t("token.controllers")}</legend>
               {players.map((member) => (
-                <Field key={member.userId} label={member.displayName} inline>
+                <Field key={`${member.userId}-${token.controllerIds.includes(member.userId)}`} label={member.displayName} inline>
                   {(control) => (
                     <Checkbox
                       {...control}

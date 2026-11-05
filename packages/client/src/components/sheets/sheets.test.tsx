@@ -66,6 +66,18 @@ describe("SheetView", () => {
     expect(onSave).toHaveBeenCalledWith("items", []);
   });
 
+  it("shows a changed value from the server but keeps what is being typed in the other fields", async () => {
+    const view = render(<SheetView actor={actor} template={template} system={system} locale="en" onSave={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("Name"), " Lovelace");
+
+    // Someone else changes the level while the name is still being edited.
+    const changed = { ...actor, data: { ...actor.data, level: 7 } };
+    view.rerender(<SheetView actor={changed} template={template} system={system} locale="en" onSave={vi.fn()} />);
+
+    expect(screen.getByLabelText("Level")).toHaveValue(7);
+    expect(screen.getByLabelText("Name")).toHaveValue("Ada Lovelace");
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(<SheetView actor={actor} template={template} system={system} locale="en" onSave={vi.fn()} />);
     expect(await axe(container)).toHaveNoViolations();

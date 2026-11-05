@@ -64,6 +64,19 @@ describe("TokenEditor", () => {
     expect(onPatch).toHaveBeenCalledWith({ controllerIds: ["u2"] });
   });
 
+  it("shows a value changed on the server but keeps what is being typed in the other fields", async () => {
+    const { rerender } = setup(true);
+    const handlers = { onPatch: vi.fn(), onUpload: vi.fn(), onDelete: vi.fn() };
+    await userEvent.type(screen.getByLabelText("Hit points"), "5");
+    await userEvent.type(screen.getByLabelText("Name"), " Chief");
+
+    // Another person sets a different health value meanwhile; a field that was edited must still follow the server.
+    rerender(<TokenEditor token={{ ...goblin, hp: 9, hpMax: 12 }} players={players} actors={actors} isGm {...handlers} />);
+
+    expect(screen.getByLabelText("Hit points")).toHaveValue(9);
+    expect(screen.getByLabelText("Name")).toHaveValue("Goblin Chief");
+  });
+
   it("asks before deleting and only then deletes", async () => {
     const { onDelete } = setup(true);
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));

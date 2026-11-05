@@ -75,6 +75,18 @@ describe("scene forms", () => {
     expect(onSubmit).toHaveBeenCalledOnce();
   });
 
+  it("shows a setting changed on the server but keeps what is being typed in the other fields", async () => {
+    const { rerender } = render(<SceneSettingsForm scene={scene} onSubmit={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("Name"), " Cellar");
+    await userEvent.clear(screen.getByLabelText("Cell size (px)"));
+    await userEvent.type(screen.getByLabelText("Cell size (px)"), "80");
+
+    rerender(<SceneSettingsForm scene={{ ...scene, gridSize: 90 }} onSubmit={vi.fn()} />);
+
+    expect(screen.getByLabelText("Cell size (px)")).toHaveValue(90);
+    expect(screen.getByLabelText("Name")).toHaveValue("Tavern Cellar");
+  });
+
   it("asks for a size only when there is no image", () => {
     const { rerender } = render(<SceneCreateForm onSubmit={vi.fn()} imageFile={null} onImageChange={vi.fn()} />);
     expect(screen.getByLabelText(/Width/)).toBeInTheDocument();
