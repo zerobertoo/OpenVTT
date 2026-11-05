@@ -50,7 +50,7 @@ import { backupDatabase } from "./backup.ts";
 import { openDatabase, transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 import { Hub } from "./hub.ts";
-import { registerPortabilityRoutes } from "./portability.ts";
+import { floorIdQuerySchema, registerPortabilityRoutes } from "./portability.ts";
 import { createServices } from "./services.ts";
 import { resolveTokenMove, type Viewer } from "./tokens.ts";
 
@@ -413,8 +413,9 @@ export function buildApp(options: AppOptions) {
     const owner = s.scenes.floorOwner(req.params.id);
     if (!owner) throw new AppError("not_found");
     const { user } = requireGm(req, owner.worldId);
-    s.worlds.audit(owner.worldId, user.id, "floor.delete", s.scenes.get(owner.sceneId)?.floors.find((f) => f.id === req.params.id)?.name);
+    const floorName = s.scenes.get(owner.sceneId)?.floors.find((f) => f.id === req.params.id)?.name;
     const scene = s.scenes.removeFloor(req.params.id);
+    s.worlds.audit(owner.worldId, user.id, "floor.delete", floorName);
     hub.broadcastState(owner.worldId);
     return scene;
   });
@@ -423,8 +424,9 @@ export function buildApp(options: AppOptions) {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     const { user } = requireGm(req, worldId);
-    s.worlds.audit(worldId, user.id, "scene.delete", s.scenes.get(req.params.id)?.name);
+    const sceneName = s.scenes.get(req.params.id)?.name;
     s.scenes.remove(req.params.id, worldId);
+    s.worlds.audit(worldId, user.id, "scene.delete", sceneName);
     hub.broadcastState(worldId);
     return { ok: true };
   });
@@ -469,7 +471,7 @@ export function buildApp(options: AppOptions) {
     const worldId = s.scenes.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     const { viewer, user } = requireParticipant(req, worldId);
-    const floorId = drawingFloorId(worldId, req.params.id, viewer, (req.query as { floorId?: string }).floorId);
+    const floorId = drawingFloorId(worldId, req.params.id, viewer, floorIdQuerySchema.parse(req.query).floorId);
     s.drawings.clear(req.params.id, floorId, viewer);
     if (viewer.role === "gm") s.worlds.audit(worldId, user.id, "drawings.clear", s.scenes.get(req.params.id)?.name);
     hub.publishDrawings(worldId, req.params.id, floorId);
@@ -482,8 +484,8 @@ export function buildApp(options: AppOptions) {
     const { user } = requireGm(req, req.params.id);
     const { assetId, playing } = setAmbientSchema.parse(req.body);
     if (!s.assets.belongsToWorld(assetId, req.params.id, "audio")) throw new AppError("asset_invalid");
-    s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     s.worlds.setAmbient(req.params.id, assetId, playing);
+    s.worlds.audit(req.params.id, user.id, playing ? "music.play" : "music.stop");
     hub.broadcastState(req.params.id);
     return { ok: true };
   });
@@ -559,8 +561,8 @@ export function buildApp(options: AppOptions) {
     const worldId = s.handouts.worldIdOf(req.params.id);
     if (!worldId) throw new AppError("not_found");
     const { user } = requireGm(req, worldId);
-    s.worlds.audit(worldId, user.id, "handout.delete");
     s.handouts.remove(req.params.id);
+    s.worlds.audit(worldId, user.id, "handout.delete");
     hub.broadcastState(worldId);
     return { ok: true };
   });
@@ -610,9 +612,9 @@ export function buildApp(options: AppOptions) {
     const found = s.tokens.find(req.params.id);
     if (!found) throw new AppError("not_found");
     const { user } = requireGm(req, found.worldId);
-    s.worlds.audit(found.worldId, user.id, "token.delete", found.token.name);
     const wasCombatant = s.combat.isCombatant(found.token.id);
     s.tokens.remove(found.token.id);
+    s.worlds.audit(found.worldId, user.id, "token.delete", found.token.name);
     hub.publishTokenRemoved(found.worldId, found.token);
     if (wasCombatant) hub.publishCombat(found.worldId);
     return { ok: true };
@@ -693,8 +695,8 @@ export function buildApp(options: AppOptions) {
     const actor = s.actors.find(req.params.id);
     if (!actor) throw new AppError("not_found");
     const { user } = requireGm(req, actor.worldId);
-    s.worlds.audit(actor.worldId, user.id, "actor.delete", actor.name);
     s.actors.remove(actor.id);
+    s.worlds.audit(actor.worldId, user.id, "actor.delete", actor.name);
     hub.broadcastState(actor.worldId);
     return { ok: true };
   });

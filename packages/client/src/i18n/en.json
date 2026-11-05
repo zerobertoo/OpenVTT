@@ -606,6 +606,7 @@
       "member_kick": "removed",
       "scene_create": "created the scene",
       "scene_delete": "deleted the scene",
+      "floor_delete": "deleted the floor",
       "scene_activate": "showed the scene",
       "token_delete": "deleted the token",
       "actor_delete": "deleted the sheet",

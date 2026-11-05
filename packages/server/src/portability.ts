@@ -37,6 +37,7 @@ const MAX_IMPORT_BYTES = 1024 * 1024 * 1024;
 const MAX_WORLD_JSON_BYTES = 16 * 1024 * 1024;
 
 const id = z.string().min(1).max(64);
+export const floorIdQuerySchema = z.object({ floorId: id.optional() });
 const worldFileSchema = z.object({
   format: z.literal(FORMAT),
   version: z.literal(FORMAT_VERSION),
@@ -225,7 +226,7 @@ export function registerPortabilityRoutes(app: FastifyInstance, s: Services, gua
     if (!worldId) throw new AppError("not_found");
     guards.requireGm(req, worldId);
     const scene = s.scenes.get(req.params.id)!;
-    const floor = floorOf(scene, (req.query as { floorId?: string }).floorId);
+    const floor = floorOf(scene, floorIdQuerySchema.parse(req.query).floorId);
     const asset = floor.assetId && floor.assetKind === "image" ? s.assets.find(floor.assetId) : null;
     const image = asset ? readFileSync(s.assets.path(asset)).toString("base64") : "";
     const slug =

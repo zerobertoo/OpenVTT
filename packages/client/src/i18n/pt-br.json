@@ -606,6 +606,7 @@
       "member_kick": "removeu",
       "scene_create": "criou a cena",
       "scene_delete": "excluiu a cena",
+      "floor_delete": "excluiu o andar",
       "scene_activate": "mostrou a cena",
       "token_delete": "excluiu o token",
       "actor_delete": "excluiu a ficha",
