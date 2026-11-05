@@ -215,7 +215,25 @@
     "pauseVideo": "Pause map animation",
     "videoUnsupported": "This browser cannot play the map video, so the map is shown without it.",
     "draw": "Draw",
-    "light": "Lights"
+    "light": "Lights",
+    "effect": "Effects"
+  },
+  "effects": {
+    "options": "Effect options",
+    "kind": "Effect",
+    "amount": "Amount",
+    "radius": "Radius (cells)",
+    "hint": "Click the map to play the effect for everyone.",
+    "hintOrigin": "Click where the shot starts.",
+    "hintTarget": "Now click where it lands.",
+    "kinds": {
+      "arrive": "Arrival",
+      "vanish": "Vanish",
+      "damage": "Damage",
+      "heal": "Healing",
+      "blast": "Blast",
+      "projectile": "Projectile"
+    }
   },
   "light": {
     "options": "Light options",

@@ -75,6 +75,7 @@ export function useWorldState(worldId: string) {
         const message = JSON.parse(event.data) as ServerMessage;
         // Pings are moments, not state: they go straight to the map instead of through the reducer.
         if (message.type === "map.ping") useTableUi.getState().showPing(message.ping);
+        else if (message.type === "map.effect") useTableUi.getState().showEffect(message.effect);
         // The server refused an action (locked layer, observer, bad input); say so instead of letting the change silently snap back.
         else if (message.type === "error") {
           const t = translate.current;

@@ -215,7 +215,25 @@
     "pauseVideo": "Pausar animação do mapa",
     "videoUnsupported": "Este navegador não consegue reproduzir o vídeo do mapa, então o mapa aparece sem ele.",
     "draw": "Desenhar",
-    "light": "Luzes"
+    "light": "Luzes",
+    "effect": "Efeitos"
+  },
+  "effects": {
+    "options": "Opções de efeito",
+    "kind": "Efeito",
+    "amount": "Valor",
+    "radius": "Raio (casas)",
+    "hint": "Clique no mapa para mostrar o efeito para todos.",
+    "hintOrigin": "Clique onde o disparo começa.",
+    "hintTarget": "Agora clique onde ele acerta.",
+    "kinds": {
+      "arrive": "Chegada",
+      "vanish": "Desaparecimento",
+      "damage": "Dano",
+      "heal": "Cura",
+      "blast": "Explosão",
+      "projectile": "Projétil"
+    }
   },
   "light": {
     "options": "Opções da luz",

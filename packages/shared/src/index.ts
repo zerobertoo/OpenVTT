@@ -424,7 +424,28 @@ export type ServerMessage =
   | { type: "scene.drawings"; sceneId: string; floorId: string; drawings: DrawingDto[] }
   /** A short-lived marker on the map; `focus` also asks everyone to look at it (game master only). */
   | { type: "map.ping"; ping: PingDto }
+  /** A short-lived visual effect on the map, started by the game master. */
+  | { type: "map.effect"; effect: EffectDto }
   | { type: "error"; code: ErrorCode };
+
+/** What a visual effect on the map looks like. `projectile` travels from (x, y) to (toX, toY). */
+export const EFFECT_KINDS = ["arrive", "vanish", "damage", "heal", "blast", "projectile"] as const;
+export type EffectKind = (typeof EFFECT_KINDS)[number];
+
+export interface EffectDto {
+  sceneId: string;
+  /** Only people looking at this floor see the effect. */
+  floorId: string;
+  kind: EffectKind;
+  /** Scene pixels. */
+  x: number;
+  y: number;
+  /** Where a projectile lands. */
+  toX?: number;
+  toY?: number;
+  /** The number shown for damage and healing; the radius in cells for a blast. */
+  value?: number;
+}
 
 export interface PingDto {
   sceneId: string;
@@ -443,6 +464,8 @@ export type ClientMessage =
   | { type: "token.move"; tokenId: string; x: number; y: number }
   /** Marks a spot on the active scene for everybody; `focus` is for the game master. */
   | { type: "map.ping"; x: number; y: number; focus?: boolean; floorId?: string }
+  /** Game master only: starts a visual effect on the map for everybody. */
+  | { type: "map.effect"; kind: EffectKind; x: number; y: number; toX?: number; toY?: number; value?: number; floorId?: string }
   /** Game master only: see the table the way this player does (their tokens' sight); null goes back to seeing everything. */
   | { type: "world.viewAs"; userId: string | null };
 

@@ -1,5 +1,6 @@
 import type { IncomingMessage, Server } from "node:http";
 import {
+  EFFECT_KINDS,
   floorOf,
   type MessageDto,
   pathIsBlocked,
@@ -50,6 +51,16 @@ const clientMessageSchema = z.discriminatedUnion("type", [
     x: z.number().finite(),
     y: z.number().finite(),
     focus: z.boolean().optional(),
+    floorId: z.string().uuid().optional(),
+  }),
+  z.object({
+    type: z.literal("map.effect"),
+    kind: z.enum(EFFECT_KINDS),
+    x: z.number().finite(),
+    y: z.number().finite(),
+    toX: z.number().finite().optional(),
+    toY: z.number().finite().optional(),
+    value: z.number().int().min(-9999).max(9999).optional(),
     floorId: z.string().uuid().optional(),
   }),
 ]);
@@ -137,6 +148,7 @@ export class Hub {
     if (msg.type === "world.resync") return this.sendState(conn);
     if (msg.type === "world.viewAs") return this.previewAs(conn, msg.userId);
     if (msg.type === "map.ping") return this.ping(conn, msg);
+    if (msg.type === "map.effect") return this.effect(conn, msg);
 
     // token.move: validate against the live DB, never trust the client's view of permissions.
     const found = this.s.tokens.find(msg.tokenId);
@@ -166,32 +178,65 @@ export class Hub {
   /** Relays a ping on the active scene to everyone; only the game master can ask the others to look at it. */
   private ping(conn: Connection, msg: { x: number; y: number; focus?: boolean; floorId?: string }) {
     if (conn.observer) return;
+    this.relayOnFloor(conn, msg.floorId, (scene, floorId) => ({
+      type: "map.ping",
+      ping: {
+        sceneId: scene.id,
+        floorId,
+        userId: conn.viewer.userId,
+        x: Math.min(Math.max(msg.x, 0), scene.width),
+        y: Math.min(Math.max(msg.y, 0), scene.height),
+        focus: conn.viewer.role === "gm" && msg.focus === true,
+      },
+    }));
+  }
+
+  /** Relays a visual effect on the active scene to everyone; only the game master can start one. */
+  private effect(conn: Connection, msg: Extract<z.infer<typeof clientMessageSchema>, { type: "map.effect" }>) {
+    if (conn.viewer.role !== "gm") return;
+    const inside = (n: number, max: number) => Math.min(Math.max(n, 0), max);
+    this.relayOnFloor(conn, msg.floorId, (scene, floorId) => ({
+      type: "map.effect",
+      effect: {
+        sceneId: scene.id,
+        floorId,
+        kind: msg.kind,
+        x: inside(msg.x, scene.width),
+        y: inside(msg.y, scene.height),
+        ...(msg.toX !== undefined && msg.toY !== undefined && { toX: inside(msg.toX, scene.width), toY: inside(msg.toY, scene.height) }),
+        ...(msg.value !== undefined && { value: msg.value }),
+      },
+    }));
+  }
+
+  /**
+   * Sends a short-lived message about the active scene to everyone who can see the floor it happened on. Rate limited,
+   * and never stored.
+   */
+  private relayOnFloor(
+    conn: Connection,
+    requestedFloorId: string | undefined,
+    build: (scene: { id: string; width: number; height: number }, floorId: string) => ServerMessage,
+  ) {
     const now = Date.now();
     if (now - conn.lastPingAt < PING_MIN_INTERVAL_MS) return;
     conn.lastPingAt = now;
     const sceneId = this.s.scenes.activeSceneId(conn.worldId);
     const scene = sceneId ? this.s.scenes.get(sceneId) : null;
     if (!scene) return;
-    // A ping belongs to the floor of the person who made it; the game master's floor is the one on screen, so they
+    // It belongs to the floor of the person who made it; the game master's floor is the one on screen, so they
     // name it through `floorId` (the table floor when they do not).
     const floorId =
       conn.viewer.role === "gm"
-        ? msg.floorId && this.s.scenes.hasFloor(scene.id, msg.floorId)
-          ? msg.floorId
+        ? requestedFloorId && this.s.scenes.hasFloor(scene.id, requestedFloorId)
+          ? requestedFloorId
           : scene.tableFloorId
         : this.floorIdOf(conn.viewer, scene.id)!;
-    const ping = {
-      sceneId: scene.id,
-      floorId,
-      userId: conn.viewer.userId,
-      x: Math.min(Math.max(msg.x, 0), scene.width),
-      y: Math.min(Math.max(msg.y, 0), scene.height),
-      focus: conn.viewer.role === "gm" && msg.focus === true,
-    };
+    const message = build(scene, floorId);
     for (const c of this.connections) {
       if (c.worldId !== conn.worldId) continue;
-      // The game master sees every floor's pings; the others only the ones on their own floor.
-      if (c.viewer.role === "gm" || this.floorIdOf(c.viewer, scene.id) === floorId) this.send(c, { type: "map.ping", ping });
+      // The game master sees every floor's messages; the others only the ones on their own floor.
+      if (c.viewer.role === "gm" || this.floorIdOf(c.viewer, scene.id) === floorId) this.send(c, message);
     }
   }
 

@@ -23,6 +23,7 @@ import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./li
 import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
+import { playEffect } from "./lib/mapEffects";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
@@ -30,7 +31,7 @@ import type { Move } from "./lib/tableActions";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
-export type MapTool = "select" | "ruler" | "draw" | "light";
+export type MapTool = "select" | "ruler" | "draw" | "light" | "effect";
 
 interface Props {
   scene: SceneDto | null;
@@ -56,6 +57,8 @@ interface Props {
   onToggleDoor: (wallId: string, open: boolean) => void;
   /** Alt+click marks a spot for everybody; Alt+Shift+click (game master) also asks them to look at it. */
   onPing: (x: number, y: number, focus: boolean) => void;
+  /** A click on the map while the effect tool is active (scene pixels). */
+  onEffectPoint: (x: number, y: number) => void;
   /** Formats the ruler label; receives distance in grid cells. */
   formatDistance: (cells: number) => string;
   rulerShape: RulerShape;
@@ -322,6 +325,9 @@ export function MapView(props: Props) {
         } else if (p === "light" && e.button === 0 && e.target === app.stage) {
           const point = toWorld(e);
           props_().onAddLight(point.x, point.y);
+        } else if (p === "effect" && e.button === 0) {
+          const point = toWorld(e);
+          props_().onEffectPoint(point.x, point.y);
         } else if (p === "ruler" && e.button === 0) {
           rulerStart = toWorld(e);
         } else if (p === "draw" && e.button === 0) {
@@ -1151,6 +1157,14 @@ export function MapView(props: Props) {
       if (!ring.destroyed) ring.destroy();
     };
   }, [ping, latest]);
+
+  // Effects the game master starts play once on every screen showing that floor; they stop with the map.
+  const effect = useTableUi((ui) => ui.effect);
+  useEffect(() => {
+    const e = engine.current;
+    if (!e || !effect || effect.sceneId !== latest.current.scene?.id || effect.floorId !== latest.current.floor?.id) return;
+    return playEffect(e.world, e.app.ticker, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, [effect, latest]);
 
   useEffect(() => {
     engine.current?.ruler.clear();

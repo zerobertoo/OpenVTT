@@ -9,6 +9,7 @@ import { DiceOverlay } from "./components/table/DiceOverlay";
 import { DiceTray } from "./components/table/DiceTray";
 import { Drawer } from "./components/table/Drawer";
 import { DrawOptions } from "./components/table/DrawOptions";
+import { EffectOptions } from "./components/table/EffectOptions";
 import { EnvironmentOverlay } from "./components/table/EnvironmentOverlay";
 import { FloorSwitcher } from "./components/table/FloorSwitcher";
 import { LightOptions } from "./components/table/LightOptions";
@@ -289,6 +290,18 @@ export function Table({ worldId, user }: Props) {
               layers={viewAs || view === "tv" ? PLAYER_LAYERS : layers}
               onToggleDoor={(wallId, open) => void api.setDoorOpen(scene.id, wallId, open).catch(() => undefined)}
               onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus, floorId: isGm ? floor?.id : undefined })}
+              onEffectPoint={(x, y) => {
+                if (!isGm || viewAs) return;
+                const { effectKind: kind, effectValue: value, effectOrigin: origin, setEffectOrigin } = useTableUi.getState();
+                const base = { type: "map.effect", kind, floorId: floor?.id } as const;
+                // A projectile takes two clicks: where it starts, then where it lands.
+                if (kind === "projectile") {
+                  if (!origin) return setEffectOrigin({ x, y });
+                  setEffectOrigin(null);
+                  return send({ ...base, x: origin.x, y: origin.y, toX: x, toY: y });
+                }
+                send({ ...base, x, y, ...(kind !== "arrive" && kind !== "vanish" && { value }) });
+              }}
               formatDistance={(cells) => format.distance(cells, scene)}
               rulerShape={rulerShape}
               diagonalRule={diagonalRule}
@@ -339,6 +352,7 @@ export function Table({ worldId, user }: Props) {
             <>
               <TitleChip worldName={state.name} connected={connected} isGm={isGm} onShowShortcuts={() => setHelpOpen(true)} />
               {tool === "ruler" && <RulerOptions scene={scene} />}
+              {tool === "effect" && isGm && !viewAs && <EffectOptions />}
               {tool === "draw" && scene && (
                 <DrawOptions
                   isGm={isGm}
