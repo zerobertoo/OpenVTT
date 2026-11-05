@@ -7,7 +7,10 @@ const RADIUS = 34;
 /** A fixed sequence stands in for Math.random so the throw is the same on every run. */
 const steady = () => {
   let n = 0;
-  return () => ((n = (n * 7 + 3) % 10) + 0.5) / 10;
+  return () => {
+    n = (n * 7 + 3) % 10;
+    return (n + 0.5) / 10;
+  };
 };
 
 describe("planThrow", () => {

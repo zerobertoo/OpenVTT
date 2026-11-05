@@ -333,7 +333,8 @@ export function MapView(props: Props) {
         const p = props_().tool;
         if (p === "select" && e.button === 0 && e.shiftKey && e.target === app.stage) {
           const start = toWorld(e);
-          return void (boxStart = start);
+          boxStart = start;
+          return;
         }
         if (e.button === 1 || e.button === 2 || (p === "select" && e.target === app.stage)) {
           panning = { x: e.global.x - world.x, y: e.global.y - world.y };
@@ -607,7 +608,7 @@ export function MapView(props: Props) {
       const drawings = floor?.drawings ?? null;
       if (drawings === e.shownDrawings) return;
       e.shownDrawings = drawings;
-      for (const layer of Object.values(e.drawingLayers)) layer.removeChildren().forEach((c) => c.destroy({ children: true }));
+      for (const layer of Object.values(e.drawingLayers)) for (const child of layer.removeChildren()) child.destroy({ children: true });
       if (!scene || !floor) return;
       for (const drawing of floor.drawings) {
         const view = drawingView(drawing, scene.gridSize);
@@ -642,8 +643,8 @@ export function MapView(props: Props) {
         return;
       shownMap = { scene, floor, ghost, layers, lightsEdited };
       const run = ++latestRun;
-      e.background.removeChildren().forEach((c) => c.destroy());
-      e.mapData.removeChildren().forEach((c) => c.destroy({ children: true }));
+      for (const child of e.background.removeChildren()) child.destroy();
+      for (const child of e.mapData.removeChildren()) child.destroy({ children: true });
       // A measurement belongs to the floor it was taken on; other updates must leave it in place.
       if ((floor?.id ?? null) !== measuredFloorId) {
         measuredFloorId = floor?.id ?? null;
@@ -664,7 +665,7 @@ export function MapView(props: Props) {
         const loaded = await e.video!.ready;
         // Another floor, scene or setting was shown while the video loaded; its own sync draws the map.
         if (run !== latestRun) return;
-        e.background.removeChildren().forEach((c) => c.destroy());
+        for (const child of e.background.removeChildren()) child.destroy();
         if (loaded) {
           const sprite = new Sprite(loaded.texture);
           sprite.width = scene.width;
@@ -910,7 +911,10 @@ export function MapView(props: Props) {
           }
           const texture = new Texture({ source: new VideoSource({ resource: element, autoPlay: false }) });
           background.loaded = { element, texture };
-          if (background.wantPlaying) await element.play().catch(() => void (background.wantPlaying = false));
+          if (background.wantPlaying)
+            await element.play().catch(() => {
+              background.wantPlaying = false;
+            });
           // A decode failure after the first frame (corrupt file, lost connection) ends the animation cleanly.
           element.addEventListener("error", () => setVideoUi({ status: "unsupported", playing: false }));
           setVideoUi({ status: "ready", playing: background.wantPlaying });
@@ -995,7 +999,8 @@ export function MapView(props: Props) {
             const half = (member.token.size * (scene?.gridSize ?? 0)) / 2;
             member.view.position.set(member.token.x + half, member.token.y + half);
           }
-          return void (drag = null);
+          drag = null;
+          return;
         }
         if (!scene) return;
         const local = engine.current!.world.toLocal(e.global);
@@ -1011,7 +1016,10 @@ export function MapView(props: Props) {
       });
       const drop = () => {
         const scene = props_().scene;
-        if (!drag || !scene) return void (drag = null);
+        if (!drag || !scene) {
+          drag = null;
+          return;
+        }
         const { members } = drag;
         drag = null;
         const moves: Move[] = [];
@@ -1082,7 +1090,7 @@ export function MapView(props: Props) {
 
     function drawToken(view: Container, token: TokenDto, gridSize: number, selected: boolean) {
       const px = token.size * gridSize;
-      view.removeChildren().forEach((c) => c.destroy({ children: true }));
+      for (const child of view.removeChildren()) child.destroy({ children: true });
       view.pivot.set(0, 0);
       view.position.set(token.x + px / 2, token.y + px / 2);
       view.rotation = (token.rotation * Math.PI) / 180;

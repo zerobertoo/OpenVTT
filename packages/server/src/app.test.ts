@@ -11,7 +11,7 @@ const tmpDirs: string[] = [];
 
 afterEach(async () => {
   await Promise.all(apps.splice(0).map((a) => a.close()));
-  tmpDirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true }));
+  for (const dir of tmpDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
 const newApp = (dbPath = ":memory:", options: Partial<AppOptions> = {}) => {
@@ -180,7 +180,7 @@ describe("websocket sync", () => {
     const waiters: (() => void)[] = [];
     ws.on("message", (raw) => {
       seen.push(JSON.parse(raw.toString()));
-      waiters.splice(0).forEach((w) => w());
+      for (const wake of waiters.splice(0)) wake();
     });
     const until = async (pred: (s: WorldStateDto) => boolean) => {
       for (;;) {

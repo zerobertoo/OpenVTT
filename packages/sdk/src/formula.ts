@@ -38,7 +38,12 @@ export function parseFormula(source: string): FormulaNode {
 
   let pos = 0;
   const peek = () => tokens[pos];
-  const takeOp = (text: string) => (peek()?.type === "op" && peek()!.text === text ? (pos++, true) : false);
+  const takeOp = (text: string) => {
+    const token = peek();
+    if (token?.type !== "op" || token.text !== text) return false;
+    pos++;
+    return true;
+  };
 
   const parseExpression = (): FormulaNode => {
     let left = parseTerm();

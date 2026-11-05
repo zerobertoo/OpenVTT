@@ -78,7 +78,7 @@ export class SystemRegistry {
   private systems = new Map<string, LoadedSystem>();
 
   constructor(
-    private builtInDir: string,
+    builtInDir: string,
     private installedDir: string,
   ) {
     for (const dir of [builtInDir, installedDir]) this.loadDirectory(dir);
