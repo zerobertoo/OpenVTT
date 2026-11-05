@@ -25,7 +25,9 @@ test("a measurement stays on the map when something else changes on the table", 
   await registerNewUser(page);
   await createAndOpenWorld(page, "Steady ruler world");
   const worldId = page.url().split("/world/")[1]!.split(/[/?#]/)[0]!;
-  const scene = await (await page.request.post(`/api/worlds/${worldId}/scenes`, { data: { name: "Arena", width: 700, height: 500 } })).json();
+  const scene = await (
+    await page.request.post(`/api/worlds/${worldId}/scenes`, { data: { name: "Arena", width: 700, height: 500 } })
+  ).json();
   const token = await (
     await page.request.post(`/api/worlds/${worldId}/tokens`, { data: { sceneId: scene.id, name: "Hero", x: 70, y: 70 } })
   ).json();
