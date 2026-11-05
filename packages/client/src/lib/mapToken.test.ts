@@ -34,6 +34,14 @@ describe("drawTokenView", () => {
     expect(view.rotation).toBeCloseTo(Math.PI / 2);
   });
 
+  it("marks a hidden token for the game master and leaves a visible one plain", () => {
+    const plain = new Container();
+    const ghost = new Container();
+    drawTokenView(plain, token(), 70, false, noImage);
+    drawTokenView(ghost, token({ hidden: true }), 70, false, noImage);
+    expect(ghost.children).toHaveLength(plain.children.length + 1);
+  });
+
   it("shows the first two letters of the name, capitalised, when there is no picture", () => {
     const view = new Container();
     drawTokenView(view, token(), 70, false, noImage);

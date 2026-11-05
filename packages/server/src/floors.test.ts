@@ -219,6 +219,13 @@ describe("what each person receives", () => {
     gmConn.ws.send(JSON.stringify({ type: "map.effect", kind: "projectile", x: -50, y: 20, toX: 30, toY: 40, floorId: cellar.id }));
     const got = await bobConn.waitFor((m): m is Extract<ServerMessage, { type: "map.effect" }> => m.type === "map.effect");
     expect(got.effect).toMatchObject({ kind: "projectile", floorId: cellar.id, x: 0, y: 20, toX: 30, toY: 40 });
+    // Anything that travels needs its landing spot, and an area keeps its radius between 1 and 10 cells.
+    const before = bobConn.seen.filter((m) => m.type === "map.effect").length;
+    gmConn.ws.send(JSON.stringify({ type: "map.effect", kind: "bolt", x: 10, y: 10, floorId: cellar.id }));
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(bobConn.seen.filter((m) => m.type === "map.effect")).toHaveLength(before);
+    gmConn.ws.send(JSON.stringify({ type: "map.effect", kind: "fireball", x: 10, y: 10, toX: 20, toY: 20, value: 99, floorId: cellar.id }));
+    await bobConn.waitFor((m) => m.type === "map.effect" && m.effect.kind === "fireball" && m.effect.value === 10);
     bobConn.ws.close();
     gmConn.ws.close();
   });

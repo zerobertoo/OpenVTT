@@ -1,6 +1,6 @@
 import type { TokenDto } from "@openvtt/shared";
 import { type Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
-import { drawStatus, hexToNumber } from "./mapShapes";
+import { drawHiddenMark, drawStatus, hexToNumber } from "./mapShapes";
 
 /** How many times each view was drawn, so a picture that finishes loading for an older drawing is dropped. */
 const drawCount = new WeakMap<Container, number>();
@@ -27,6 +27,11 @@ export function drawTokenView(
   body.stroke({ width: selected ? 4 : 2, color: selected ? 0xffffff : 0x000000 });
   view.addChild(body);
   view.addChild(drawStatus(token, px, gridSize));
+  const mark = token.hidden ? drawHiddenMark(px, gridSize) : null;
+  if (mark) {
+    mark.rotation = -view.rotation;
+    view.addChild(mark);
+  }
   if (token.assetId) {
     void loadImage(token.assetId).then((texture) => {
       if (!texture || view.destroyed || drawCount.get(view) !== drawing) return;
@@ -36,6 +41,8 @@ export function drawTokenView(
       const mask = new Graphics().circle(0, 0, px / 2 - 2).fill(0xffffff);
       sprite.mask = mask;
       view.addChild(mask, sprite);
+      // The picture arrives late and would cover the badge.
+      if (mark && !mark.destroyed) view.addChild(mark);
     });
   } else {
     const initial = new Text({
