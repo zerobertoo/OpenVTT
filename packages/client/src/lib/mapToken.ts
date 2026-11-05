@@ -2,6 +2,9 @@ import type { TokenDto } from "@openvtt/shared";
 import { type Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
 import { drawStatus, hexToNumber } from "./mapShapes";
 
+/** How many times each view was drawn, so a picture that finishes loading for an older drawing is dropped. */
+const drawCount = new WeakMap<Container, number>();
+
 /**
  * Draws a token into `view`, replacing what was there: a coloured disc with its outline, health and conditions, and
  * either its picture (masked to the disc, added once `loadImage` resolves) or the first letters of its name.
@@ -13,6 +16,8 @@ export function drawTokenView(
   selected: boolean,
   loadImage: (assetId: string) => Promise<Texture | null>,
 ) {
+  const drawing = (drawCount.get(view) ?? 0) + 1;
+  drawCount.set(view, drawing);
   const px = token.size * gridSize;
   for (const child of view.removeChildren()) child.destroy({ children: true });
   view.pivot.set(0, 0);
@@ -24,7 +29,7 @@ export function drawTokenView(
   view.addChild(drawStatus(token, px, gridSize));
   if (token.assetId) {
     void loadImage(token.assetId).then((texture) => {
-      if (!texture || view.destroyed) return;
+      if (!texture || view.destroyed || drawCount.get(view) !== drawing) return;
       const sprite = new Sprite(texture);
       sprite.anchor.set(0.5);
       sprite.width = sprite.height = px - 4;

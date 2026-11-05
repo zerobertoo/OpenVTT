@@ -76,3 +76,16 @@ describe("drawTokenView", () => {
     expect(gone.children).toHaveLength(0);
   });
 });
+
+describe("redrawing while the picture loads", () => {
+  it("adds only the picture of the latest drawing", async () => {
+    const view = new Container();
+    const resolvers: ((texture: Texture) => void)[] = [];
+    const slowLoad = () => new Promise<Texture>((resolve) => resolvers.push(resolve));
+    drawTokenView(view, token({ assetId: "a1" }), 70, false, slowLoad);
+    drawTokenView(view, token({ assetId: "a1" }), 70, true, slowLoad);
+    for (const resolve of resolvers) resolve(Texture.EMPTY);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(view.children.filter((c) => c instanceof Sprite)).toHaveLength(1);
+  });
+});
