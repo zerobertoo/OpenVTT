@@ -202,6 +202,31 @@ output { font-weight: 800; font-size: 1.1rem; }
 .empty-map { position: absolute; inset: 0 var(--drawer-space, 0px) 0 0; display: grid; place-content: safe center; padding: 1rem; overflow-y: auto; }
 .map-hint { position: absolute; left: 0.9rem; bottom: 6.4rem; margin: 0; max-width: 16rem; padding: 0.4rem 0.8rem; font-size: 0.78rem; color: var(--on-chrome-2); background: color-mix(in srgb, var(--chrome) 85%, transparent); border-radius: var(--radius); }
 .online-chip { top: 0.9rem; right: calc(var(--drawer-space, 0px) + 0.9rem); padding: 0.3rem 0.75rem 0.3rem 0.5rem; font-size: 0.85rem; color: var(--on-chrome-2); }
+.room-entry { position: fixed; inset: 0; z-index: 80; display: grid; place-content: center; justify-items: center; gap: 1.2rem; color: var(--on-chrome); background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 22%, var(--map)), var(--map) 70%); }
+.entry-stage { position: relative; display: grid; place-items: center; width: 14rem; height: 14rem; }
+.entry-avatar { scale: 2.2; }
+.entry-ring { position: absolute; inset: 0; border: 2px solid var(--accent); border-radius: 50%; opacity: 0; animation: entry-ring 1.8s ease-out infinite; }
+.entry-spark { position: absolute; top: 50%; left: 50%; width: 0.35rem; height: 0.35rem; margin: -0.175rem; border-radius: 50%; background: var(--color, var(--accent)); opacity: 0; animation: entry-spark 1.4s ease-in infinite; }
+.entry-title { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.entry-bar { width: min(18rem, 70vw); height: 0.3rem; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--on-chrome) 18%, transparent); }
+.entry-bar span { display: block; width: 100%; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(var(--progress, 0)); transition: transform 0.3s var(--ease); }
+@keyframes entry-ring { from { transform: scale(0.2); opacity: 0.9; } to { transform: scale(1.1); opacity: 0; } }
+@keyframes entry-spark { from { transform: rotate(var(--angle)) translateX(6.5rem) scale(1); opacity: 0; } 30% { opacity: 1; } to { transform: rotate(var(--angle)) translateX(1.8rem) scale(0.3); opacity: 0; } }
+.presence { display: flex; align-items: center; gap: 0.5rem; max-width: min(36rem, calc(100% - 22rem)); padding: 0.3rem; }
+.presence-list { display: flex; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.presence-badge { position: relative; display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0.7rem 0.15rem 0.15rem; border-radius: 999px; background: color-mix(in srgb, var(--who) 22%, transparent); transition: opacity 0.5s, filter 0.5s; }
+.presence-badge.is-offline { opacity: 0.4; filter: grayscale(1); }
+.presence-avatar { position: relative; display: inline-grid; }
+.presence-name { max-width: 6.5rem; overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; color: var(--on-chrome); }
+.presence-ring { position: absolute; inset: -3px; border-radius: 50%; opacity: 0; pointer-events: none; }
+/* A player who just connected pops in, a ring turns while they sync, and a pulse leaves the badge when they are in. */
+.presence-badge.is-joining { animation: presence-pop 1.6s var(--ease, ease-out); }
+.presence-badge.is-joining::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; animation: presence-burst 1.6s ease-out; }
+.is-joining .presence-ring { opacity: 1; background: conic-gradient(from 0deg, var(--who), transparent 70%); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); animation: presence-spin 0.8s linear infinite; }
+@keyframes presence-pop { 0% { transform: scale(0.5); opacity: 0; } 18% { transform: scale(1.1); opacity: 1; } 32% { transform: scale(1); } }
+@keyframes presence-spin { to { transform: rotate(1turn); } }
+@keyframes presence-burst { 0%, 70% { box-shadow: 0 0 0 0 transparent; } 72% { box-shadow: 0 0 0 0 var(--who); } 100% { box-shadow: 0 0 0 0.9rem transparent; } }
+@media (prefers-reduced-motion: reduce) { .presence-badge.is-joining, .presence-badge.is-joining::after, .is-joining .presence-ring { animation: none; } }
 .drawer-toggle { position: absolute; top: 0.9rem; right: 0.9rem; z-index: 3; box-shadow: var(--shadow-chrome); }
 
 .drawer { position: absolute; top: 0.9rem; right: 0.9rem; bottom: 0.9rem; z-index: 2; width: var(--drawer-width); max-width: calc(100% - 1.8rem); display: grid; grid-template-columns: 4.1rem minmax(0, 1fr); overflow: hidden; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-chrome); }
@@ -247,6 +272,14 @@ output { font-weight: 800; font-size: 1.1rem; }
 .die.crit { color: var(--crit); }
 .die.fumble { color: var(--fumble); }
 .roll-op { font-weight: 700; color: var(--on-chrome-2); }
+.env-tint { transition: opacity 1.4s ease; animation: env-tint-in 1.4s ease; }
+@keyframes env-tint-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .env-tint { transition: none; animation: none; } }
+.roll-pending { margin: 0.4rem 0 0; min-height: 2.6rem; display: flex; align-items: center; font-weight: 600; color: var(--on-chrome-2); animation: roll-pending 1s ease-in-out infinite; }
+@keyframes roll-pending { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .roll-pending { animation: none; } }
+.roll-result { position: fixed; top: 6rem; left: 0; z-index: 40; display: flex; justify-content: center; width: calc(100% - var(--drawer-space, 0px)); padding-inline: 1rem; pointer-events: none; }
+@media (max-width: 52rem) { .roll-result { width: 100%; } }
 .roll-total { margin-left: auto; font-size: 2.4rem; font-weight: 800; line-height: 1; color: var(--dice); letter-spacing: -0.02em; }
 .chat-form { margin: 0; gap: 0.5rem; }
 .chat-input-row { display: flex; gap: 0.5rem; }

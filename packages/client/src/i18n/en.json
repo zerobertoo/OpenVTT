@@ -1,5 +1,6 @@
 {
   "app": { "title": "OpenVTT", "loading": "Loading…" },
+  "entry": { "enters": "{{name}} enters the table", "preparing": "Preparing the table…" },
   "common": {
     "save": "Save",
     "delete": "Delete",
@@ -126,6 +127,8 @@
     "systemHint": "Only changes what you see, in this browser.",
     "diceOverlay": "Show dice rolling on the table",
     "dice3d": "Throw 3D dice",
+    "entryAnimation": "Entrance animation",
+    "entryAnimationHint": "Plays when you join a table, while it loads. Without it you only see a loading bar.",
     "dice3dHint": "Solid dice for d4, d6, d8, d12 and d20; other dice stay flat. Loads a little extra the first time.",
     "diceOverlayHint": "Rolls are shown only to the people who can read them. Off when your system asks for reduced motion.",
     "scene": "As the scene says",
@@ -180,6 +183,7 @@
     "online": "online",
     "offline": "offline",
     "connecting": "Connecting…",
+    "joining": "Joining…",
     "disconnected": "Connection lost, reconnecting…",
     "back": "Back to worlds",
     "panels": "Table panels",
@@ -233,7 +237,11 @@
       "damage": "Damage",
       "heal": "Healing",
       "blast": "Blast",
-      "projectile": "Projectile"
+      "projectile": "Projectile",
+      "slash": "Slash",
+      "bolt": "Lightning bolt",
+      "frost": "Frost nova",
+      "fireball": "Fireball"
     }
   },
   "light": {
@@ -256,6 +264,7 @@
     "advantage": "Advantage",
     "disadvantage": "Disadvantage",
     "rollAgain": "Roll again",
+    "rolling": "Rolling…",
     "whisperUnknown": "No one here by that name. Use /w Name message.",
     "whisperEmpty": "Write a message after the name.",
     "whisperTag": "whisper",

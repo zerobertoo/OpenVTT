@@ -16,7 +16,7 @@ describe("environmentLook", () => {
   it("lets leaves fall only when nothing else is falling", () => {
     expect(environmentLook({ time: "day", weather: "clear", season: "autumn" }).particles).toEqual(["leaves"]);
     expect(environmentLook({ time: "day", weather: "snow", season: "autumn" }).particles).toEqual(["snow"]);
-    expect(environmentLook({ time: "day", weather: "fog", season: "spring" }).particles).toEqual(["petals"]);
+    expect(environmentLook({ time: "day", weather: "fog", season: "spring" }).particles).toEqual(["fog", "petals"]);
   });
 });
 

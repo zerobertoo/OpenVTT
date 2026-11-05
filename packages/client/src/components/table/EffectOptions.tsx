@@ -1,22 +1,19 @@
-import { EFFECT_KINDS, type EffectKind } from "@openvtt/shared";
+import { AREA_EFFECTS, EFFECT_KINDS, type EffectKind, NUMBERED_EFFECTS, TRAVELLING_EFFECTS } from "@openvtt/shared";
 import { useTranslation } from "react-i18next";
 import { useTableUi } from "../../tableStore";
 import { Field } from "../ui/field";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 
-/** Effects that carry a number, and what it means for each. */
-const VALUE_LABEL: Partial<Record<EffectKind, "effects.amount" | "effects.radius">> = {
-  damage: "effects.amount",
-  heal: "effects.amount",
-  blast: "effects.radius",
-};
+/** What the number of an effect means: a radius for areas, the size of a hit for the rest. */
+const valueLabel = (kind: EffectKind) =>
+  NUMBERED_EFFECTS.includes(kind) ? (AREA_EFFECTS.includes(kind) ? "effects.radius" : "effects.amount") : null;
 
 /** Shown above the map tools while the effect tool is active: what to fire, with which number, and what to click next. */
 export function EffectOptions() {
   const { t } = useTranslation();
   const { effectKind, effectValue, effectOrigin, setEffectChoice } = useTableUi();
-  const valueLabel = VALUE_LABEL[effectKind];
+  const label = valueLabel(effectKind);
   return (
     <div
       role="group"
@@ -26,8 +23,10 @@ export function EffectOptions() {
       <Select
         aria-label={t("effects.kind")}
         value={effectKind}
-        // A blast starts at a modest radius, the other numbers at a typical hit.
-        onValueChange={(value) => setEffectChoice({ effectKind: value as EffectKind, effectValue: value === "blast" ? 2 : 5 })}
+        // An area starts at a modest radius, the other numbers at a typical hit.
+        onValueChange={(value) =>
+          setEffectChoice({ effectKind: value as EffectKind, effectValue: AREA_EFFECTS.includes(value as EffectKind) ? 2 : 5 })
+        }
       >
         {EFFECT_KINDS.map((kind) => (
           <option key={kind} value={kind}>
@@ -35,8 +34,8 @@ export function EffectOptions() {
           </option>
         ))}
       </Select>
-      {valueLabel && (
-        <Field label={t(valueLabel)} inline>
+      {label && (
+        <Field label={t(label)} inline>
           {(control) => (
             <Input
               {...control}
@@ -53,7 +52,7 @@ export function EffectOptions() {
         </Field>
       )}
       <p className="m-0 px-2 text-on-chrome-2 text-sm">
-        {effectKind === "projectile" ? t(effectOrigin ? "effects.hintTarget" : "effects.hintOrigin") : t("effects.hint")}
+        {TRAVELLING_EFFECTS.includes(effectKind) ? t(effectOrigin ? "effects.hintTarget" : "effects.hintOrigin") : t("effects.hint")}
       </p>
     </div>
   );

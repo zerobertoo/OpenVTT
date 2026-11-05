@@ -1,4 +1,5 @@
 {
+  "entry": { "enters": "{{name}} entra na mesa", "preparing": "Preparando a mesa…" },
   "app": { "title": "OpenVTT", "loading": "Carregando…" },
   "common": {
     "save": "Salvar",
@@ -126,6 +127,8 @@
     "systemHint": "Só muda o que você vê, neste navegador.",
     "diceOverlay": "Mostrar os dados rolando na mesa",
     "dice3d": "Jogar dados 3D",
+    "entryAnimation": "Animação de entrada",
+    "entryAnimationHint": "Toca ao entrar numa mesa, enquanto ela carrega. Sem ela, você vê só a barra de carregamento.",
     "dice3dHint": "Dados sólidos para d4, d6, d8, d12 e d20; os outros ficam planos. Carrega um pouco a mais na primeira vez.",
     "diceOverlayHint": "As rolagens aparecem só para quem pode lê-las. Desligado quando o sistema pede menos movimento.",
     "scene": "Como a cena define",
@@ -180,6 +183,7 @@
     "online": "online",
     "offline": "offline",
     "connecting": "Conectando…",
+    "joining": "Entrando…",
     "disconnected": "Conexão perdida, reconectando…",
     "back": "Voltar aos mundos",
     "panels": "Painéis da mesa",
@@ -233,7 +237,11 @@
       "damage": "Dano",
       "heal": "Cura",
       "blast": "Explosão",
-      "projectile": "Projétil"
+      "projectile": "Projétil",
+      "slash": "Golpe",
+      "bolt": "Raio",
+      "frost": "Nova de gelo",
+      "fireball": "Bola de fogo"
     }
   },
   "light": {
@@ -256,6 +264,7 @@
     "advantage": "Vantagem",
     "disadvantage": "Desvantagem",
     "rollAgain": "Rolar de novo",
+    "rolling": "Rolando…",
     "whisperUnknown": "Ninguém com esse nome. Use /w Nome mensagem.",
     "whisperEmpty": "Escreva uma mensagem depois do nome.",
     "whisperTag": "sussurro",

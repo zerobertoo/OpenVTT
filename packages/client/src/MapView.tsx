@@ -749,13 +749,19 @@ export function MapView(props: Props) {
 
   // Effects the game master starts play once on every screen showing that floor; they stop with the map.
   const effect = useTableUi((ui) => ui.effect);
+  // An arrive effect the game master fired on a token already covers that token showing up, so it is not drawn twice.
+  const recentArrivals = useRef<{ x: number; y: number; at: number }[]>([]);
   useEffect(() => {
     const e = engine.current;
     // An effect that is already old (the map was mounted again since it was fired) is not replayed.
     if (!e || !effect || Date.now() - effect.at > EFFECT_FRESH_MS) return;
     if (effect.sceneId !== latest.current.scene?.id || effect.floorId !== latest.current.floor?.id) return;
+    recentArrivals.current = [
+      ...recentArrivals.current.filter((a) => Date.now() - a.at < 2000),
+      ...(effect.kind === "arrive" ? [effect] : []),
+    ];
     // Each effect ends by itself, so a newer one never cuts an older one short.
-    playEffect(e.world, e.app.ticker, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
+    playEffect(e.app, e.world, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, [effect, latest]);
 
   // Tokens that arrive, lose hit points or heal show it on every screen, worked out from the state each already has.
@@ -772,12 +778,16 @@ export function MapView(props: Props) {
     if (!e || !seen || seen.floorKey !== floorKey) return;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     // A whole new list (a resync, a group placed at once) plays only the first few, so it cannot flood the map.
-    const changes = tokenChangeEffects(seen.tokens, floorTokens, currentScene.gridSize, !currentScene.visionEnabled).slice(
-      0,
-      MAX_TOKEN_EFFECTS,
-    );
+    const now = Date.now();
+    const changes = tokenChangeEffects(seen.tokens, floorTokens, currentScene.gridSize, !currentScene.visionEnabled)
+      .filter(
+        (change) =>
+          change.kind !== "arrive" ||
+          !recentArrivals.current.some((a) => now - a.at < 2000 && Math.hypot(a.x - change.x, a.y - change.y) < currentScene.gridSize / 4),
+      )
+      .slice(0, MAX_TOKEN_EFFECTS);
     for (const change of changes)
-      playEffect(e.world, e.app.ticker, { ...change, sceneId: currentScene.id, floorId: currentFloor.id }, currentScene.gridSize, reduced);
+      playEffect(e.app, e.world, { ...change, sceneId: currentScene.id, floorId: currentFloor.id }, currentScene.gridSize, reduced);
   }, [floorTokens, currentScene, currentFloor]);
 
   useEffect(() => {

@@ -67,6 +67,36 @@ export function renderShape(g: Graphics, drawing: Pick<DrawingDto, "kind" | "poi
   }
 }
 
+/** What the game master sees on a token the players cannot: a dashed ring and a crossed-out eye badge. */
+export function drawHiddenMark(px: number, gridSize: number): Container {
+  const mark = new Container();
+  mark.eventMode = "none";
+  const ring = new Graphics();
+  const radius = px / 2 + 3;
+  const dashes = 18;
+  for (let i = 0; i < dashes; i++) {
+    const start = (i / dashes) * Math.PI * 2;
+    ring.moveTo(Math.cos(start) * radius, Math.sin(start) * radius).arc(0, 0, radius, start, start + (Math.PI * 2) / dashes / 2);
+  }
+  ring.stroke({ width: 3, color: 0xc9b3ff, alpha: 0.95 });
+  mark.addChild(ring);
+
+  const size = Math.max(9, gridSize / 6);
+  const badge = new Container();
+  badge.position.set(px * 0.34, -px * 0.34);
+  badge.addChild(new Graphics().circle(0, 0, size).fill({ color: 0x2a1450 }).stroke({ width: 2, color: 0xc9b3ff }));
+  badge.addChild(new Graphics().ellipse(0, 0, size * 0.62, size * 0.4).stroke({ width: 1.6, color: 0xffffff }));
+  badge.addChild(new Graphics().circle(0, 0, size * 0.17).fill({ color: 0xffffff }));
+  badge.addChild(
+    new Graphics()
+      .moveTo(-size * 0.55, size * 0.55)
+      .lineTo(size * 0.55, -size * 0.55)
+      .stroke({ width: 2, color: 0xff7a9c, cap: "round" }),
+  );
+  mark.addChild(badge);
+  return mark;
+}
+
 /** Health bar, name and condition badges around a token; counter-rotated so they stay upright and out of the way of clicks. */
 export function drawStatus(token: TokenDto, px: number, gridSize: number): Container {
   const status = new Container();
