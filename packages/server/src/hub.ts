@@ -382,7 +382,7 @@ export class Hub {
       actors: this.s.actors.visibleTo(worldId, viewer),
       messages: this.s.chat.historyFor(worldId, viewer),
       vision: sight?.vision ?? null,
-      combat: this.s.combat.stateFor(worldId, viewer),
+      combat: this.s.combat.stateFor(worldId, viewer, activeSceneId, this.floorIdOf(viewer, activeSceneId)),
       handouts: this.s.handouts.visibleTo(worldId, viewer),
       ambient: this.s.worlds.ambient(worldId),
       environment: this.s.worlds.environment(worldId),
@@ -462,8 +462,13 @@ export class Hub {
 
   /** Sends each person the initiative order they may see. */
   publishCombat(worldId: string) {
+    const activeSceneId = this.s.scenes.activeSceneId(worldId);
     for (const c of this.connections)
-      if (c.worldId === worldId) this.send(c, { type: "combat.update", combat: this.s.combat.stateFor(worldId, c.viewer) });
+      if (c.worldId === worldId)
+        this.send(c, {
+          type: "combat.update",
+          combat: this.s.combat.stateFor(worldId, c.viewer, activeSceneId, this.floorIdOf(c.viewer, activeSceneId)),
+        });
   }
 
   publishMessage(worldId: string, message: MessageDto) {

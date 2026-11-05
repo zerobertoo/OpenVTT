@@ -20,7 +20,7 @@ async function setup() {
     ).json() as TokenDto;
   const initiative = (tokenId: string, score: number) =>
     call(app, gm.cookie, "PUT", `/api/worlds/${world.id}/combat/combatants`, { tokenId, score });
-  return { app, gm, bob, world, token, initiative };
+  return { app, gm, bob, world, scene, token, initiative };
 }
 
 const ports = new WeakMap<object, number>();
@@ -74,6 +74,34 @@ describe("initiative", () => {
     ).toBe(403);
     expect((await call(app, bob.cookie, "POST", `/api/worlds/${world.id}/combat/next`)).statusCode).toBe(403);
     expect((await call(app, bob.cookie, "DELETE", `/api/worlds/${world.id}/combat`)).statusCode).toBe(403);
+  });
+
+  it("shows players only the combatants on the scene and floor they are looking at", async () => {
+    const { app, gm, bob, world, scene, token, initiative } = await setup();
+    const knight = await token("Knight");
+    const withFloor = (await call(app, gm.cookie, "POST", `/api/scenes/${scene.id}/floors`, { name: "Vault" })).json() as SceneDto;
+    const vault = withFloor.floors.find((f) => f.name === "Vault")!;
+    const lich = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, {
+        sceneId: scene.id,
+        floorId: vault.id,
+        name: "Vault Lich",
+        x: 1,
+        y: 1,
+      })
+    ).json() as TokenDto;
+    const otherScene = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/scenes`, { name: "Later", width: 500, height: 500 })
+    ).json() as SceneDto;
+    const dragon = (
+      await call(app, gm.cookie, "POST", `/api/worlds/${world.id}/tokens`, { sceneId: otherScene.id, name: "Future Dragon", x: 1, y: 1 })
+    ).json() as TokenDto;
+    await initiative(knight.id, 1);
+    await initiative(lich.id, 2);
+    await initiative(dragon.id, 3);
+
+    expect((await stateOf(app, world.id, bob.cookie)).combat!.combatants.map((c) => c.name)).toEqual(["Knight"]);
+    expect((await stateOf(app, world.id, gm.cookie)).combat!.combatants).toHaveLength(3);
   });
 
   it("drops a deleted token from the order and rejects tokens of other worlds", async () => {
