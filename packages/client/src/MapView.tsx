@@ -1,16 +1,5 @@
 import type { DrawingDto, FloorDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
-import {
-  Application,
-  Container,
-  CullerPlugin,
-  extensions,
-  type FederatedPointerEvent,
-  Graphics,
-  Sprite,
-  Text,
-  Texture,
-  type Ticker,
-} from "pixi.js";
+import { Application, Container, CullerPlugin, extensions, Graphics, Sprite, Text, Texture, type Ticker } from "pixi.js";
 // Pixi builds some drawing code at run time, which the server's Content-Security-Policy forbids; this swaps in the fixed versions.
 import "pixi.js/unsafe-eval";
 import { useEffect, useRef, useState } from "react";
@@ -18,26 +7,17 @@ import { useTranslation } from "react-i18next";
 import { COMPENDIUM_DRAG_TYPE } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
-import { drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { fitView, MAX_ZOOM, minZoomFor, type View, viewCenteredOn, ZOOM_STEP, zoomAround } from "./lib/mapCamera";
 import { buildMapData } from "./lib/mapData";
 import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
 import { drawGrid, gridKey } from "./lib/mapGrid";
-import {
-  assetIdsInUse,
-  draggedCenter,
-  dropToken,
-  extendSketch,
-  isDeliberateStroke,
-  rulerReadout,
-  tokenCenter,
-  tokensInBox,
-  zoomAtCursor,
-} from "./lib/mapInteraction";
-import { drawingView, drawStatus, hexToNumber, renderShape } from "./lib/mapShapes";
+import { assetIdsInUse, draggedCenter, dropToken, tokenCenter, zoomAtCursor } from "./lib/mapInteraction";
+import { MapPointerController } from "./lib/mapPointer";
+import { drawingView } from "./lib/mapShapes";
 import { loadTexture } from "./lib/mapTextures";
+import { drawTokenView } from "./lib/mapToken";
 import {
   disposeVideoBackground,
   setVideoHidden,
@@ -47,7 +27,7 @@ import {
   type VideoUi,
 } from "./lib/mapVideo";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
-import { conePoints, type DiagonalRule, type RulerShape } from "./lib/ruler";
+import type { DiagonalRule, RulerShape } from "./lib/ruler";
 import type { Move } from "./lib/tableActions";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
@@ -261,154 +241,19 @@ export function MapView(props: Props) {
         if (!destroyed) setRenderFailed(true);
       });
 
-    // The light marker being dragged with the light tool; its map data is rebuilt after the drop saves.
-    let lightDrag: {
-      index: number;
-      marker: Graphics;
-      x: number;
-      y: number;
-      moved: boolean;
-      /** Screen position of the press and the light's offset from the pressed map point. */
-      startX: number;
-      startY: number;
-      dx: number;
-      dy: number;
-    } | null = null;
+    // What a press, drag and release on the empty map do; set once the map engine is ready.
+    let pointer: MapPointerController | null = null;
 
     function bindInteractions(app: Application, world: Container, ruler: Graphics, label: Text) {
-      let panning: { x: number; y: number } | null = null;
-      let rulerStart: { x: number; y: number } | null = null;
-      // Shift+drag on the background draws a box; the tokens whose center falls inside get selected.
-      let boxStart: { x: number; y: number } | null = null;
-      // Points of the mark being drawn; shapes keep only the start and the latest point.
-      let sketch: number[] | null = null;
-      const toWorld = (e: FederatedPointerEvent) => world.toLocal(e.global);
-
-      app.stage.on("pointerdown", (e) => {
-        if (e.altKey && e.button === 0) {
-          const point = toWorld(e);
-          return props_().onPing(point.x, point.y, e.shiftKey);
-        }
-        const p = props_().tool;
-        if (p === "select" && e.button === 0 && e.shiftKey && e.target === app.stage) {
-          const start = toWorld(e);
-          boxStart = start;
-          return;
-        }
-        if (e.button === 1 || e.button === 2 || (p === "select" && e.target === app.stage)) {
-          panning = { x: e.global.x - world.x, y: e.global.y - world.y };
-          if (p === "select" && e.button === 0) props_().onSelect(null);
-        } else if (p === "light" && e.button === 0 && e.target === app.stage) {
-          const point = toWorld(e);
-          props_().onAddLight(point.x, point.y);
-        } else if (p === "effect" && e.button === 0) {
-          const point = toWorld(e);
-          props_().onEffectPoint(point.x, point.y);
-        } else if (p === "ruler" && e.button === 0) {
-          rulerStart = toWorld(e);
-        } else if (p === "draw" && e.button === 0) {
-          const point = toWorld(e);
-          const { draw, scene, floor } = props_();
-          if (!scene || !floor || (draw.kind !== "erase" && scene.lockedLayers.includes(draw.kind === "note" ? "gm" : draw.layer))) return;
-          if (draw.kind === "erase") {
-            const erasable = floor.drawings.filter((d) => props_().canErase(d) && !scene.lockedLayers.includes(d.layer));
-            const target = drawingAt(erasable, point, 10 / world.scale.x);
-            if (target) props_().onErase(target.id);
-          } else if (draw.kind === "text" || draw.kind === "note") {
-            if (draw.text.trim())
-              props_().onDraw({ kind: draw.kind, layer: draw.layer, points: [point.x, point.y], color: draw.color, text: draw.text });
-          } else sketch = [point.x, point.y];
-        }
+      const controller = new MapPointerController(app.stage, world, ruler, label, props_, (index) => {
+        const marker = engine.current?.mapData.children[0]?.children[index];
+        return marker instanceof Graphics ? marker : undefined;
       });
-      app.stage.on("pointermove", (e) => {
-        if (lightDrag) {
-          // A few pixels of jitter during a click are not a drag.
-          if (!lightDrag.moved && Math.hypot(e.global.x - lightDrag.startX, e.global.y - lightDrag.startY) < 4) return;
-          const point = toWorld(e);
-          lightDrag.x = point.x + lightDrag.dx;
-          lightDrag.y = point.y + lightDrag.dy;
-          lightDrag.moved = true;
-          // Selecting the light redraws the map data under the pointer; follow the marker that replaced the dragged one.
-          if (lightDrag.marker.destroyed) {
-            const replacement = engine.current?.mapData.children[0]?.children[lightDrag.index];
-            if (replacement instanceof Graphics) lightDrag.marker = replacement;
-          }
-          if (!lightDrag.marker.destroyed) lightDrag.marker.position.set(lightDrag.x, lightDrag.y);
-          return;
-        }
-        if (sketch) {
-          const point = toWorld(e);
-          const { draw, scene } = props_();
-          sketch = extendSketch(sketch, draw.kind, point, world.scale.x);
-          ruler.clear();
-          if (draw.kind !== "erase") renderShape(ruler, { kind: draw.kind, points: sketch, color: draw.color }, scene?.gridSize ?? 70);
-          return;
-        }
-        if (panning) {
-          world.position.set(e.global.x - panning.x, e.global.y - panning.y);
-        } else if (boxStart) {
-          const end = toWorld(e);
-          ruler
-            .clear()
-            .rect(Math.min(boxStart.x, end.x), Math.min(boxStart.y, end.y), Math.abs(end.x - boxStart.x), Math.abs(end.y - boxStart.y))
-            .fill({ color: 0x66d9ff, alpha: 0.15 })
-            .stroke({ width: 2 / world.scale.x, color: 0x66d9ff });
-        } else if (rulerStart) {
-          const end = toWorld(e);
-          const { scene, rulerShape, diagonalRule, formatDistance } = props_();
-          const line = { width: 3 / world.scale.x, color: 0xffc914 };
-          const area = { color: 0xffc914, alpha: 0.18 };
-          const dx = end.x - rulerStart.x;
-          const dy = end.y - rulerStart.y;
-          ruler.clear();
-          if (rulerShape === "circle") {
-            ruler.circle(rulerStart.x, rulerStart.y, Math.hypot(dx, dy)).fill(area).stroke(line);
-            ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-          } else if (rulerShape === "cone") {
-            ruler
-              .poly(conePoints(rulerStart, end).flatMap((p) => [p.x, p.y]))
-              .fill(area)
-              .stroke(line);
-          } else if (rulerShape === "rectangle") {
-            ruler.rect(Math.min(rulerStart.x, end.x), Math.min(rulerStart.y, end.y), Math.abs(dx), Math.abs(dy)).fill(area).stroke(line);
-          } else {
-            ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-          }
-          label.text = rulerReadout(rulerShape, rulerStart, end, scene, diagonalRule, formatDistance);
-          label.scale.set(1 / world.scale.x);
-          label.position.set(end.x + 8 / world.scale.x, end.y + 8 / world.scale.x);
-        }
-      });
-      const stop = (e: FederatedPointerEvent) => {
-        panning = null;
-        if (lightDrag) {
-          const dropped = lightDrag;
-          lightDrag = null;
-          if (dropped.moved) props_().onMoveLight(dropped.index, dropped.x, dropped.y);
-        }
-        if (sketch) {
-          const points = sketch;
-          sketch = null;
-          ruler.clear();
-          const { draw } = props_();
-          if (isDeliberateStroke(points, world.scale.x) && draw.kind !== "erase")
-            props_().onDraw({ kind: draw.kind, layer: draw.layer, points, color: draw.color, text: "" });
-        }
-        if (boxStart) {
-          const end = toWorld(e);
-          const corner = boxStart;
-          boxStart = null;
-          ruler.clear();
-          const { scene, tokens } = props_();
-          if (scene) props_().onSelectMany(tokensInBox(tokens, scene, corner, end));
-        }
-        if (rulerStart) {
-          // Ruler stays visible until the next measurement or tool change.
-          rulerStart = null;
-        }
-      };
-      app.stage.on("pointerup", stop);
-      app.stage.on("pointerupoutside", stop);
+      pointer = controller;
+      app.stage.on("pointerdown", (e) => controller.pointerDown(e));
+      app.stage.on("pointermove", (e) => controller.pointerMove(e));
+      app.stage.on("pointerup", (e) => controller.pointerUp(e));
+      app.stage.on("pointerupoutside", (e) => controller.pointerUp(e));
       // Two fingers pinch-zoom and pan. They run in the capture phase so Pixi never sees them as a drag or a ruler.
       const touches = new Map<number, { x: number; y: number }>();
       let twoFingers: TwoFingerState | null = null;
@@ -427,9 +272,7 @@ export function MapView(props: Props) {
           touches.set(e.pointerId, touchPoint(e));
           if (touches.size === 2) {
             pinching = true;
-            panning = null;
-            rulerStart = null;
-            sketch = null;
+            controller.cancelGestures();
             twoFingers = currentTwoFingers();
           }
           if (pinching) e.stopPropagation();
@@ -653,7 +496,7 @@ export function MapView(props: Props) {
           if (props_().selectedLight !== index) props_().onSelectLight(index);
           // The light keeps its distance from the grab point, so a click never nudges it.
           const grab = e.world.toLocal(event.global);
-          lightDrag = {
+          pointer?.startLightDrag({
             index,
             marker,
             x: light.x,
@@ -663,7 +506,7 @@ export function MapView(props: Props) {
             startY: event.global.y,
             dx: light.x - grab.x,
             dy: light.y - grab.y,
-          };
+          });
         },
         onDoorToggle: (wallId, open) => props_().onToggleDoor(wallId, open),
       });
@@ -815,38 +658,8 @@ export function MapView(props: Props) {
 
     const currentToken = (id: string) => props_().tokens.find((t) => t.id === id);
 
-    function drawToken(view: Container, token: TokenDto, gridSize: number, selected: boolean) {
-      const px = token.size * gridSize;
-      for (const child of view.removeChildren()) child.destroy({ children: true });
-      view.pivot.set(0, 0);
-      view.position.set(token.x + px / 2, token.y + px / 2);
-      view.rotation = (token.rotation * Math.PI) / 180;
-      const body = new Graphics().circle(0, 0, px / 2 - 2).fill({ color: hexToNumber(token.color), alpha: token.hidden ? 0.45 : 1 });
-      body.stroke({ width: selected ? 4 : 2, color: selected ? 0xffffff : 0x000000 });
-      view.addChild(body);
-      view.addChild(drawStatus(token, px, gridSize));
-      if (token.assetId) {
-        const assetId = token.assetId;
-        void loadTexture(assetId, assetsInUse)
-          .catch(() => null)
-          .then((texture) => {
-            if (!texture || view.destroyed) return;
-            const sprite = new Sprite(texture);
-            sprite.anchor.set(0.5);
-            sprite.width = sprite.height = px - 4;
-            const mask = new Graphics().circle(0, 0, px / 2 - 2).fill(0xffffff);
-            sprite.mask = mask;
-            view.addChild(mask, sprite);
-          });
-      } else {
-        const initial = new Text({
-          text: token.name.slice(0, 2).toUpperCase(),
-          style: { fill: 0xffffff, fontSize: Math.max(10, px / 3), fontWeight: "700", stroke: { color: 0x000000, width: 3 } },
-        });
-        initial.anchor.set(0.5);
-        view.addChild(initial);
-      }
-    }
+    const drawToken = (view: Container, token: TokenDto, gridSize: number, selected: boolean) =>
+      drawTokenView(view, token, gridSize, selected, (assetId) => loadTexture(assetId, assetsInUse).catch(() => null));
 
     return () => {
       destroyed = true;
