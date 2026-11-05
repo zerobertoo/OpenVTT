@@ -106,7 +106,6 @@ export function DiceTray({ onRoll, error, onClose }: Props) {
   };
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: the group only listens for Escape so the tray closes from any control inside it
     <div
       role="group"
       aria-label={t("dice.title")}

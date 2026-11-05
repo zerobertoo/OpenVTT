@@ -20,7 +20,7 @@ import { assetUrl } from "./api";
 import { COMPENDIUM_DRAG_TYPE } from "./components/tokens/Compendium";
 import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
-import { arrowHead, drawingAt } from "./lib/drawings";
+import { drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
 import { snapTokenCorner } from "./lib/gridGeometry";
 import { hexCentersIn, hexCorners, hexOrientationOf } from "./lib/hex";
@@ -33,7 +33,6 @@ import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
 import { conePoints, type DiagonalRule, type RulerShape } from "./lib/ruler";
 import type { Move } from "./lib/tableActions";
-import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
 
 /** How long after it was fired an effect still plays, and how many token changes play at once. */

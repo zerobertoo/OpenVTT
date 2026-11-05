@@ -23,7 +23,6 @@ export function Skeleton({ shape = "line", className }: { shape?: "line" | "bloc
  */
 export function Loading({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
   return (
-    // biome-ignore lint/a11y/useSemanticElements: <output> is for form results; this is a generic busy region
     <div role="status" aria-busy="true" className={className}>
       <span className="sr-only">{label}</span>
       <div className="animate-appear-late">{children}</div>

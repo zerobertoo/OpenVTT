@@ -51,15 +51,21 @@ export function rulerReadout(
  * screen pixels (up to the server's limit); a shape keeps only its start and the latest point.
  */
 export function extendSketch(sketch: number[], kind: string, point: Point, zoom: number): number[] {
-  if (kind !== "free") return [sketch[0]!, sketch[1]!, point.x, point.y];
-  const [lastX, lastY] = sketch.slice(-2) as [number, number];
+  if (kind !== "free") {
+    const [startX = point.x, startY = point.y] = sketch;
+    return [startX, startY, point.x, point.y];
+  }
+  const [lastX = point.x, lastY = point.y] = sketch.slice(-2);
   const farEnough = Math.hypot(point.x - lastX, point.y - lastY) * zoom >= SKETCH_POINT_SPACING_PX;
   return farEnough && sketch.length < MAX_SKETCH_NUMBERS ? [...sketch, point.x, point.y] : sketch;
 }
 
 /** True when a finished mark spans enough screen pixels, from its first point to its last, to be kept. */
 export function isDeliberateStroke(points: number[], zoom: number): boolean {
-  return points.length >= 4 && Math.hypot(points.at(-2)! - points[0]!, points.at(-1)! - points[1]!) * zoom >= MIN_STROKE_PX;
+  if (points.length < 4) return false;
+  const [startX = 0, startY = 0] = points;
+  const [endX = 0, endY = 0] = points.slice(-2);
+  return Math.hypot(endX - startX, endY - startY) * zoom >= MIN_STROKE_PX;
 }
 
 /** The view after a wheel turn: zoomed around the cursor so the map point under it stays put, within `[min, max]`. */

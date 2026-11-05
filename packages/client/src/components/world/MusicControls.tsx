@@ -16,7 +16,6 @@ export function MusicControls({ worldId, ambient }: { worldId: string; ambient: 
   const [choice, setChoice] = useState(ambient?.assetId ?? "");
   // Follows the server's value, but moves freely while the slider is dragged.
   const [master, setMaster] = useState(ambient?.volume ?? 1);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: resync only when the server's value changes
   useEffect(() => setMaster(ambient?.volume ?? 1), [ambient?.volume]);
   const load = () => run(async () => setTracks((await api.worldAssets(worldId)).filter((a) => a.mime.startsWith("audio/"))));
   // biome-ignore lint/correctness/useExhaustiveDependencies: loads once per world
