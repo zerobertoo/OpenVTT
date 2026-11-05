@@ -22,13 +22,14 @@ import { Button } from "./components/ui/button";
 import { Icon } from "./icons";
 import { arrowHead, drawingAt } from "./lib/drawings";
 import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./lib/gestures";
-import { hexCentersIn, hexCorners, hexDistance, hexOrientationOf, snapToHex } from "./lib/hex";
+import { rulerDistanceInCells, snapTokenCorner } from "./lib/gridGeometry";
+import { hexCentersIn, hexCorners, hexOrientationOf } from "./lib/hex";
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { touchLru } from "./lib/lru";
 import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
 import { closeVideo, openVideo } from "./lib/media";
 import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minimap";
-import { conePoints, type DiagonalRule, lineCells, type RulerShape } from "./lib/ruler";
+import { conePoints, type DiagonalRule, type RulerShape } from "./lib/ruler";
 import type { Move } from "./lib/tableActions";
 import { CONDITION_GLYPHS, healthColor, healthRatio } from "./lib/tokenStatus";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
@@ -422,15 +423,7 @@ export function MapView(props: Props) {
             label.text = `${formatDistance(cellsOf(Math.abs(dx)))} × ${formatDistance(cellsOf(Math.abs(dy)))}`;
           } else {
             ruler.moveTo(rulerStart.x, rulerStart.y).lineTo(end.x, end.y).stroke(line);
-            // The diagonal rules count whole grid steps, so they only apply on a square grid; a hex grid counts hexes.
-            const hex = scene ? hexOrientationOf(scene.gridType) : null;
-            const cells =
-              scene?.gridType === "square"
-                ? lineCells(dx, dy, scene.gridSize, diagonalRule)
-                : hex && scene
-                  ? hexDistance(rulerStart, end, scene.gridSize, hex)
-                  : cellsOf(Math.hypot(dx, dy));
-            label.text = formatDistance(cells);
+            label.text = formatDistance(scene ? rulerDistanceInCells(scene, rulerStart, end, diagonalRule) : 0);
           }
           label.scale.set(1 / world.scale.x);
           label.position.set(end.x + 8 / world.scale.x, end.y + 8 / world.scale.x);
@@ -1025,18 +1018,7 @@ export function MapView(props: Props) {
         const moves: Move[] = [];
         for (const member of members) {
           const half = (member.token.size * scene.gridSize) / 2;
-          let x = member.view.x - half;
-          let y = member.view.y - half;
-          if (scene.gridType === "square") {
-            x = Math.round(x / scene.gridSize) * scene.gridSize;
-            y = Math.round(y / scene.gridSize) * scene.gridSize;
-          }
-          const hex = hexOrientationOf(scene.gridType);
-          if (hex) {
-            const center = snapToHex({ x: x + half, y: y + half }, scene.gridSize, hex);
-            x = center.x - half;
-            y = center.y - half;
-          }
+          const { x, y } = snapTokenCorner(scene, member.token.size, { x: member.view.x - half, y: member.view.y - half });
           member.view.position.set(x + half, y + half);
           props_().onMove(member.token.id, x, y);
           if (x !== member.token.x || y !== member.token.y)
