@@ -228,6 +228,8 @@
     "kind": "Efeito",
     "amount": "Valor",
     "radius": "Raio (casas)",
+    "damage": "Dano",
+    "affect": "Afetar tokens",
     "hint": "Clique no mapa para mostrar o efeito para todos.",
     "hintOrigin": "Clique onde o disparo começa.",
     "hintTarget": "Agora clique onde ele acerta.",
@@ -241,7 +243,17 @@
       "slash": "Golpe",
       "bolt": "Raio",
       "frost": "Nova de gelo",
-      "fireball": "Bola de fogo"
+      "fireball": "Bola de fogo",
+      "shield": "Escudo",
+      "arrow": "Flecha",
+      "beam": "Feixe de energia",
+      "meteor": "Meteoro",
+      "poison": "Nuvem venenosa",
+      "quake": "Terremoto",
+      "whirlwind": "Redemoinho",
+      "arcane": "Círculo arcano",
+      "radiant": "Punição radiante",
+      "necrotic": "Toque necrótico"
     }
   },
   "light": {
@@ -578,7 +590,16 @@
     "weather": "Clima",
     "season": "Estação",
     "timeOptions": { "day": "Dia", "dawn": "Amanhecer", "dusk": "Entardecer", "night": "Noite" },
-    "weatherOptions": { "clear": "Limpo", "rain": "Chuva", "storm": "Tempestade", "snow": "Neve", "fog": "Neblina" },
+    "weatherOptions": {
+      "clear": "Limpo",
+      "rain": "Chuva",
+      "storm": "Tempestade",
+      "snow": "Neve",
+      "blizzard": "Nevasca",
+      "fog": "Neblina",
+      "sandstorm": "Tempestade de areia",
+      "ash": "Cinzas e brasas"
+    },
     "seasonOptions": { "none": "Nenhuma", "spring": "Primavera", "summer": "Verão", "autumn": "Outono", "winter": "Inverno" }
   },
   "alerts": {

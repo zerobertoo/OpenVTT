@@ -1,7 +1,7 @@
-import { DEFAULT_LIGHT_FEATHER, floorOf, TRAVELLING_EFFECTS, type UserDto } from "@openvtt/shared";
+import { AREA_EFFECTS, DEFAULT_LIGHT_FEATHER, floorOf, type TokenDto, TRAVELLING_EFFECTS, type UserDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
-import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { api } from "./api";
@@ -30,7 +30,8 @@ import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
 import { toastActionFailure } from "./lib/actionFailure";
-import { tokenAt, VISIBILITY_DELAY_MS } from "./lib/mapEffects";
+import { AMOUNT_EFFECTS, effectHits, tokenCenter } from "./lib/effectActions";
+import { EFFECT_IMPACT_MS, tokenAt } from "./lib/mapEffects";
 import { OnlineContext } from "./lib/online";
 import { usePreferences } from "./lib/preferences";
 import { type LightInput, undoableActions, withoutId } from "./lib/tableActions";
@@ -158,6 +159,8 @@ export function Table({ worldId, user }: Props) {
     [worldId, move, isGmRole],
   );
   useEffect(() => useUndo.getState().clear, [worldId]);
+  // An effect acts on the tokens as they are when it lands, not as they were when it was fired.
+  const latestFloorTokens = useRef<TokenDto[]>([]);
 
   // The preview only makes sense for a player who is still in the world.
   const previewedPlayer = can.isGm ? state?.members.find((m) => m.role === "player" && m.userId === viewAsUserId) : undefined;
@@ -195,6 +198,7 @@ export function Table({ worldId, user }: Props) {
   const floorLights = floor?.lights.map(withoutId) ?? [];
   const saveLights = (next: LightInput[]) => floor && actions.changeLights(floor, next);
   const floorTokens = state.tokens.filter((tk) => tk.floorId === floor?.id);
+  latestFloorTokens.current = floorTokens;
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
   // Tokens that vanished (deleted, out of sight) silently leave the selection.
   const selectedTokens = state.tokens.filter((tk) => selectedTokenIds.includes(tk.id));
@@ -316,29 +320,30 @@ export function Table({ worldId, user }: Props) {
               onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus, floorId: isGm ? floor?.id : undefined })}
               onEffectPoint={(x, y) => {
                 if (!isGm || viewAs) return;
-                const { effectKind: kind, effectValue: value, effectOrigin: origin, setEffectOrigin } = useTableUi.getState();
+                const ui = useTableUi.getState();
+                const { effectKind: kind, effectValue: value, effectOrigin: origin } = ui;
+                const area = AREA_EFFECTS.includes(kind);
+                // Anything aimed at one spot centres on the token standing there.
+                const aimed = area ? undefined : tokenAt(floorTokens, scene.gridSize, x, y);
+                const at = aimed ? tokenCenter(aimed, scene.gridSize) : { x, y };
                 const base = { type: "map.effect", kind, floorId: floor?.id } as const;
                 // Anything that travels takes two clicks: where it starts, then where it lands.
                 if (TRAVELLING_EFFECTS.includes(kind)) {
-                  if (!origin) return setEffectOrigin({ x, y });
-                  setEffectOrigin(null);
-                  return send({ ...base, x: origin.x, y: origin.y, toX: x, toY: y, value });
-                }
-                if (kind === "arrive" || kind === "vanish") {
-                  // On a token the effect is centred on it, and it flips between hidden and visible as the effect plays.
-                  const token = tokenAt(floorTokens, scene.gridSize, x, y);
-                  const center = token
-                    ? { x: token.x + (token.size * scene.gridSize) / 2, y: token.y + (token.size * scene.gridSize) / 2 }
-                    : { x, y };
-                  send({ ...base, ...center });
-                  if (token && token.hidden === (kind === "arrive"))
-                    setTimeout(
-                      () => void api.updateToken(token.id, { hidden: kind === "vanish" }).catch(toastActionFailure),
-                      VISIBILITY_DELAY_MS[kind],
-                    );
-                  return;
-                }
-                send({ ...base, x, y, value });
+                  if (!origin) return ui.setEffectOrigin(at);
+                  ui.setEffectOrigin(null);
+                  send({ ...base, x: origin.x, y: origin.y, toX: at.x, toY: at.y, value });
+                } else send({ ...base, ...at, value });
+                if (!ui.effectAffects) return;
+                // The effect also acts on the tokens it lands on, at the moment it lands, so two effects in a row
+                // add up instead of the second one overwriting the first. Each change can be undone.
+                const amount = AMOUNT_EFFECTS.includes(kind) ? value : ui.effectDamage;
+                setTimeout(() => {
+                  const hits = effectHits(kind, at, value, amount, latestFloorTokens.current, scene);
+                  for (const hit of hits)
+                    if (Object.keys(hit.changes).length) void actions.changeToken(hit.token, hit.changes).catch(toastActionFailure);
+                  const pushed = hits.flatMap(({ token, moveTo }) => (moveTo ? [{ token, ...moveTo }] : []));
+                  if (pushed.length) actions.moveTokens(pushed);
+                }, EFFECT_IMPACT_MS[kind]);
               }}
               formatDistance={(cells) => format.distance(cells, scene)}
               rulerShape={rulerShape}

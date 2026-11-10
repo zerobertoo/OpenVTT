@@ -392,7 +392,7 @@ export interface WorldStateDto {
 }
 
 export const TIMES_OF_DAY = ["day", "dawn", "dusk", "night"] as const;
-export const WEATHERS = ["clear", "rain", "storm", "snow", "fog"] as const;
+export const WEATHERS = ["clear", "rain", "storm", "snow", "blizzard", "fog", "sandstorm", "ash"] as const;
 export const SEASONS = ["none", "spring", "summer", "autumn", "winter"] as const;
 
 export const environmentSchema = z.object({
@@ -429,15 +429,36 @@ export type ServerMessage =
   | { type: "map.effect"; effect: EffectDto }
   | { type: "error"; code: ErrorCode };
 
-/** What a visual effect on the map looks like. `projectile` travels from (x, y) to (toX, toY). */
-export const EFFECT_KINDS = ["arrive", "vanish", "damage", "heal", "blast", "projectile", "slash", "bolt", "frost", "fireball"] as const;
+/** What a visual effect on the map looks like. The travelling ones go from (x, y) to (toX, toY). */
+export const EFFECT_KINDS = [
+  "arrive",
+  "vanish",
+  "damage",
+  "heal",
+  "shield",
+  "slash",
+  "arrow",
+  "projectile",
+  "bolt",
+  "beam",
+  "fireball",
+  "blast",
+  "meteor",
+  "frost",
+  "poison",
+  "quake",
+  "whirlwind",
+  "arcane",
+  "radiant",
+  "necrotic",
+] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
 /** Effects that travel from a start to a landing spot, so they need both. */
-export const TRAVELLING_EFFECTS: readonly EffectKind[] = ["projectile", "bolt", "fireball"];
-/** Effects that carry a number: the size of a hit, or the radius in cells of an area. */
-export const NUMBERED_EFFECTS: readonly EffectKind[] = ["damage", "heal", "blast", "frost", "fireball"];
+export const TRAVELLING_EFFECTS: readonly EffectKind[] = ["projectile", "bolt", "fireball", "arrow", "beam"];
 /** Of the numbered effects, the ones whose number is a radius in cells. */
-export const AREA_EFFECTS: readonly EffectKind[] = ["blast", "frost", "fireball"];
+export const AREA_EFFECTS: readonly EffectKind[] = ["blast", "frost", "fireball", "meteor", "poison", "quake", "whirlwind", "arcane"];
+/** Effects that carry a number: the size of a hit, or the radius in cells of an area. */
+export const NUMBERED_EFFECTS: readonly EffectKind[] = ["damage", "heal", ...AREA_EFFECTS];
 
 export interface EffectDto {
   sceneId: string;

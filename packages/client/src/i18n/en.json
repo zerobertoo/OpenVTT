@@ -228,6 +228,8 @@
     "kind": "Effect",
     "amount": "Amount",
     "radius": "Radius (cells)",
+    "damage": "Damage",
+    "affect": "Affect tokens",
     "hint": "Click the map to play the effect for everyone.",
     "hintOrigin": "Click where the shot starts.",
     "hintTarget": "Now click where it lands.",
@@ -241,7 +243,17 @@
       "slash": "Slash",
       "bolt": "Lightning bolt",
       "frost": "Frost nova",
-      "fireball": "Fireball"
+      "fireball": "Fireball",
+      "shield": "Shield",
+      "arrow": "Arrow",
+      "beam": "Energy beam",
+      "meteor": "Meteor",
+      "poison": "Poison cloud",
+      "quake": "Earthquake",
+      "whirlwind": "Whirlwind",
+      "arcane": "Arcane circle",
+      "radiant": "Radiant smite",
+      "necrotic": "Necrotic grasp"
     }
   },
   "light": {
@@ -578,7 +590,16 @@
     "weather": "Weather",
     "season": "Season",
     "timeOptions": { "day": "Day", "dawn": "Dawn", "dusk": "Dusk", "night": "Night" },
-    "weatherOptions": { "clear": "Clear", "rain": "Rain", "storm": "Storm", "snow": "Snow", "fog": "Fog" },
+    "weatherOptions": {
+      "clear": "Clear",
+      "rain": "Rain",
+      "storm": "Storm",
+      "snow": "Snow",
+      "blizzard": "Blizzard",
+      "fog": "Fog",
+      "sandstorm": "Sandstorm",
+      "ash": "Ash and embers"
+    },
     "seasonOptions": { "none": "None", "spring": "Spring", "summer": "Summer", "autumn": "Autumn", "winter": "Winter" }
   },
   "alerts": {

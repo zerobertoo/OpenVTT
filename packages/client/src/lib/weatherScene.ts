@@ -1,4 +1,4 @@
-import { type Particle, type ParticleKind, particleCount, SPECS, spawnParticles, stepParticle } from "./environment";
+import { isEmber, type Particle, type ParticleKind, particleCount, SPECS, spawnParticles, stepParticle } from "./environment";
 
 /** How quickly a layer fades in or out; about two seconds to settle. */
 const FADE_RATE = 2.2;
@@ -26,6 +26,8 @@ interface Bolt {
 
 interface Ripple extends Point {
   age: number;
+  /** 0 to 1: how big this drop was. */
+  size: number;
 }
 
 export interface WeatherOptions {
@@ -54,23 +56,25 @@ export function jaggedLine(from: Point, to: Point, spread: number, rounds: numbe
   return points;
 }
 
-let fogSprite: HTMLCanvasElement | null = null;
+const sprites = new Map<string, HTMLCanvasElement>();
 
-/** A soft white blob, drawn once and stretched for every patch of fog. */
-function fogBlob(): HTMLCanvasElement | null {
-  if (fogSprite) return fogSprite;
+/** A soft round blob of one colour ("r, g, b"), drawn once and stretched for fog, dust, big snowflakes and glows. */
+function blob(rgb: string, heart = 0.55): HTMLCanvasElement | null {
+  const key = `${rgb}/${heart}`;
+  const made = sprites.get(key);
+  if (made) return made;
   if (typeof document === "undefined") return null;
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 256;
+  canvas.width = canvas.height = 128;
   const context = canvas.getContext("2d");
   if (!context) return null;
-  const gradient = context.createRadialGradient(128, 128, 0, 128, 128, 128);
-  gradient.addColorStop(0, "rgba(222, 228, 238, 0.55)");
-  gradient.addColorStop(0.5, "rgba(222, 228, 238, 0.22)");
-  gradient.addColorStop(1, "rgba(222, 228, 238, 0)");
+  const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gradient.addColorStop(0, `rgba(${rgb}, ${heart})`);
+  gradient.addColorStop(0.5, `rgba(${rgb}, ${heart * 0.4})`);
+  gradient.addColorStop(1, `rgba(${rgb}, 0)`);
   context.fillStyle = gradient;
-  context.fillRect(0, 0, 256, 256);
-  fogSprite = canvas;
+  context.fillRect(0, 0, 128, 128);
+  sprites.set(key, canvas);
   return canvas;
 }
 
@@ -94,6 +98,8 @@ export class WeatherScene {
   private thunder: { at: number; strength: number } | null = null;
   private time = 0;
   private wind = 0;
+  /** The shape of the wind before its strength: about -1.75 to 1.75. */
+  private gust = 0;
 
   constructor(private readonly options: WeatherOptions) {}
 
@@ -144,10 +150,10 @@ export class WeatherScene {
   /** Advances everything by `dt` seconds. */
   step(dt: number) {
     this.time += dt;
-    const stormy = Math.max(this.level("storm"), 0);
-    // Slow gusts, stronger in a storm.
-    const gust = (Math.sin(this.time * 0.35) + 0.5 * Math.sin(this.time * 0.9 + 2)) * (35 + 70 * stormy);
-    this.wind = gust;
+    const stormy = Math.max(this.level("storm"), this.level("blizzard"), this.level("sandstorm"));
+    // Slow gusts with quicker flurries on top, stronger in a storm.
+    this.gust = Math.sin(this.time * 0.35) + 0.5 * Math.sin(this.time * 0.9 + 2) + 0.25 * Math.sin(this.time * 2.3 + 5);
+    this.wind = this.gust * (35 + 70 * stormy);
     const ease = 1 - Math.exp(-FADE_RATE * dt);
     for (const [kind, layer] of this.layers) {
       layer.level += (layer.target - layer.level) * ease;
@@ -164,7 +170,7 @@ export class WeatherScene {
     const born = rain * dt;
     const count = Math.floor(born) + (Math.random() < born % 1 ? 1 : 0);
     for (let i = 0; i < count && this.ripples.length < MAX_RIPPLES; i++)
-      this.ripples.push({ x: Math.random() * this.width, y: Math.random() * this.height, age: 0 });
+      this.ripples.push({ x: Math.random() * this.width, y: Math.random() * this.height, age: 0, size: Math.random() });
   }
 
   private stepLightning(dt: number) {
@@ -203,8 +209,10 @@ export class WeatherScene {
       const to = { x: from.x + (Math.random() - 0.5) * 380, y: from.y + 70 + Math.random() * 150 };
       branches.push(jaggedLine(from, to, 80, 4));
     }
-    this.bolt = { trunk, branches, age: 0 };
-    this.flash = 0.6;
+    // One strike in three is hidden in the clouds: the sky lights up, but no bolt shows.
+    const hidden = Math.random() < 0.33;
+    this.bolt = hidden ? null : { trunk, branches, age: 0 };
+    this.flash = hidden ? 0.4 : 0.6;
     this.flicker = 0.1 + Math.random() * 0.08;
     // The farther off the strike, the later and the softer the rumble.
     const distance = Math.random();
@@ -213,17 +221,57 @@ export class WeatherScene {
 
   /** Draws the current state; the caller clears the canvas first. */
   draw(ctx: CanvasRenderingContext2D) {
-    const order: ParticleKind[] = ["fog", "snow", "leaves", "petals", "rain", "storm"];
+    const order: ParticleKind[] = ["fog", "ash", "snow", "blizzard", "leaves", "petals", "fireflies", "sandstorm", "rain", "storm"];
     for (const kind of order) {
       const layer = this.layers.get(kind);
       if (!layer || layer.level <= 0.003) continue;
       if (kind === "rain" || kind === "storm") this.drawRain(ctx, kind, layer);
-      else if (kind === "snow") drawSnow(ctx, layer);
-      else if (kind === "fog") drawFog(ctx, layer);
-      else drawLeaves(ctx, kind, layer);
+      else if (kind === "blizzard" || kind === "sandstorm") this.drawBlown(ctx, kind, layer);
+      else if (kind === "snow") drawSnow(ctx, layer, this.time);
+      else if (kind === "fog") drawFog(ctx, layer, this.time);
+      else if (kind === "ash") drawAsh(ctx, layer, this.time);
+      else if (kind === "fireflies") drawFireflies(ctx, layer, this.time);
+      else drawLeaves(ctx, kind, layer, this.time);
     }
     this.drawRipples(ctx);
     this.drawLightning(ctx);
+  }
+
+  /** Snow or sand driven sideways: streaks along the wind, with the air itself thickening on every gust. */
+  private drawBlown(ctx: CanvasRenderingContext2D, kind: "blizzard" | "sandstorm", layer: Layer) {
+    const { vx, vy, wind } = SPECS[kind];
+    const dx = vx + this.wind * wind;
+    const speed = Math.hypot(dx, vy) || 1;
+    const snow = kind === "blizzard";
+    const rgb = snow ? "255, 255, 255" : "214, 170, 104";
+    const haze = (snow ? 0.1 : 0.14) + 0.05 * this.gust;
+    ctx.fillStyle = `rgba(${snow ? "236, 242, 252" : "201, 156, 92"}, ${Math.max(0, haze) * layer.level})`;
+    ctx.fillRect(0, 0, this.width, this.height);
+    // A few of the particles are whole clouds of it rolling past.
+    const cloud = blob(snow ? "240, 246, 255" : "196, 150, 88");
+    if (cloud)
+      for (const p of layer.items) {
+        if (p.r > 0.035) continue;
+        const size = 380 + p.r * 9000;
+        ctx.globalAlpha = 0.55 * layer.level;
+        ctx.drawImage(cloud, p.x - size / 2, p.y - size / 2, size, size * 0.6);
+      }
+    ctx.globalAlpha = 1;
+    const lengths = snow ? [5, 9, 15] : [8, 16, 26];
+    const widths = snow ? [1.2, 1.8, 2.6] : [0.8, 1.2, 1.8];
+    const alphas = snow ? [0.45, 0.7, 0.9] : [0.35, 0.55, 0.75];
+    ctx.lineCap = "round";
+    for (let b = 0; b < 3; b++) {
+      ctx.strokeStyle = `rgba(${rgb}, ${alphas[b]! * layer.level})`;
+      ctx.lineWidth = widths[b]!;
+      ctx.beginPath();
+      for (const p of layer.items) {
+        if (p.r <= 0.035 || band(p.r) !== b) continue;
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - (dx / speed) * lengths[b]!, p.y - (vy / speed) * lengths[b]!);
+      }
+      ctx.stroke();
+    }
   }
 
   private drawRain(ctx: CanvasRenderingContext2D, kind: "rain" | "storm", layer: Layer) {
@@ -250,11 +298,29 @@ export class WeatherScene {
     if (this.ripples.length === 0) return;
     const strength = Math.max(this.level("rain"), this.level("storm"));
     ctx.lineWidth = 1;
-    for (const { x, y, age } of this.ripples) {
+    ctx.lineCap = "round";
+    for (const { x, y, age, size } of this.ripples) {
       const t = age / 0.6;
+      const reach = 0.6 + 0.8 * size;
       ctx.strokeStyle = `rgba(210, 225, 255, ${0.5 * (1 - t) * strength})`;
       ctx.beginPath();
-      ctx.ellipse(x, y, 2 + 9 * t, 1 + 4 * t, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y, (2 + 9 * t) * reach, (1 + 4 * t) * reach, 0, 0, Math.PI * 2);
+      // A big drop leaves a second ring behind the first...
+      if (size > 0.6 && t > 0.3) {
+        const inner = (t - 0.3) / 0.7;
+        ctx.moveTo(x + (2 + 6 * inner) * reach, y);
+        ctx.ellipse(x, y, (2 + 6 * inner) * reach, (1 + 2.6 * inner) * reach, 0, 0, Math.PI * 2);
+      }
+      // ...and every drop throws a little crown of water up as it lands.
+      if (t < 0.35) {
+        const up = (t / 0.35) * 6 * reach;
+        ctx.moveTo(x - 2 * reach, y);
+        ctx.lineTo(x - 3.5 * reach, y - up);
+        ctx.moveTo(x + 2 * reach, y);
+        ctx.lineTo(x + 3.5 * reach, y - up);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y - up * 1.3);
+      }
       ctx.stroke();
     }
   }
@@ -292,40 +358,130 @@ function extra(count: number, width: number, height: number): Particle[] {
   return Array.from({ length: Math.max(0, count) }, () => ({ x: Math.random() * width, y: Math.random() * height, r: Math.random() }));
 }
 
-function drawSnow(ctx: CanvasRenderingContext2D, layer: Layer) {
-  const alphas = [0.5, 0.75, 0.95];
-  for (let b = 0; b < 3; b++) {
+function drawSnow(ctx: CanvasRenderingContext2D, layer: Layer, time: number) {
+  // Far flakes are small and faint; they glint a little as they turn.
+  const alphas = [0.5, 0.78];
+  for (let b = 0; b < 2; b++) {
     ctx.fillStyle = `rgba(255, 255, 255, ${alphas[b]! * layer.level})`;
     ctx.beginPath();
     for (const p of layer.items) {
       if (band(p.r) !== b) continue;
-      const radius = 1.2 + p.r * 2.4;
+      const radius = (1.1 + p.r * 2.4) * (0.85 + 0.15 * Math.sin(time * 3 + p.r * 90));
       ctx.moveTo(p.x + radius, p.y);
       ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
     }
     ctx.fill();
   }
-}
-
-function drawLeaves(ctx: CanvasRenderingContext2D, kind: "leaves" | "petals", layer: Layer) {
-  const colors = kind === "leaves" ? LEAF_COLORS : PETAL_COLORS;
-  ctx.globalAlpha = layer.level;
+  // The nearest ones are big and out of focus.
+  const soft = blob("255, 255, 255", 0.95);
+  if (!soft) return;
+  ctx.globalAlpha = 0.9 * layer.level;
   for (const p of layer.items) {
-    ctx.fillStyle = colors[Math.floor(p.r * colors.length)] ?? colors[0]!;
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, 3 + p.r * 3, 1.8 + p.r, p.r * 6.28 + p.y * 0.02, 0, Math.PI * 2);
-    ctx.fill();
+    if (band(p.r) !== 2) continue;
+    const size = 7 + (p.r - 0.67) * 30;
+    ctx.drawImage(soft, p.x - size / 2, p.y - size / 2, size, size);
   }
   ctx.globalAlpha = 1;
 }
 
-function drawFog(ctx: CanvasRenderingContext2D, layer: Layer) {
-  const blob = fogBlob();
-  if (!blob) return;
+function drawLeaves(ctx: CanvasRenderingContext2D, kind: "leaves" | "petals", layer: Layer, time: number) {
+  const colors = kind === "leaves" ? LEAF_COLORS : PETAL_COLORS;
   for (const p of layer.items) {
-    const size = 420 + p.r * 380;
-    ctx.globalAlpha = (0.5 + p.r * 0.4) * layer.level;
-    ctx.drawImage(blob, p.x - size / 2, p.y - size / 2, size, size);
+    // Each one spins and also turns over, so it shows its face, then its edge, then its paler underside.
+    const turned = Math.cos(time * (1.6 + p.r * 2.4) + p.r * 30);
+    const length = 4.5 + p.r * 4.5;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.r * 6.28 + time * (0.6 + p.r * 1.4));
+    ctx.scale(1, 0.18 + 0.82 * Math.abs(turned));
+    ctx.globalAlpha = layer.level * (turned < 0 ? 0.72 : 1);
+    ctx.fillStyle = colors[Math.floor(p.r * colors.length)] ?? colors[0]!;
+    ctx.beginPath();
+    if (kind === "leaves") {
+      // Pointed at both ends, with a stem down the middle.
+      ctx.moveTo(-length, 0);
+      ctx.quadraticCurveTo(0, -length * 0.62, length, 0);
+      ctx.quadraticCurveTo(0, length * 0.62, -length, 0);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(70, 30, 8, 0.55)";
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(-length * 1.25, 0);
+      ctx.lineTo(length * 0.7, 0);
+      ctx.stroke();
+    } else {
+      // Round at one end, narrow where it was attached.
+      ctx.moveTo(-length * 0.8, 0);
+      ctx.bezierCurveTo(-length * 0.2, -length * 0.8, length, -length * 0.6, length * 0.8, 0);
+      ctx.bezierCurveTo(length, length * 0.6, -length * 0.2, length * 0.8, -length * 0.8, 0);
+      ctx.fill();
+    }
+    ctx.restore();
   }
+  ctx.globalAlpha = 1;
+}
+
+function drawFog(ctx: CanvasRenderingContext2D, layer: Layer, time: number) {
+  const sprite = blob("222, 228, 238");
+  if (!sprite) return;
+  for (const p of layer.items) {
+    // Each bank thickens and thins on its own slow beat.
+    const breath = 0.82 + 0.18 * Math.sin(time * 0.35 + p.r * 40);
+    const size = (420 + p.r * 380) * (0.95 + 0.05 * Math.sin(time * 0.22 + p.r * 17));
+    ctx.globalAlpha = (0.5 + p.r * 0.4) * breath * layer.level;
+    ctx.drawImage(sprite, p.x - size / 2, p.y - size * 0.36, size, size * 0.72);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawAsh(ctx: CanvasRenderingContext2D, layer: Layer, time: number) {
+  ctx.fillStyle = "rgb(120, 114, 112)";
+  for (const p of layer.items) {
+    if (isEmber(p)) continue;
+    const size = 1.4 + p.r * 2.6;
+    ctx.globalAlpha = (0.45 + p.r * 0.5) * layer.level;
+    ctx.beginPath();
+    ctx.ellipse(
+      p.x,
+      p.y,
+      size,
+      size * (0.35 + 0.5 * Math.abs(Math.sin(time * (1 + p.r) + p.r * 40))),
+      p.r * 6.28 + time * 0.5,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  }
+  // Embers glow, so they add their light to whatever is behind them.
+  const glow = blob("255, 150, 60", 1);
+  if (glow) {
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of layer.items) {
+      if (!isEmber(p)) continue;
+      const flicker = 0.55 + 0.45 * Math.sin(time * (5 + p.r * 6) + p.r * 70);
+      const size = 6 + (p.r - 0.72) * 34;
+      ctx.globalAlpha = flicker * layer.level;
+      ctx.drawImage(glow, p.x - size / 2, p.y - size / 2, size, size);
+    }
+    ctx.globalCompositeOperation = "source-over";
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawFireflies(ctx: CanvasRenderingContext2D, layer: Layer, time: number) {
+  const glow = blob("214, 255, 120", 1);
+  if (!glow) return;
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of layer.items) {
+    // Each one lights up and goes dark on its own beat.
+    const lit = Math.max(0, Math.sin(time * (1.1 + p.r * 1.6) + p.r * 60)) ** 2;
+    if (lit < 0.02) continue;
+    const size = 16 + p.r * 14;
+    ctx.globalAlpha = lit * layer.level;
+    ctx.drawImage(glow, p.x - size / 2, p.y - size / 2, size, size);
+    ctx.globalAlpha = Math.min(1, lit * 1.4) * layer.level;
+    ctx.drawImage(glow, p.x - size / 8, p.y - size / 8, size / 4, size / 4);
+  }
+  ctx.globalCompositeOperation = "source-over";
   ctx.globalAlpha = 1;
 }

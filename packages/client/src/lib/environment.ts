@@ -1,6 +1,6 @@
 import type { EnvironmentDto } from "@openvtt/shared";
 
-export type ParticleKind = "rain" | "storm" | "snow" | "leaves" | "petals" | "fog";
+export type ParticleKind = "rain" | "storm" | "snow" | "blizzard" | "sandstorm" | "ash" | "leaves" | "petals" | "fireflies" | "fog";
 
 export interface Tint {
   color: string;
@@ -34,10 +34,16 @@ const WEATHER_TINTS: Record<EnvironmentDto["weather"], Tint | null> = {
   rain: { color: "#aab4c8", blend: "multiply" },
   storm: { color: "#6e7791", blend: "multiply" },
   snow: { color: "rgba(235, 242, 255, 0.14)", blend: "normal" },
+  blizzard: { color: "rgba(226, 236, 252, 0.3)", blend: "normal" },
   fog: { color: "rgba(214, 220, 228, 0.2)", blend: "normal" },
+  sandstorm: { color: "#e3bd84", blend: "multiply" },
+  ash: { color: "#b39c95", blend: "multiply" },
 };
 
-/** Works out what to draw for an environment. Seasonal leaves and petals give way to rain, storm and snow, not to fog. */
+/**
+ * Works out what to draw for an environment. Seasonal leaves, petals and fireflies give way to anything that falls or
+ * blows, but not to fog. Fireflies only come out on summer evenings.
+ */
 export function environmentLook({ time, weather, season }: EnvironmentDto): EnvironmentLook {
   const tints = [TIME_TINTS[time], SEASON_TINTS[season], WEATHER_TINTS[weather]].filter((t): t is Tint => t !== null);
   const particles: ParticleKind[] = [];
@@ -45,6 +51,7 @@ export function environmentLook({ time, weather, season }: EnvironmentDto): Envi
   if (weather === "clear" || weather === "fog") {
     if (season === "autumn") particles.push("leaves");
     else if (season === "spring") particles.push("petals");
+    else if (season === "summer" && (time === "night" || time === "dusk")) particles.push("fireflies");
   }
   return { tints, particles };
 }
@@ -64,9 +71,13 @@ interface Spec {
 export const SPECS: Record<ParticleKind, Spec> = {
   rain: { count: 220, vx: -90, vy: 900, wind: 1, margin: 20 },
   storm: { count: 380, vx: -260, vy: 1200, wind: 1.6, margin: 20 },
-  snow: { count: 150, vx: 0, vy: 55, wind: 0.8, margin: 20 },
-  leaves: { count: 22, vx: 50, vy: 60, wind: 1.5, margin: 20 },
-  petals: { count: 22, vx: 40, vy: 45, wind: 1.5, margin: 20 },
+  snow: { count: 170, vx: 0, vy: 55, wind: 0.8, margin: 20 },
+  blizzard: { count: 420, vx: -430, vy: 250, wind: 2.2, margin: 20 },
+  sandstorm: { count: 340, vx: 640, vy: 30, wind: 1.6, margin: 40 },
+  ash: { count: 120, vx: 10, vy: 36, wind: 0.6, margin: 20 },
+  leaves: { count: 30, vx: 50, vy: 60, wind: 1.5, margin: 20 },
+  petals: { count: 30, vx: 40, vy: 45, wind: 1.5, margin: 20 },
+  fireflies: { count: 36, vx: 0, vy: 0, wind: 0.05, margin: 20 },
   fog: { count: 9, vx: 10, vy: 0, wind: 0.25, margin: 360 },
 };
 
@@ -90,15 +101,34 @@ export function spawnParticles(kind: ParticleKind, width: number, height: number
   }));
 }
 
+/** Ash falls, but the hottest bits of it are embers that rise instead. */
+export const isEmber = (p: Particle) => p.r > 0.72;
+
+/** How far each kind wanders sideways, in pixels per second. */
+const SWAY: Partial<Record<ParticleKind, number>> = { snow: 25, leaves: 32, petals: 28, ash: 18, fireflies: 26, fog: 6, blizzard: 40 };
+
 /** Moves a particle by `dt` seconds, pushed by `wind` (pixels per second), and wraps it around the screen edges. */
 export function stepParticle(kind: ParticleKind, p: Particle, dt: number, time: number, width: number, height: number, wind = 0): void {
   const { vx, vy, wind: carried, margin } = SPECS[kind];
   const speed = 0.7 + p.r * 0.6;
-  const sway = kind === "rain" || kind === "storm" ? 0 : Math.sin(time * (0.8 + p.r) + p.r * 20) * (kind === "fog" ? 6 : 25);
+  const sway = Math.sin(time * (0.8 + p.r) + p.r * 20) * (SWAY[kind] ?? 0);
+  // Fireflies wander up and down as well, sand bobs on the gusts, and embers climb.
+  const lift =
+    kind === "fireflies"
+      ? Math.cos(time * (0.6 + p.r * 0.9) + p.r * 50) * 22
+      : kind === "sandstorm"
+        ? Math.sin(time * (2 + p.r * 3) + p.r * 30) * 45
+        : kind === "ash" && isEmber(p)
+          ? -vy * 3.2 * speed
+          : vy * speed;
   p.x += (vx * speed + sway + wind * carried) * dt;
-  p.y += vy * speed * dt;
+  p.y += lift * dt;
   if (p.y > height + margin) {
     p.y = -margin;
+    p.x = Math.random() * width;
+  }
+  if (p.y < -margin) {
+    p.y = height + margin;
     p.x = Math.random() * width;
   }
   if (p.x > width + margin) p.x = -margin;

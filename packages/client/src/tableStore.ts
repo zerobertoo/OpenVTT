@@ -88,7 +88,11 @@ interface TableUiState {
   /** What the effect tool fires: its kind and its number (damage, healing or blast radius). */
   effectKind: EffectKind;
   effectValue: number;
-  setEffectChoice: (choice: Partial<Pick<TableUiState, "effectKind" | "effectValue">>) => void;
+  /** Hit points a strike or an area takes from the tokens it lands on; 0 leaves their health alone. */
+  effectDamage: number;
+  /** Whether effects act on the tokens they land on, or only play. */
+  effectAffects: boolean;
+  setEffectChoice: (choice: Partial<Pick<TableUiState, "effectKind" | "effectValue" | "effectDamage" | "effectAffects">>) => void;
   /** Where the next projectile starts, after the first click of the two it takes. */
   effectOrigin: { x: number; y: number } | null;
   setEffectOrigin: (origin: { x: number; y: number } | null) => void;
@@ -135,6 +139,8 @@ const initialState = {
   effect: null,
   effectKind: "damage" as EffectKind,
   effectValue: 5,
+  effectDamage: 5,
+  effectAffects: true,
   effectOrigin: null,
   minimapOpen: true,
   diceTrayOpen: false,

@@ -12,6 +12,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Ten more map effects: shield, arrow, energy beam, meteor, poison cloud, earthquake, whirlwind, arcane circle, radiant smite and necrotic grasp. The ten that existed were redrawn with swirling particles, flashes, scorch marks and glints.
+- Effects act on the tokens they land on (a switch in the effect options turns this off): damage and healing change hit points, strikes and areas take the damage set beside them, frost restrains, poison poisons, an earthquake knocks prone and a whirlwind throws tokens one cell outward. Every change can be undone.
+- Three more kinds of weather (blizzard, sandstorm, ash and embers), fireflies on summer evenings, leaves and petals that tumble, splashing rain and lightning hidden in the clouds.
 - Richer map effects built from particles, glow, screen shake and a shockwave, plus four new ones: slash, lightning bolt, frost nova and fireball.
 - Vanish and arrive effects dropped on a token hide and reveal it; the game master sees hidden tokens with a dashed ring and an eye badge.
 - Weather rebuilt as blending layers: moving fog, rain ripples, wind, and lightning with thunder when sounds are on.

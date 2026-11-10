@@ -205,13 +205,20 @@ output { font-weight: 800; font-size: 1.1rem; }
 .room-entry { position: fixed; inset: 0; z-index: 80; display: grid; place-content: center; justify-items: center; gap: 1.2rem; color: var(--on-chrome); background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 22%, var(--map)), var(--map) 70%); }
 .entry-stage { position: relative; display: grid; place-items: center; width: 14rem; height: 14rem; }
 .entry-avatar { scale: 2.2; }
-.entry-ring { position: absolute; inset: 0; border: 2px solid var(--accent); border-radius: 50%; opacity: 0; animation: entry-ring 1.8s ease-out infinite; }
-.entry-spark { position: absolute; top: 50%; left: 50%; width: 0.35rem; height: 0.35rem; margin: -0.175rem; border-radius: 50%; background: var(--color, var(--accent)); opacity: 0; animation: entry-spark 1.4s ease-in infinite; }
+.entry-ring { position: absolute; inset: 0; border: 2px solid var(--color, var(--accent)); border-radius: 50%; opacity: 0; animation: entry-ring 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+.entry-halo { position: absolute; inset: 1.6rem; border-radius: 50%; background: conic-gradient(from 0deg, transparent, var(--color, var(--accent)) 35%, transparent 60%, var(--accent) 85%, transparent); mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); animation: entry-halo-in 0.6s var(--ease, ease-out) backwards, presence-spin 1.6s linear infinite; }
+.entry-spark { position: absolute; top: 50%; left: 50%; width: var(--size, 0.35rem); height: var(--size, 0.35rem); margin: calc(var(--size, 0.35rem) / -2); border-radius: 50%; background: var(--color, var(--accent)); box-shadow: 0 0 0.5rem var(--color, var(--accent)); opacity: 0; animation: entry-spark 1.4s ease-in infinite; }
+.entry-burst { position: absolute; inset: 3rem; border-radius: 50%; pointer-events: none; opacity: 0; animation: entry-burst 0.9s ease-out 0.62s; }
 .entry-title { margin: 0; font-size: 1.25rem; font-weight: 700; }
 .entry-bar { width: min(18rem, 70vw); height: 0.3rem; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--on-chrome) 18%, transparent); }
-.entry-bar span { display: block; width: 100%; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(var(--progress, 0)); transition: transform 0.3s var(--ease); }
-@keyframes entry-ring { from { transform: scale(0.2); opacity: 0.9; } to { transform: scale(1.1); opacity: 0; } }
-@keyframes entry-spark { from { transform: rotate(var(--angle)) translateX(6.5rem) scale(1); opacity: 0; } 30% { opacity: 1; } to { transform: rotate(var(--angle)) translateX(1.8rem) scale(0.3); opacity: 0; } }
+.entry-bar span { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, white), var(--accent)); background-size: 200% 100%; transform-origin: left; transform: scaleX(var(--progress, 0)); transition: transform 0.3s var(--ease); animation: entry-bar-shine 1.2s linear infinite; }
+@keyframes entry-bar-shine { to { background-position: -200% 0; } }
+@keyframes entry-ring { from { transform: scale(0.2); opacity: 0.9; } to { transform: scale(1.15); opacity: 0; } }
+/* Each spark curls in toward the avatar instead of flying straight at it. */
+@keyframes entry-spark { from { transform: rotate(var(--angle)) translateX(var(--reach, 6.5rem)) scale(1); opacity: 0; } 30% { opacity: 1; } to { transform: rotate(calc(var(--angle) + 70deg)) translateX(1.6rem) scale(0.3); opacity: 0; } }
+@keyframes entry-halo-in { from { opacity: 0; transform: scale(0.4); } }
+/* A flash of light the moment the avatar lands. */
+@keyframes entry-burst { from { opacity: 1; box-shadow: 0 0 0 0 var(--color, var(--accent)), 0 0 2rem 0.4rem var(--color, var(--accent)); } to { opacity: 0; box-shadow: 0 0 0 4.5rem transparent, 0 0 3rem 1rem transparent; } }
 .presence { display: flex; align-items: center; gap: 0.5rem; max-width: min(36rem, calc(100% - 22rem)); padding: 0.3rem; }
 .presence-list { display: flex; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
 .presence-badge { position: relative; display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0.7rem 0.15rem 0.15rem; border-radius: 999px; background: color-mix(in srgb, var(--who) 22%, transparent); transition: opacity 0.5s, filter 0.5s; }

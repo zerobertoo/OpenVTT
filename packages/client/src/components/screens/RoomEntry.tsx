@@ -11,7 +11,7 @@ import { Spinner } from "../ui/spinner";
 export const ENTRY_MS = 1800;
 /** A plain loading bar waits this long before showing, so a table that opens at once never flashes one. */
 const BAR_DELAY_MS = 300;
-const SPARKS = 16;
+const SPARKS = 20;
 
 interface Props {
   state: WorldStateDto;
@@ -73,11 +73,12 @@ export function RoomEntry({ state, userId, fallbackName }: Props) {
           className="room-entry"
           initial={{ opacity: animate ? 1 : 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: animate ? 1.06 : 1 }}
-          transition={{ duration: 0.5 }}
+          exit={animate ? { opacity: 0, scale: 1.08, filter: "blur(6px)" } : { opacity: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           {animate ? (
-            <div className="entry-stage" aria-hidden="true">
+            <div className="entry-stage" aria-hidden="true" style={{ "--color": me?.color } as React.CSSProperties}>
+              <span className="entry-halo" />
               <span className="entry-ring" style={{ animationDelay: "0s" }} />
               <span className="entry-ring" style={{ animationDelay: "0.35s" }} />
               <span className="entry-ring" style={{ animationDelay: "0.7s" }} />
@@ -88,8 +89,10 @@ export function RoomEntry({ state, userId, fallbackName }: Props) {
                   style={
                     {
                       "--angle": `${(i / SPARKS) * 360}deg`,
-                      animationDelay: `${0.15 + (i % 4) * 0.08}s`,
-                      "--color": me?.color,
+                      // Uneven distances, sizes and beats, so the sparks read as a swarm and not as a wheel.
+                      "--reach": `${5.2 + ((i * 7) % 5) * 0.55}rem`,
+                      "--size": `${0.25 + ((i * 3) % 4) * 0.07}rem`,
+                      animationDelay: `${0.1 + ((i * 5) % 8) * 0.09}s`,
                     } as React.CSSProperties
                   }
                 />
@@ -102,11 +105,19 @@ export function RoomEntry({ state, userId, fallbackName }: Props) {
               >
                 <Avatar name={name} color={me?.color} size="lg" />
               </motion.div>
+              <span className="entry-burst" />
             </div>
           ) : (
             <Spinner className="size-6" />
           )}
-          <p className="entry-title">{animate ? t("entry.enters", { name }) : t("entry.preparing")}</p>
+          <motion.p
+            className="entry-title"
+            initial={animate ? { opacity: 0, y: 14 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: animate ? 0.7 : 0, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {animate ? t("entry.enters", { name }) : t("entry.preparing")}
+          </motion.p>
           <div
             role="progressbar"
             aria-label={t("entry.preparing")}
