@@ -1,4 +1,4 @@
-import { DEFAULT_LIGHT_FEATHER, floorOf, TRAVELLING_EFFECTS, type UserDto } from "@openvtt/shared";
+import { AREA_EFFECTS, DEFAULT_LIGHT_FEATHER, floorOf, TRAVELLING_EFFECTS, type UserDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
@@ -30,7 +30,8 @@ import { Button } from "./components/ui/button";
 import { ConfirmDialog } from "./components/ui/dialog";
 import { TipProvider } from "./components/ui/tooltip";
 import { toastActionFailure } from "./lib/actionFailure";
-import { tokenAt, VISIBILITY_DELAY_MS } from "./lib/mapEffects";
+import { AMOUNT_EFFECTS, effectHits, tokenCenter } from "./lib/effectActions";
+import { EFFECT_IMPACT_MS, tokenAt } from "./lib/mapEffects";
 import { OnlineContext } from "./lib/online";
 import { usePreferences } from "./lib/preferences";
 import { type LightInput, undoableActions, withoutId } from "./lib/tableActions";
@@ -316,29 +317,30 @@ export function Table({ worldId, user }: Props) {
               onPing={(x, y, focus) => send({ type: "map.ping", x, y, focus: isGm && focus, floorId: isGm ? floor?.id : undefined })}
               onEffectPoint={(x, y) => {
                 if (!isGm || viewAs) return;
-                const { effectKind: kind, effectValue: value, effectOrigin: origin, setEffectOrigin } = useTableUi.getState();
+                const ui = useTableUi.getState();
+                const { effectKind: kind, effectValue: value, effectOrigin: origin } = ui;
+                const area = AREA_EFFECTS.includes(kind);
+                // Anything aimed at one spot centres on the token standing there.
+                const aimed = area ? undefined : tokenAt(floorTokens, scene.gridSize, x, y);
+                const at = aimed ? tokenCenter(aimed, scene.gridSize) : { x, y };
                 const base = { type: "map.effect", kind, floorId: floor?.id } as const;
                 // Anything that travels takes two clicks: where it starts, then where it lands.
                 if (TRAVELLING_EFFECTS.includes(kind)) {
-                  if (!origin) return setEffectOrigin({ x, y });
-                  setEffectOrigin(null);
-                  return send({ ...base, x: origin.x, y: origin.y, toX: x, toY: y, value });
-                }
-                if (kind === "arrive" || kind === "vanish") {
-                  // On a token the effect is centred on it, and it flips between hidden and visible as the effect plays.
-                  const token = tokenAt(floorTokens, scene.gridSize, x, y);
-                  const center = token
-                    ? { x: token.x + (token.size * scene.gridSize) / 2, y: token.y + (token.size * scene.gridSize) / 2 }
-                    : { x, y };
-                  send({ ...base, ...center });
-                  if (token && token.hidden === (kind === "arrive"))
-                    setTimeout(
-                      () => void api.updateToken(token.id, { hidden: kind === "vanish" }).catch(toastActionFailure),
-                      VISIBILITY_DELAY_MS[kind],
-                    );
-                  return;
-                }
-                send({ ...base, x, y, value });
+                  if (!origin) return ui.setEffectOrigin(at);
+                  ui.setEffectOrigin(null);
+                  send({ ...base, x: origin.x, y: origin.y, toX: at.x, toY: at.y, value });
+                } else send({ ...base, ...at, value });
+                if (!ui.effectAffects) return;
+                // The effect also acts on the tokens it lands on, at the moment it lands. Each change can be undone.
+                const amount = AMOUNT_EFFECTS.includes(kind) ? value : ui.effectDamage;
+                const hits = effectHits(kind, at, value, amount, floorTokens, scene);
+                if (hits.length === 0) return;
+                setTimeout(() => {
+                  for (const hit of hits)
+                    if (Object.keys(hit.changes).length) void actions.changeToken(hit.token, hit.changes).catch(toastActionFailure);
+                  const pushed = hits.flatMap(({ token, moveTo }) => (moveTo ? [{ token, ...moveTo }] : []));
+                  if (pushed.length) actions.moveTokens(pushed);
+                }, EFFECT_IMPACT_MS[kind]);
               }}
               formatDistance={(cells) => format.distance(cells, scene)}
               rulerShape={rulerShape}

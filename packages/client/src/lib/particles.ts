@@ -34,6 +34,10 @@ export interface EmitSpec {
   spread?: number;
   /** Spawn on a ring of `spread` pixels and fly inward to the spot instead of outward from it. */
   inward?: boolean;
+  /** Radians per second each particle circles the spot, which turns a burst into a vortex. */
+  swirl?: number;
+  /** Flickers per second, for sparkles that glitter instead of fading evenly. */
+  twinkle?: number;
 }
 
 interface Live {
@@ -51,6 +55,11 @@ interface Live {
   drag: number;
   spin: number;
   stretch: number;
+  swirl: number;
+  twinkle: number;
+  /** The spot the particle circles when it swirls. */
+  ox: number;
+  oy: number;
 }
 
 const DOT_SIZE = 64;
@@ -143,6 +152,10 @@ export class ParticleSystem {
         drag: spec.drag ?? 0,
         spin: spec.spin ? between(spec.spin, random) : 0,
         stretch: spec.stretch ?? 0,
+        swirl: spec.swirl ?? 0,
+        twinkle: spec.twinkle ?? 0,
+        ox: spec.x,
+        oy: spec.y,
       });
     }
   }
@@ -165,6 +178,18 @@ export class ParticleSystem {
       const { particle } = item;
       particle.x += item.vx * dt;
       particle.y += item.vy * dt;
+      if (item.swirl !== 0) {
+        // Turning both the place and the heading keeps the particle on a spiral instead of a widening circle.
+        const cos = Math.cos(item.swirl * dt);
+        const sin = Math.sin(item.swirl * dt);
+        const rx = particle.x - item.ox;
+        const ry = particle.y - item.oy;
+        particle.x = item.ox + rx * cos - ry * sin;
+        particle.y = item.oy + rx * sin + ry * cos;
+        const { vx } = item;
+        item.vx = vx * cos - item.vy * sin;
+        item.vy = vx * sin + item.vy * cos;
+      }
       const scale = (item.size * (1 + (item.grow - 1) * t)) / DOT_SIZE;
       if (item.stretch > 0) {
         particle.rotation = Math.atan2(item.vy, item.vx);
@@ -175,7 +200,9 @@ export class ParticleSystem {
       }
       particle.scaleY = scale;
       // A quick fade in hides the pop of a particle appearing, then it dims as it ages.
-      particle.alpha = item.alpha * Math.min(1, item.age / 0.05) * (1 - t) ** 1.3;
+      // The life doubles as a phase, so sparkles born together do not blink together.
+      const glitter = item.twinkle > 0 ? 0.55 + 0.45 * Math.sin((item.age * item.twinkle + item.life * 7) * Math.PI * 2) : 1;
+      particle.alpha = item.alpha * glitter * Math.min(1, item.age / 0.05) * (1 - t) ** 1.3;
       particle.tint = item.to === item.from ? item.from : mixColor(item.from, item.to, t);
     }
   }

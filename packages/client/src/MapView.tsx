@@ -1,4 +1,4 @@
-import type { DrawingDto, FloorDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
+import type { DrawingDto, EffectDto, FloorDto, SceneDto, TokenDto, VisionDto } from "@openvtt/shared";
 import { Application, Container, CullerPlugin, extensions, Graphics, Sprite, Text, Texture, type Ticker } from "pixi.js";
 // Pixi builds some drawing code at run time, which the server's Content-Security-Policy forbids; this swaps in the fixed versions.
 import "pixi.js/unsafe-eval";
@@ -11,7 +11,7 @@ import { applyTwoFingerGesture, type TwoFingerState, twoFingerState } from "./li
 import { paintShade, planShade, shadeSize } from "./lib/lighting";
 import { fitView, MAX_ZOOM, minZoomFor, type View, viewCenteredOn, ZOOM_STEP, zoomAround } from "./lib/mapCamera";
 import { buildMapData } from "./lib/mapData";
-import { playEffect, tokenChangeEffects } from "./lib/mapEffects";
+import { tokenChangeEffects } from "./lib/mapEffects";
 import { drawGrid, gridKey } from "./lib/mapGrid";
 import { assetIdsInUse, draggedCenter, dropToken, tokenCenter, zoomAtCursor } from "./lib/mapInteraction";
 import { MapPointerController } from "./lib/mapPointer";
@@ -30,6 +30,16 @@ import { MINIMAP_MAX_SIDE, minimapSize, sceneAt, visibleArea } from "./lib/minim
 import type { DiagonalRule, RulerShape } from "./lib/ruler";
 import type { Move } from "./lib/tableActions";
 import { type DrawSettings, type MapLayers, useTableUi } from "./tableStore";
+
+/** The drawing of effects is a chunk of its own; it starts downloading with the map, before the first effect needs it. */
+const effectScenes = () => import("./lib/effectScenes");
+
+/** Plays an effect once its drawing code is there, unless the map went away meanwhile. */
+function playEffect(app: Application, world: Container, effect: EffectDto, grid: number, reduced: boolean) {
+  void effectScenes().then((scenes) => {
+    if (!world.destroyed) scenes.playEffect(app, world, effect, grid, reduced);
+  });
+}
 
 /** How long after it was fired an effect still plays, and how many token changes play at once. */
 const EFFECT_FRESH_MS = 3000;
@@ -223,6 +233,7 @@ export function MapView(props: Props) {
           shownGrid: "",
         };
         bindInteractions(app, world, ruler, rulerLabel);
+        void effectScenes();
         useTableUi.setState({ mapCenter: () => world.toLocal({ x: app.screen.width / 2, y: app.screen.height / 2 }) });
         // The overview only needs to follow the view a few times a second.
         let lastMinimapDraw = 0;
@@ -749,8 +760,9 @@ export function MapView(props: Props) {
 
   // Effects the game master starts play once on every screen showing that floor; they stop with the map.
   const effect = useTableUi((ui) => ui.effect);
-  // An arrive effect the game master fired on a token already covers that token showing up, so it is not drawn twice.
-  const recentArrivals = useRef<{ x: number; y: number; at: number }[]>([]);
+  // An arrival, a hit or a healing the game master fired on a token already covers that token changing, so the
+  // same effect is not drawn twice.
+  const recentArrivals = useRef<{ kind: string; x: number; y: number; at: number }[]>([]);
   useEffect(() => {
     const e = engine.current;
     // An effect that is already old (the map was mounted again since it was fired) is not replayed.
@@ -758,7 +770,7 @@ export function MapView(props: Props) {
     if (effect.sceneId !== latest.current.scene?.id || effect.floorId !== latest.current.floor?.id) return;
     recentArrivals.current = [
       ...recentArrivals.current.filter((a) => Date.now() - a.at < 2000),
-      ...(effect.kind === "arrive" ? [effect] : []),
+      ...(effect.kind === "arrive" || effect.kind === "damage" || effect.kind === "heal" ? [effect] : []),
     ];
     // Each effect ends by itself, so a newer one never cuts an older one short.
     playEffect(e.app, e.world, effect, latest.current.scene.gridSize, matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -782,8 +794,9 @@ export function MapView(props: Props) {
     const changes = tokenChangeEffects(seen.tokens, floorTokens, currentScene.gridSize, !currentScene.visionEnabled)
       .filter(
         (change) =>
-          change.kind !== "arrive" ||
-          !recentArrivals.current.some((a) => now - a.at < 2000 && Math.hypot(a.x - change.x, a.y - change.y) < currentScene.gridSize / 4),
+          !recentArrivals.current.some(
+            (a) => a.kind === change.kind && now - a.at < 2000 && Math.hypot(a.x - change.x, a.y - change.y) < currentScene.gridSize / 4,
+          ),
       )
       .slice(0, MAX_TOKEN_EFFECTS);
     for (const change of changes)
