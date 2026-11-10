@@ -1639,7 +1639,7 @@ const EFFECTS: Record<EffectKind, Effect> = {
         }
         if (power <= 0) return;
         g.circle(0, 0, radius * power).fill({ color: 0xe8f2f8, alpha: 0.08 * power });
-        // Three arms of wind wind out from the eye, turning fast.
+        // Three arms of wind spiral out from the eye, turning fast.
         for (let arm = 0; arm < 3; arm++) {
           const base = s * 8 + (arm / 3) * TURN;
           for (const [width, alpha, shift] of [

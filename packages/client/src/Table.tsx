@@ -1,7 +1,7 @@
-import { AREA_EFFECTS, DEFAULT_LIGHT_FEATHER, floorOf, TRAVELLING_EFFECTS, type UserDto } from "@openvtt/shared";
+import { AREA_EFFECTS, DEFAULT_LIGHT_FEATHER, floorOf, type TokenDto, TRAVELLING_EFFECTS, type UserDto } from "@openvtt/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
-import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { api } from "./api";
@@ -159,6 +159,8 @@ export function Table({ worldId, user }: Props) {
     [worldId, move, isGmRole],
   );
   useEffect(() => useUndo.getState().clear, [worldId]);
+  // An effect acts on the tokens as they are when it lands, not as they were when it was fired.
+  const latestFloorTokens = useRef<TokenDto[]>([]);
 
   // The preview only makes sense for a player who is still in the world.
   const previewedPlayer = can.isGm ? state?.members.find((m) => m.role === "player" && m.userId === viewAsUserId) : undefined;
@@ -196,6 +198,7 @@ export function Table({ worldId, user }: Props) {
   const floorLights = floor?.lights.map(withoutId) ?? [];
   const saveLights = (next: LightInput[]) => floor && actions.changeLights(floor, next);
   const floorTokens = state.tokens.filter((tk) => tk.floorId === floor?.id);
+  latestFloorTokens.current = floorTokens;
   const selectedToken = state.tokens.find((tk) => tk.id === selectedTokenId) ?? null;
   // Tokens that vanished (deleted, out of sight) silently leave the selection.
   const selectedTokens = state.tokens.filter((tk) => selectedTokenIds.includes(tk.id));
@@ -331,11 +334,11 @@ export function Table({ worldId, user }: Props) {
                   send({ ...base, x: origin.x, y: origin.y, toX: at.x, toY: at.y, value });
                 } else send({ ...base, ...at, value });
                 if (!ui.effectAffects) return;
-                // The effect also acts on the tokens it lands on, at the moment it lands. Each change can be undone.
+                // The effect also acts on the tokens it lands on, at the moment it lands, so two effects in a row
+                // add up instead of the second one overwriting the first. Each change can be undone.
                 const amount = AMOUNT_EFFECTS.includes(kind) ? value : ui.effectDamage;
-                const hits = effectHits(kind, at, value, amount, floorTokens, scene);
-                if (hits.length === 0) return;
                 setTimeout(() => {
+                  const hits = effectHits(kind, at, value, amount, latestFloorTokens.current, scene);
                   for (const hit of hits)
                     if (Object.keys(hit.changes).length) void actions.changeToken(hit.token, hit.changes).catch(toastActionFailure);
                   const pushed = hits.flatMap(({ token, moveTo }) => (moveTo ? [{ token, ...moveTo }] : []));
