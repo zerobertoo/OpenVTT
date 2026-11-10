@@ -22,7 +22,7 @@
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "i18next": "^26.5.12",
+    "i18next": "^27.0.0",
     "lucide-react": "^1.70.0",
     "motion": "^14.10.1",
     "pixi-filters": "^6.1.5",
